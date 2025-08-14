@@ -1,0 +1,277 @@
+import { miroClient, MiroItem, MiroImageItem, MiroStickyNote } from './miroClient';
+import { logError } from './errorHandler';
+
+/**
+ * Miroボード上での高度なグループ化とレイアウト管理
+ */
+
+export interface UploadedItem {
+  imageId: string;
+  stickyNoteId: string;
+  groupId: string;
+  subjectId: string;
+  position: { x: number; y: number };
+  fileName: string;
+  imageHeight: number; // 画像の実際の高さを追加
+}
+
+export interface SubjectGroup {
+  subjectId: string;
+  subjectName: string;
+  items: UploadedItem[];
+  bounds: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+}
+
+/**
+ * 画像配置の基本設定（実際のMiroアイテムサイズに基づく）
+ */
+const LAYOUT_CONFIG = {
+  // 実際のMiroアイテムサイズ（miroClient.uploadImageで設定される値）
+  IMAGE_WIDTH: 400,           // 画像の実際の幅
+  IMAGE_HEIGHT: 300,          // 画像の実際の高さ
+  STICKY_NOTE_WIDTH: 200,     // 付箋の推定幅
+  STICKY_NOTE_HEIGHT: 120,    // 付箋の高さ
+  
+  // レイアウト間隔（実際のアイテムサイズ + 余白）
+  IMAGE_SPACING_X: 450,       // 画像幅400px + 余白50px
+  IMAGE_SPACING_Y: 380,       // 画像高さ300px + 付箋間隔 + 余白
+  STICKY_NOTE_OFFSET: 20,     // 画像と付箋の間隔
+  ITEMS_PER_ROW: 3,           // 1行あたりのアイテム数
+  
+  // グループ間隔設定
+  SUBJECT_GROUP_SPACING: 600, // 個人IDグループ間の間隔
+};
+
+/**
+ * 個人ID別に画像をグループ化してレイアウト
+ */
+export async function createSubjectBasedLayout(
+  boardId: string,
+  uploadItems: Array<{
+    imageId: string;
+    stickyNoteId: string;
+    groupId: string;
+    subjectId: string;
+    subjectName: string;
+    fileName: string;
+    imageHeight: number; // 画像の高さを受け取る
+  }>,
+  basePosition: { x: number; y: number } = { x: 0, y: 0 }
+): Promise<SubjectGroup[]> {
+  try {
+    // 個人ID別にアイテムをグループ化
+    const subjectGroups = new Map<string, SubjectGroup>();
+    
+    uploadItems.forEach(item => {
+      if (!subjectGroups.has(item.subjectId)) {
+        subjectGroups.set(item.subjectId, {
+          subjectId: item.subjectId,
+          subjectName: item.subjectName,
+          items: [],
+          bounds: { x: 0, y: 0, width: 0, height: 0 },
+        });
+      }
+      
+      const group = subjectGroups.get(item.subjectId)!;
+      group.items.push({
+        imageId: item.imageId,
+        stickyNoteId: item.stickyNoteId,
+        groupId: item.groupId,
+        subjectId: item.subjectId,
+        position: { x: 0, y: 0 }, // 後で計算
+        fileName: item.fileName,
+        imageHeight: item.imageHeight, // 画像の高さを格納
+      });
+    });
+
+    // 各個人IDグループのレイアウトを計算
+    const subjectGroupsArray = Array.from(subjectGroups.values());
+    let currentSubjectX = basePosition.x;
+    
+    for (let groupIndex = 0; groupIndex < subjectGroupsArray.length; groupIndex++) {
+      const subjectGroup = subjectGroupsArray[groupIndex];
+      const groupBaseY = basePosition.y;
+      
+      // グループ内でのアイテム配置
+      await layoutItemsInGroup(boardId, subjectGroup, {
+        x: currentSubjectX,
+        y: groupBaseY,
+      });
+      
+      // 次の個人IDグループの位置を計算
+      currentSubjectX += subjectGroup.bounds.width + LAYOUT_CONFIG.SUBJECT_GROUP_SPACING;
+    }
+
+    return subjectGroupsArray;
+  } catch (error) {
+    logError(error as Error, 'createSubjectBasedLayout');
+    throw error;
+  }
+}
+
+/**
+ * 1つの個人IDグループ内でアイテムをレイアウト
+ */
+async function layoutItemsInGroup(
+  boardId: string,
+  subjectGroup: SubjectGroup,
+  basePosition: { x: number; y: number }
+): Promise<void> {
+  const items = subjectGroup.items;
+  let maxWidth = 0;
+  let totalHeight = 0;
+  
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    const row = Math.floor(i / LAYOUT_CONFIG.ITEMS_PER_ROW);
+    const col = i % LAYOUT_CONFIG.ITEMS_PER_ROW;
+    
+    // アイテムの新しい位置を計算（画像の中心位置）
+    const newPosition = {
+      x: basePosition.x + col * LAYOUT_CONFIG.IMAGE_SPACING_X,
+      y: basePosition.y + row * LAYOUT_CONFIG.IMAGE_SPACING_Y,
+    };
+    
+    item.position = newPosition;
+    
+    try {
+      // 画像の位置を更新
+      await miroClient.patchItem(boardId, item.imageId, {
+        position: newPosition,
+      });
+
+      // 実際の画像の高さを取得（なければデフォルト値を使用）
+      const imageHeight = item.imageHeight || LAYOUT_CONFIG.IMAGE_HEIGHT;
+
+      // 付箋の位置を計算して更新（画像の下に配置）
+      const stickyNoteY = newPosition.y + 
+                        (imageHeight / 2) + 
+                        LAYOUT_CONFIG.STICKY_NOTE_OFFSET + 
+                        (LAYOUT_CONFIG.STICKY_NOTE_HEIGHT / 2);
+
+      await miroClient.patchItem(boardId, item.stickyNoteId, {
+        position: {
+          x: newPosition.x,
+          y: stickyNoteY,
+        },
+      });
+
+      // バウンディングボックスを正確に計算
+      const itemRight = newPosition.x + (LAYOUT_CONFIG.IMAGE_WIDTH / 2);
+      const itemBottom = newPosition.y + 
+                         (imageHeight / 2) + 
+                         LAYOUT_CONFIG.STICKY_NOTE_OFFSET + 
+                         LAYOUT_CONFIG.STICKY_NOTE_HEIGHT;
+      
+      maxWidth = Math.max(maxWidth, itemRight - basePosition.x);
+      totalHeight = Math.max(totalHeight, itemBottom - basePosition.y);
+      
+    } catch (error) {
+      logError(error as Error, `layoutItemsInGroup - item ${item.imageId}`);
+      // 個別のアイテム移動に失敗しても継続
+    }
+  }
+  
+  // グループのバウンディング情報を更新
+  subjectGroup.bounds = {
+    x: basePosition.x,
+    y: basePosition.y,
+    width: maxWidth,
+    height: totalHeight,
+  };
+}
+
+
+
+/**
+ * 同一個人IDの既存アイテムを検索
+ */
+export async function findExistingSubjectItems(
+  boardId: string,
+  subjectId: string
+): Promise<{ images: MiroImageItem[]; stickyNotes: MiroStickyNote[] }> {
+  try {
+    // 付箋を検索（メタデータから個人IDを抽出）
+    const allItems = await miroClient.searchItems(boardId, subjectId, 'sticky_note');
+    const stickyNotes = allItems.filter((item): item is MiroStickyNote => item.type === 'sticky_note');
+    
+    // 画像アイテムを取得（付箋の近くにある画像を探す）
+    const images: MiroImageItem[] = [];
+    for (const note of stickyNotes) {
+      const nearbyItems = await findNearbyImages(boardId, note.position, 300);
+      const nearbyImages = nearbyItems.filter((item): item is MiroImageItem => item.type === 'image');
+      images.push(...nearbyImages);
+    }
+    
+    return { images, stickyNotes };
+  } catch (error) {
+    logError(error as Error, 'findExistingSubjectItems');
+    return { images: [], stickyNotes: [] };
+  }
+}
+
+/**
+ * 指定位置の近くにある画像を検索
+ */
+async function findNearbyImages(
+  boardId: string,
+  position: { x: number; y: number },
+  radius: number
+): Promise<MiroItem[]> {
+  try {
+    const allImages = await miroClient.searchItems(boardId, undefined, 'image');
+    
+    return allImages.filter(image => {
+      if (!image.position) return false;
+      
+      const distance = Math.sqrt(
+        Math.pow(image.position.x - position.x, 2) +
+        Math.pow(image.position.y - position.y, 2)
+      );
+      
+      return distance <= radius;
+    });
+  } catch (error) {
+    logError(error as Error, 'findNearbyImages');
+    return [];
+  }
+}
+
+/**
+ * レイアウト統計情報を取得
+ */
+export function getLayoutStats(subjectGroups: SubjectGroup[]): {
+  totalSubjects: number;
+  totalItems: number;
+  layoutBounds: { x: number; y: number; width: number; height: number };
+} {
+  const totalItems = subjectGroups.reduce((sum, group) => sum + group.items.length, 0);
+  
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  
+  subjectGroups.forEach(group => {
+    minX = Math.min(minX, group.bounds.x);
+    minY = Math.min(minY, group.bounds.y);
+    maxX = Math.max(maxX, group.bounds.x + group.bounds.width);
+    maxY = Math.max(maxY, group.bounds.y + group.bounds.height);
+  });
+  
+  return {
+    totalSubjects: subjectGroups.length,
+    totalItems,
+    layoutBounds: {
+      x: minX === Infinity ? 0 : minX,
+      y: minY === Infinity ? 0 : minY,
+      width: maxX === -Infinity ? 0 : maxX - minX,
+      height: maxY === -Infinity ? 0 : maxY - minY,
+    },
+  };
+}

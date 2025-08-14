@@ -24,3 +24,153 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* レスポンシブ対応のベーススタイル */
+.mobile-layout {
+  font-size: 14px;
+}
+
+.tablet-layout {
+  font-size: 15px;
+}
+
+.desktop-layout {
+  font-size: 16px;
+}
+
+.mobile-container {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.tablet-container {
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+.desktop-container {
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
+/* スマートフォン向け最適化 */
+@media (max-width: 767px) {
+  /* タッチターゲットサイズの最適化 */
+  button, .btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* フォームコントロールの最適化 */
+  input, select, textarea {
+    font-size: 16px; /* ズーム防止 */
+  }
+  
+  /* 水平スクロール防止 */
+  * {
+    max-width: 100%;
+  }
+}
+
+/* タブレット向け最適化 */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .tablet-optimized {
+    /* タブレット特有のスタイル */
+  }
+}
+
+/* PC向け最適化 */
+@media (min-width: 1024px) {
+  .desktop-optimized {
+    /* デスクトップ特有のスタイル */
+  }
+}
+
+/* アクセシビリティ対応 */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* フォーカス表示の改善 */
+*:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* ボタンスタイルの統一 */
+.btn-primary {
+  @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200;
+}
+
+.btn-secondary {
+  @apply bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200;
+}
+
+.btn-outline {
+  @apply border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium py-2 px-4 rounded-md transition-colors duration-200;
+}
+
+/* カード系コンポーネント */
+.card {
+  @apply bg-white rounded-lg shadow-sm border border-gray-200 p-4;
+}
+
+.card-hover {
+  @apply hover:shadow-md hover:border-gray-300 transition-all duration-200;
+}
+
+/* 画像関連のスタイル */
+.image-preview {
+  @apply w-full h-auto rounded-md border border-gray-200;
+}
+
+.image-thumbnail {
+  @apply w-24 h-24 object-cover rounded-md border border-gray-200;
+}
+
+/* 入力フィールドの可読性向上 */
+input[type="text"], 
+input[type="email"], 
+input[type="password"], 
+input[type="search"], 
+input[type="url"], 
+input[type="tel"], 
+input[type="number"], 
+select, 
+textarea {
+  background-color: #ffffff !important;
+  color: #1f2937 !important;
+  border: 1px solid #d1d5db !important;
+}
+
+input[type="text"]:focus, 
+input[type="email"]:focus, 
+input[type="password"]:focus, 
+input[type="search"]:focus, 
+input[type="url"]:focus, 
+input[type="tel"]:focus, 
+input[type="number"]:focus, 
+select:focus, 
+textarea:focus {
+  background-color: #ffffff !important;
+  color: #1f2937 !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+}
+
+/* プレースホルダーテキストの可読性向上 */
+input::placeholder, 
+textarea::placeholder {
+  color: #6b7280 !important;
+  opacity: 1 !important;
+}
+
+/* 選択ボックスのオプション */
+select option {
+  background-color: #ffffff !important;
+  color: #1f2937 !important;
+}
