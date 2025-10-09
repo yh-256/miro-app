@@ -12,6 +12,7 @@ interface SearchRequestQuery {
   boardId: string;
   query?: string;
   subjectId?: string;
+  subjectName?: string;
   uploaderName?: string;
   dateFrom?: string;
   dateTo?: string;
@@ -32,6 +33,8 @@ export async function GET(request: NextRequest) {
       boardId: searchParams.get('boardId') || '',
       query: searchParams.get('query') || undefined,
       subjectId: searchParams.get('subjectId') || undefined,
+      // 互換性のために subjectName をオプション受け取り
+      subjectName: searchParams.get('subjectName') || undefined,
       uploaderName: searchParams.get('uploaderName') || undefined,
       dateFrom: searchParams.get('dateFrom') || undefined,
       dateTo: searchParams.get('dateTo') || undefined,
@@ -53,8 +56,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 検索条件が何も指定されていない場合
-    if (!params.query && !params.subjectId && !params.uploaderName) {
+    // 検索条件が何も指定されていない場合（ただし日付・タイプ指定がある場合はOK）
+    const hasDate = !!(params.dateFrom || params.dateTo);
+    const hasTypes = !!(params.itemTypes && params.itemTypes.trim().length > 0);
+    if (!params.query && !params.subjectId && !params.uploaderName && !hasDate && !hasTypes) {
       return NextResponse.json(
         {
           error: 'NO_SEARCH_CRITERIA',
@@ -66,7 +71,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const limit = parseInt(params.limit || '100') || 100;
+    const limit = parseInt(params.limit || '200') || 200;
     let searchResults: SearchResult;
 
     // 検索タイプに応じた検索実行
@@ -83,7 +88,8 @@ export async function GET(request: NextRequest) {
             { status: 400 }
           );
         }
-        searchResults = await searchBySubjectId(params.boardId, params.subjectId);
+        // 互換性：subjectName があれば併用
+        searchResults = await searchBySubjectId(params.boardId, params.subjectId, undefined, params.subjectName);
         break;
 
       case 'uploader':
@@ -107,6 +113,7 @@ export async function GET(request: NextRequest) {
         const criteria: SearchCriteria = {
           query: params.query,
           subjectId: params.subjectId,
+          subjectName: params.subjectName,
           uploaderName: params.uploaderName,
         };
 

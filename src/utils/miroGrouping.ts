@@ -1,5 +1,6 @@
-import { miroClient, MiroItem, MiroImageItem, MiroStickyNote } from './miroClient';
+import { miroClient, MiroImageItem, MiroStickyNote, IMiroClient } from './miroClient';
 import { logError } from './errorHandler';
+import { findNearbyItems } from './proximity';
 
 /**
  * Miroボード上での高度なグループ化とレイアウト管理
@@ -61,7 +62,8 @@ export async function createSubjectBasedLayout(
     fileName: string;
     imageHeight: number; // 画像の高さを受け取る
   }>,
-  basePosition: { x: number; y: number } = { x: 0, y: 0 }
+  basePosition: { x: number; y: number } = { x: 0, y: 0 },
+  client: IMiroClient = miroClient
 ): Promise<SubjectGroup[]> {
   try {
     // 個人ID別にアイテムをグループ化
@@ -101,7 +103,7 @@ export async function createSubjectBasedLayout(
       await layoutItemsInGroup(boardId, subjectGroup, {
         x: currentSubjectX,
         y: groupBaseY,
-      });
+      }, client);
       
       // 次の個人IDグループの位置を計算
       currentSubjectX += subjectGroup.bounds.width + LAYOUT_CONFIG.SUBJECT_GROUP_SPACING;
@@ -120,7 +122,8 @@ export async function createSubjectBasedLayout(
 async function layoutItemsInGroup(
   boardId: string,
   subjectGroup: SubjectGroup,
-  basePosition: { x: number; y: number }
+  basePosition: { x: number; y: number },
+  client: IMiroClient
 ): Promise<void> {
   const items = subjectGroup.items;
   let maxWidth = 0;
@@ -141,7 +144,7 @@ async function layoutItemsInGroup(
     
     try {
       // 画像の位置を更新
-      await miroClient.patchItem(boardId, item.imageId, {
+      await client.patchItem(boardId, item.imageId, {
         position: newPosition,
       });
 
@@ -154,7 +157,7 @@ async function layoutItemsInGroup(
                         LAYOUT_CONFIG.STICKY_NOTE_OFFSET + 
                         (LAYOUT_CONFIG.STICKY_NOTE_HEIGHT / 2);
 
-      await miroClient.patchItem(boardId, item.stickyNoteId, {
+      await client.patchItem(boardId, item.stickyNoteId, {
         position: {
           x: newPosition.x,
           y: stickyNoteY,
@@ -193,17 +196,18 @@ async function layoutItemsInGroup(
  */
 export async function findExistingSubjectItems(
   boardId: string,
-  subjectId: string
+  subjectId: string,
+  client: IMiroClient = miroClient
 ): Promise<{ images: MiroImageItem[]; stickyNotes: MiroStickyNote[] }> {
   try {
     // 付箋を検索（メタデータから個人IDを抽出）
-    const allItems = await miroClient.searchItems(boardId, subjectId, 'sticky_note');
+    const allItems = await client.searchItems(boardId, subjectId, 'sticky_note');
     const stickyNotes = allItems.filter((item): item is MiroStickyNote => item.type === 'sticky_note');
     
     // 画像アイテムを取得（付箋の近くにある画像を探す）
     const images: MiroImageItem[] = [];
     for (const note of stickyNotes) {
-      const nearbyItems = await findNearbyImages(boardId, note.position, 300);
+      const nearbyItems = await findNearbyItems(client, boardId, note.position, 'image', 300);
       const nearbyImages = nearbyItems.filter((item): item is MiroImageItem => item.type === 'image');
       images.push(...nearbyImages);
     }
@@ -218,29 +222,7 @@ export async function findExistingSubjectItems(
 /**
  * 指定位置の近くにある画像を検索
  */
-async function findNearbyImages(
-  boardId: string,
-  position: { x: number; y: number },
-  radius: number
-): Promise<MiroItem[]> {
-  try {
-    const allImages = await miroClient.searchItems(boardId, undefined, 'image');
-    
-    return allImages.filter(image => {
-      if (!image.position) return false;
-      
-      const distance = Math.sqrt(
-        Math.pow(image.position.x - position.x, 2) +
-        Math.pow(image.position.y - position.y, 2)
-      );
-      
-      return distance <= radius;
-    });
-  } catch (error) {
-    logError(error as Error, 'findNearbyImages');
-    return [];
-  }
-}
+// nearby images handled via utils/proximity.ts
 
 /**
  * レイアウト統計情報を取得

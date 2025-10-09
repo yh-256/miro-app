@@ -61,7 +61,14 @@ function SearchPageContent() {
       });
 
       if (searchData.query) params.append('query', searchData.query);
-      if (searchData.subjectId) params.append('subjectId', searchData.subjectId);
+      if (searchData.subjectId) {
+        params.append('subjectId', searchData.subjectId);
+        // 表示名を解決して subjectName も併送（既存ボード互換）
+        const found = availableSubjects.find(s => s.id === searchData.subjectId);
+        if (found?.name) {
+          params.append('subjectName', found.name);
+        }
+      }
       if (searchData.uploaderName) params.append('uploaderName', searchData.uploaderName);
       if (searchData.dateFrom) params.append('dateFrom', searchData.dateFrom);
       if (searchData.dateTo) params.append('dateTo', searchData.dateTo);
@@ -88,7 +95,7 @@ function SearchPageContent() {
     } finally {
       setIsSearching(false);
     }
-  }, [selectedBoard]);
+  }, [selectedBoard, availableSubjects]);
 
   // URLパラメータから初期検索条件を取得
   useEffect(() => {

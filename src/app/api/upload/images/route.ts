@@ -6,6 +6,7 @@ import { saveTempFile, deleteTempFiles, validateFileInfo, TempFileInfo, FileUplo
 import { updateSubjectLastUsed } from '@/utils/subjectStorage';
 import { createSubjectBasedLayout } from '@/utils/miroGrouping';
 import { UploadResponse } from '@/types';
+import { generateCorsHeaders } from '@/utils/securityConfig';
 
 interface UploadRequestBody {
   images: {
@@ -252,13 +253,14 @@ function getSubjectColor(subjectId: string): string {
 /**
  * OPTIONS /api/upload/images - CORS プリフライトリクエスト対応
  */
-export async function OPTIONS() {
+export async function OPTIONS(request: NextRequest) {
+  const origin = request.headers.get('origin') || undefined;
+  const cors = generateCorsHeaders(origin);
   return new NextResponse(null, {
     status: 200,
     headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
+      ...cors,
+      'Vary': 'Origin',
     },
   });
 }

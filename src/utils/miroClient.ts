@@ -50,9 +50,33 @@ export interface MiroGroup extends MiroItemBase {
 export type MiroItem = MiroImageItem | MiroStickyNote | MiroGroup;
 
 /**
+ * Miroクライアントの抽象インターフェース（テスト容易化/DI用）
+ */
+export interface IMiroClient {
+  request<T>(endpoint: string, options?: RequestInit): Promise<T>;
+  getBoards(limit?: number): Promise<MiroBoardInfo[]>;
+  getBoard(boardId: string): Promise<MiroBoardInfo>;
+  uploadImage(boardId: string, imageFile: File, position?: { x: number; y: number }): Promise<MiroImageItem>;
+  createStickyNote(
+    boardId: string,
+    content: string,
+    position: { x: number; y: number },
+    style?: { fillColor?: string; textAlign?: 'left' | 'center' | 'right' }
+  ): Promise<MiroStickyNote>;
+  patchItem(
+    boardId: string,
+    itemId: string,
+    body: { position?: { x: number; y: number }; parent?: { id: string } }
+  ): Promise<void>;
+  createGroup(boardId: string, payload: { data: { items: string[] } }): Promise<MiroGroup>;
+  searchItems(boardId: string, query?: string, type?: string): Promise<MiroItem[]>;
+  refreshAccessToken(refreshToken?: string): Promise<string>;
+}
+
+/**
  * Miro APIクライアント
  */
-export class MiroApiClient {
+export class MiroApiClient implements IMiroClient {
   private accessToken: string;
   private baseUrl = 'https://api.miro.com/v2';
 
@@ -357,20 +381,7 @@ export class MiroApiClient {
       }
 
       const response = await this.makeRequest<{ data: MiroItem[] }>(endpoint);
-      let items = response.data || [];
-
-      // クライアントサイドでのフィルタリング（簡易実装）
-      if (query) {
-        items = items.filter(item => {
-          if (item.type === 'sticky_note') {
-            const stickyNote = item as MiroStickyNote;
-            return stickyNote.data?.content?.toLowerCase().includes(query.toLowerCase());
-          }
-          return false;
-        });
-      }
-
-      return items;
+      return response.data || [];
     } catch (error) {
       logError(error as Error, 'MiroApiClient.searchItems');
       throw error;

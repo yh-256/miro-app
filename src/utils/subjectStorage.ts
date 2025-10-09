@@ -1,4 +1,5 @@
 import { Subject } from '@/types';
+import { toPlainText } from './text';
 
 /**
  * 個人IDデータの永続化管理
@@ -273,14 +274,15 @@ export const SEARCH_PATTERNS = {
  * 付箋コンテンツから個人ID情報を抽出（後方互換性付き）
  */
 export function extractPersonalIdFromContent(content: string): string | null {
+  const text = toPlainText(content);
   // まず新しい個人IDパターンを試す
-  const personalIdMatch = content.match(SEARCH_PATTERNS.PERSONAL_ID);
+  const personalIdMatch = text.match(SEARCH_PATTERNS.PERSONAL_ID);
   if (personalIdMatch) {
     return personalIdMatch[1].trim();
   }
   
   // 次に旧被写体パターンを試す（後方互換性）
-  const legacyMatch = content.match(SEARCH_PATTERNS.LEGACY_SUBJECT);
+  const legacyMatch = text.match(SEARCH_PATTERNS.LEGACY_SUBJECT);
   if (legacyMatch) {
     return legacyMatch[1].trim();
   }

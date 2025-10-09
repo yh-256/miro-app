@@ -80,6 +80,8 @@ export function SearchResults({
 
   const formatDate = (date?: Date) => {
     if (!date) return '不明';
+    const time = date.getTime();
+    if (Number.isNaN(time)) return '不明';
     return new Intl.DateTimeFormat('ja-JP', {
       year: 'numeric',
       month: 'short',

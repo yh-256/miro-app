@@ -94,15 +94,17 @@ function encryptSecret(text: string, key: string): string {
   if (!key || key.length < 32) {
     throw new Error('暗号化キーは32文字以上である必要があります');
   }
-  
-  const algorithm = 'aes-256-gcm';
-  const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipher(algorithm, key);
-  
-  let encrypted = cipher.update(text, 'utf8', 'hex');
-  encrypted += cipher.final('hex');
-  
-  return iv.toString('hex') + ':' + encrypted;
+
+  // AES-256-GCM を安全に利用（IV + authTag を付与）
+  const iv = crypto.randomBytes(12); // GCMでは12バイト推奨
+  const derivedKey = crypto.createHash('sha256').update(key).digest(); // 32 bytes
+  const cipher = crypto.createCipheriv('aes-256-gcm', derivedKey, iv);
+
+  const encrypted = Buffer.concat([cipher.update(text, 'utf8'), cipher.final()]);
+  const authTag = cipher.getAuthTag();
+
+  // iv:ciphertext:tag（hex）形式で返す
+  return `${iv.toString('hex')}:${encrypted.toString('hex')}:${authTag.toString('hex')}`;
 }
 
 /**
@@ -112,20 +114,26 @@ function decryptSecret(encryptedText: string, key: string): string {
   if (!key || key.length < 32) {
     throw new Error('復号化キーは32文字以上である必要があります');
   }
-  
-  const [ivHex, encrypted] = encryptedText.split(':');
-  if (!ivHex || !encrypted) {
-    throw new Error('無効な暗号化形式です');
+
+  const parts = encryptedText.split(':');
+
+  // 期待形式: iv:ciphertext:tag
+  if (parts.length === 3) {
+    const [ivHex, encHex, tagHex] = parts;
+    const iv = Buffer.from(ivHex, 'hex');
+    const ciphertext = Buffer.from(encHex, 'hex');
+    const authTag = Buffer.from(tagHex, 'hex');
+
+    const derivedKey = crypto.createHash('sha256').update(key).digest();
+    const decipher = crypto.createDecipheriv('aes-256-gcm', derivedKey, iv);
+    decipher.setAuthTag(authTag);
+
+    const decrypted = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+    return decrypted.toString('utf8');
   }
-  
-  const algorithm = 'aes-256-gcm';
-  // const _iv = Buffer.from(ivHex, 'hex'); // 現在は使用していない
-  const decipher = crypto.createDecipher(algorithm, key);
-  
-  let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-  decrypted += decipher.final('utf8');
-  
-  return decrypted;
+
+  // レガシー形式（iv:ciphertext 等）には対応しない
+  throw new Error('無効な暗号化形式です');
 }
 
 /**
