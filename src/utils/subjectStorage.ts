@@ -22,7 +22,10 @@ export async function fetchSubjects(query?: string): Promise<Subject[]> {
     throw new Error((await response.json().catch(() => ({}))).message ?? '個人IDの取得に失敗しました。');
   }
 
-  const data = (await response.json()) as { subjects: Array<{ id: string; name: string; createdAt: string }>; message?: string };
+  const data = (await response.json()) as {
+    subjects: Array<{ id: string; name: string; createdAt: string; lastUsedAt?: string }>;
+    message?: string;
+  };
   return data.subjects.map(subject => ({
     id: subject.id,
     name: subject.name,
@@ -46,7 +49,7 @@ export async function createSubject(name: string): Promise<Subject> {
     throw new Error(data.message ?? '個人IDの作成に失敗しました。');
   }
 
-  const subject = data.subject as { id: string; name: string; createdAt: string };
+  const subject = data.subject as { id: string; name: string; createdAt: string; lastUsedAt?: string };
   return {
     id: subject.id,
     name: subject.name,

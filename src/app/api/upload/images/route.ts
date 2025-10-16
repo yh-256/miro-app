@@ -104,7 +104,11 @@ export async function POST(request: NextRequest) {
     const uploadedImages = [];
     for (const { tempFile, metadata: imageMetadata } of validFilesInfo) {
       const fileBuffer = await fs.readFile(tempFile.path);
-      const file = new File([fileBuffer], tempFile.originalName, { type: tempFile.mimetype });
+      const arrayBuffer = fileBuffer.buffer.slice(
+        fileBuffer.byteOffset,
+        fileBuffer.byteOffset + fileBuffer.byteLength
+      ) as ArrayBuffer;
+      const file = new File([arrayBuffer], tempFile.originalName, { type: tempFile.mimetype });
       const uploadedImage = await miroClient.uploadImage(boardId, file, basePosition);
       uploadedImages.push({ 
         image: uploadedImage, 
