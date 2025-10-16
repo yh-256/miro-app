@@ -8,10 +8,13 @@
     "start": "next start",
     "lint": "next lint",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev"
   },
   "dependencies": {
     "@mirohq/websdk-types": "^2.16.1",
+    "@prisma/client": "^5.17.0",
     "formidable": "^3.5.4",
     "multer": "^2.0.2",
     "next": "15.4.4",
@@ -31,6 +34,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "prisma": "^5.17.0",
     "eslint": "^9",
     "eslint-config-next": "15.4.4",
     "jest": "^30.0.5",

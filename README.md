@@ -115,14 +115,29 @@ miro-app/
 - Node.js 18.17以上
 - npm, yarn, pnpm, または bun
 
-### 2. 依存関係のインストール
+### 2. データベースの準備
+- ローカルに PostgreSQL をインストールし、開発用データベースとユーザーを作成
+  ```bash
+  createdb miro_app_dev
+  # 例: psql -c "CREATE USER miro_app WITH PASSWORD 'password';"
+  ```
+- `.env.local` の `DATABASE_URL` をローカル環境に合わせて設定
+  ```
+  DATABASE_URL=postgres://ユーザー:パスワード@localhost:5432/miro_app_dev
+  ```
+- 初回は Prisma クライアントを生成
+  ```bash
+  npm run prisma:generate
+  ```
+
+### 3. 依存関係のインストール
 ```bash
 npm install
 # または
 yarn install
 ```
 
-### 3. 環境変数の設定
+### 4. 環境変数の設定
 `.env.local`ファイルを作成し、以下の環境変数を設定：
 
 ```bash
@@ -151,9 +166,12 @@ CLEANUP_INTERVAL=3600000
 TOKEN_EXPIRATION_CHECK=true
 RUNTIME_VALIDATION=true
 SECRET_ROTATION_INTERVAL=2592000000
+
+# データベース設定
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/miro_app_dev
 ```
 
-### 4. 開発サーバー起動
+### 5. 開発サーバー起動
 ```bash
 npm run dev
 # または
