@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { addSubject, isSubjectNameExists } from '@/utils/subjectStorage';
 import { logError } from '@/utils/errorHandler';
+import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 interface CreateSubjectRequest {
   name: string;
@@ -12,6 +13,7 @@ interface CreateSubjectResponse {
     id: string;
     name: string;
     createdAt: string;
+    lastUsedAt?: string;
   };
   error?: string;
   message?: string;
@@ -62,31 +64,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 重複チェック
-    if (isSubjectNameExists(trimmedName)) {
-      return NextResponse.json(
-        { 
-          success: false,
-          error: 'DUPLICATE_NAME',
-          message: 'この個人ID名は既に存在します。' 
-        } as CreateSubjectResponse,
-        { status: 409 }
-      );
+    try {
+      const newSubject = await prisma.subject.create({
+        data: {
+          name: trimmedName,
+          lastUsedAt: new Date(),
+        },
+      });
+
+      const response: CreateSubjectResponse = {
+        success: true,
+        subject: {
+          id: newSubject.id,
+          name: newSubject.name,
+          createdAt: newSubject.createdAt.toISOString(),
+          lastUsedAt: newSubject.lastUsedAt?.toISOString(),
+        },
+      };
+
+      return NextResponse.json(response, { status: 201 });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'DUPLICATE_NAME',
+            message: 'この個人ID名は既に存在します。',
+          } as CreateSubjectResponse,
+          { status: 409 }
+        );
+      }
+      throw error;
     }
-
-    // 個人IDを作成
-    const newSubject = addSubject(trimmedName);
-
-    const response: CreateSubjectResponse = {
-      success: true,
-      subject: {
-        id: newSubject.id,
-        name: newSubject.name,
-        createdAt: newSubject.createdAt.toISOString(),
-      },
-    };
-
-    return NextResponse.json(response, { status: 201 });
 
   } catch (error) {
     logError(error as Error, 'POST /api/subjects/create');

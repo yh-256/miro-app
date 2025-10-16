@@ -7,7 +7,7 @@ import { SearchForm, SearchFormData } from '@/components/SearchForm';
 import { SearchResults } from '@/components/SearchResults';
 import { BoardSelector } from '@/components/BoardSelector';
 import { SearchResult, SearchResultItem, getSearchStats } from '@/utils/searchService';
-import { getStoredSubjects } from '@/utils/subjectStorage';
+import { fetchSubjects as fetchSubjectsFromApi } from '@/utils/subjectStorage';
 
 interface Board {
   id: string;
@@ -27,12 +27,11 @@ function SearchPageContent() {
 
   const searchParams = useSearchParams();
 
-  // 個人ID一覧の取得（ローカルストレージから直接取得）
+  // 個人ID一覧の取得
   const fetchSubjects = async () => {
     try {
-      // ローカルストレージから直接個人IDデータを取得
-      const storedSubjects = getStoredSubjects();
-      setAvailableSubjects(storedSubjects.map((subject: { id: string; name: string; createdAt: Date; lastUsedAt: Date }) => ({
+      const subjects = await fetchSubjectsFromApi();
+      setAvailableSubjects(subjects.map(subject => ({
         id: subject.id,
         name: subject.name
       })));

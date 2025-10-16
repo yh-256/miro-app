@@ -51,6 +51,7 @@ export interface SubjectListResponse {
     id: string;
     name: string;
     createdAt: string;
+    lastUsedAt?: string;
   }>;
   success?: boolean;
   error?: string;

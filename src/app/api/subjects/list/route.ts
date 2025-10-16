@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getStoredSubjects, searchSubjects } from '@/utils/subjectStorage';
 import { SubjectListResponse } from '@/types';
 import { logError } from '@/utils/errorHandler';
+import { prisma } from '@/lib/prisma';
 
 /**
  * GET /api/subjects/list - 個人ID一覧を取得
@@ -11,8 +11,24 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('query') || '';
 
-    // 個人IDデータを取得
-    const subjects = query ? searchSubjects(query) : getStoredSubjects();
+    const subjects = await prisma.subject.findMany({
+      where: query
+        ? {
+            name: {
+              contains: query,
+              mode: 'insensitive',
+            },
+          }
+        : undefined,
+      orderBy: [
+        {
+          lastUsedAt: 'desc',
+        },
+        {
+          createdAt: 'desc',
+        },
+      ],
+    });
 
     // レスポンス形式に変換
     const response: SubjectListResponse = {
@@ -20,6 +36,7 @@ export async function GET(request: NextRequest) {
         id: subject.id,
         name: subject.name,
         createdAt: subject.createdAt.toISOString(),
+        lastUsedAt: subject.lastUsedAt?.toISOString(),
       })),
     };
 

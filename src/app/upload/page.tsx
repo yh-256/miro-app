@@ -8,7 +8,7 @@ import { MetadataForm } from '@/components/MetadataForm';
 import { BoardSelector } from '@/components/BoardSelector';
 import { UploadProgress, UPLOAD_STEPS } from '@/components/UploadProgress';
 import { ProgressStep } from '@/types';
-import { getStoredSubjects } from '@/utils/subjectStorage';
+import { fetchSubjects as fetchSubjectsFromApi } from '@/utils/subjectStorage';
 
 interface Board {
   id: string;
@@ -87,7 +87,7 @@ export default function UploadPage() {
       ]);
 
       // アップロードデータを変換
-      const subjects = getStoredSubjects();
+      const subjects = await fetchSubjectsFromApi();
       const subjectMap = new Map(subjects.map(s => [s.id, s.name]));
       
       console.log('[DEBUG] Available subjects:', subjects);

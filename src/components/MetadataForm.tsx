@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useDeviceDetection } from '@/utils/deviceDetection';
-import { getStoredSubjects, addSubject } from '@/utils/subjectStorage';
+import { createSubject as createSubjectViaApi, fetchSubjects as fetchSubjectsFromApi, sortSubjectsByUsage } from '@/utils/subjectStorage';
 
 interface Subject {
   id: string;
@@ -64,10 +64,8 @@ export function MetadataForm({
       setLoading(true);
       setError(null);
 
-      // localStorage から直接個人IDデータを取得
-      const storedSubjects = getStoredSubjects();
-      console.log('[DEBUG MetadataForm] Loaded personal IDs from localStorage:', storedSubjects);
-      setSubjects(storedSubjects);
+      const storedSubjects = await fetchSubjectsFromApi();
+      setSubjects(sortSubjectsByUsage(storedSubjects));
 
     } catch (err) {
       console.error('Failed to fetch subjects:', err);
@@ -96,12 +94,10 @@ export function MetadataForm({
     try {
       setCreatingSubject(true);
       
-      // localStorage に直接個人IDを追加
-      const newSubject = addSubject(newSubjectName.trim());
-      console.log('[DEBUG MetadataForm] Created new personal ID:', newSubject);
+      const newSubject = await createSubjectViaApi(newSubjectName.trim());
       
       // 新しい個人IDを一覧に追加
-      setSubjects(prev => [newSubject, ...prev]);
+      setSubjects(prev => sortSubjectsByUsage([newSubject, ...prev]));
       setNewSubjectName('');
       setShowNewSubjectForm(false);
       
