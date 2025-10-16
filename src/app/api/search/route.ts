@@ -7,6 +7,8 @@ import {
   SearchResult
 } from '@/utils/searchService';
 import { ErrorHandler, logError } from '@/utils/errorHandler';
+import { prisma } from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
 
 interface SearchRequestQuery {
   boardId: string;
@@ -144,9 +146,11 @@ export async function GET(request: NextRequest) {
     }
 
     // 成功レスポンス
+    const enrichedResults = await enrichSearchResultsWithDatabase(searchResults);
+
     return NextResponse.json({
       success: true,
-      results: searchResults,
+      results: enrichedResults,
       searchCriteria: {
         boardId: params.boardId,
         query: params.query,
@@ -217,10 +221,11 @@ export async function POST(request: NextRequest) {
 
     // 検索実行
     const searchResults = await searchBoardItems(boardId, searchCriteria, limit);
+    const enrichedResults = await enrichSearchResultsWithDatabase(searchResults);
 
     return NextResponse.json({
       success: true,
-      results: searchResults,
+      results: enrichedResults,
       searchCriteria: {
         boardId,
         ...searchCriteria,
@@ -242,6 +247,109 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+async function enrichSearchResultsWithDatabase(results: SearchResult): Promise<SearchResult> {
+  if (results.items.length === 0) {
+    return results;
+  }
+
+  const imageIds = results.items.filter(item => item.type === 'image').map(item => item.id);
+  const stickyIds = results.items.filter(item => item.type === 'sticky_note').map(item => item.id);
+  const groupIds = results.items.filter(item => item.type === 'group').map(item => item.id);
+
+  const conditions: Prisma.UploadedItemWhereInput[] = [];
+  if (imageIds.length > 0) {
+    conditions.push({ miroImageId: { in: imageIds } });
+  }
+  if (stickyIds.length > 0) {
+    conditions.push({ miroStickyId: { in: stickyIds } });
+  }
+  if (groupIds.length > 0) {
+    conditions.push({ miroGroupId: { in: groupIds } });
+  }
+
+  if (conditions.length === 0) {
+    return results;
+  }
+
+  const uploadedItems = await prisma.uploadedItem.findMany({
+    where: {
+      OR: conditions,
+    },
+    include: {
+      subject: true,
+      session: true,
+    },
+  });
+
+  const mapByImageId = new Map<string, typeof uploadedItems[number]>();
+  const mapByStickyId = new Map<string, typeof uploadedItems[number]>();
+  const mapByGroupId = new Map<string, typeof uploadedItems[number]>();
+
+  for (const item of uploadedItems) {
+    if (item.miroImageId) {
+      mapByImageId.set(item.miroImageId, item);
+    }
+    if (item.miroStickyId) {
+      mapByStickyId.set(item.miroStickyId, item);
+    }
+    if (item.miroGroupId) {
+      mapByGroupId.set(item.miroGroupId, item);
+    }
+  }
+
+  const enrichedItems = results.items.map(resultItem => {
+    let dbRecord:
+      | typeof uploadedItems[number]
+      | undefined = undefined;
+
+    if (resultItem.type === 'image') {
+      dbRecord = mapByImageId.get(resultItem.id);
+    } else if (resultItem.type === 'sticky_note') {
+      dbRecord =
+        mapByStickyId.get(resultItem.id) ??
+        (resultItem.groupedItems
+          ? resultItem.groupedItems
+              .map(id => mapByImageId.get(id) ?? mapByStickyId.get(id))
+              .find(Boolean)
+          : undefined);
+    } else if (resultItem.type === 'group') {
+      dbRecord =
+        mapByGroupId.get(resultItem.id) ??
+        (resultItem.groupedItems
+          ? resultItem.groupedItems
+              .map(id => mapByImageId.get(id) ?? mapByStickyId.get(id))
+              .find(Boolean)
+          : undefined);
+    }
+
+    if (!dbRecord) {
+      return resultItem;
+    }
+
+    const mergedMetadata = {
+      ...(resultItem.metadata ?? {}),
+      subjectId: dbRecord.subjectId ?? resultItem.metadata?.subjectId,
+      subjectName: dbRecord.subject?.name ?? resultItem.metadata?.subjectName,
+      uploaderName: dbRecord.session?.uploaderName ?? resultItem.metadata?.uploaderName,
+      uploadedAt: dbRecord.session?.createdAt ?? resultItem.metadata?.uploadedAt,
+      fileName: dbRecord.fileName ?? resultItem.metadata?.fileName,
+      sessionId: dbRecord.session?.sessionId ?? resultItem.metadata?.sessionId,
+      fileSize: dbRecord.fileSize ?? resultItem.metadata?.fileSize,
+      mimeType: dbRecord.mimeType ?? resultItem.metadata?.mimeType,
+    };
+
+    return {
+      ...resultItem,
+      metadata: mergedMetadata,
+    };
+  });
+
+  return {
+    ...results,
+    items: enrichedItems,
+  };
 }
 
 /**

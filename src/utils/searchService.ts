@@ -35,6 +35,8 @@ export interface SearchResultItem {
     uploadedAt?: Date;
     fileName?: string;
     sessionId?: string;
+    fileSize?: number;
+    mimeType?: string;
   };
   content?: string;
   imageUrl?: string;

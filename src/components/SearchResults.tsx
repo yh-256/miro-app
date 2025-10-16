@@ -91,6 +91,18 @@ export function SearchResults({
     }).format(date);
   };
 
+  const formatFileSize = (size?: number) => {
+    if (!size || size <= 0) return null;
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let value = size;
+    let unitIndex = 0;
+    while (value >= 1024 && unitIndex < units.length - 1) {
+      value /= 1024;
+      unitIndex++;
+    }
+    return `${value.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+  };
+
   if (results.totalCount === 0) {
     return (
       <div className={`bg-white border border-gray-200 rounded-lg p-8 text-center ${className}`}>
@@ -191,6 +203,7 @@ export function SearchResults({
                 highlightText={highlightText}
                 getItemTypeIcon={getItemTypeIcon}
                 formatDate={formatDate}
+                formatFileSize={formatFileSize}
               />
             ))}
           </div>
@@ -205,6 +218,7 @@ export function SearchResults({
                 highlightText={highlightText}
                 getItemTypeIcon={getItemTypeIcon}
                 formatDate={formatDate}
+                formatFileSize={formatFileSize}
               />
             ))}
           </div>
@@ -242,6 +256,7 @@ function SearchResultCard({
   highlightText,
   getItemTypeIcon,
   formatDate,
+  formatFileSize,
 }: {
   item: SearchResultItem;
   searchQuery: string;
@@ -249,6 +264,7 @@ function SearchResultCard({
   highlightText: (text: string, query: string) => React.ReactNode;
   getItemTypeIcon: (type: string) => React.ReactNode;
   formatDate: (date?: Date) => string;
+  formatFileSize: (size?: number) => string | null;
 }) {
   const handleClick = () => {
     onItemClick?.(item);
@@ -293,6 +309,9 @@ function SearchResultCard({
 
       {/* メタデータ */}
       <div className="text-xs text-gray-600 space-y-1">
+        {item.metadata?.subjectId && (
+          <div>ID: {item.metadata.subjectId}</div>
+        )}
         {item.metadata?.subjectName && (
           <div>個人ID: {highlightText(item.metadata.subjectName, searchQuery)}</div>
         )}
@@ -302,7 +321,14 @@ function SearchResultCard({
         {item.metadata?.fileName && (
           <div>ファイル: {item.metadata.fileName}</div>
         )}
-        <div>更新: {formatDate(item.metadata?.uploadedAt)}</div>
+        {(() => {
+          const formattedSize = formatFileSize(item.metadata?.fileSize);
+          return formattedSize ? <div>サイズ: {formattedSize}</div> : null;
+        })()}
+        {item.metadata?.mimeType && (
+          <div>MIME: {item.metadata.mimeType}</div>
+        )}
+        <div>アップロード: {formatDate(item.metadata?.uploadedAt)}</div>
       </div>
     </div>
   );
@@ -316,6 +342,7 @@ function SearchResultListItem({
   highlightText,
   getItemTypeIcon,
   formatDate,
+  formatFileSize,
 }: {
   item: SearchResultItem;
   searchQuery: string;
@@ -323,6 +350,7 @@ function SearchResultListItem({
   highlightText: (text: string, query: string) => React.ReactNode;
   getItemTypeIcon: (type: string) => React.ReactNode;
   formatDate: (date?: Date) => string;
+  formatFileSize: (size?: number) => string | null;
 }) {
   const handleClick = () => {
     onItemClick?.(item);
@@ -370,6 +398,9 @@ function SearchResultListItem({
         )}
 
         <div className="flex flex-wrap gap-4 text-xs text-gray-600">
+          {item.metadata?.subjectId && (
+            <span>ID: {item.metadata.subjectId}</span>
+          )}
           {item.metadata?.subjectName && (
             <span>個人ID: {highlightText(item.metadata.subjectName, searchQuery)}</span>
           )}
@@ -378,6 +409,13 @@ function SearchResultListItem({
           )}
           {item.metadata?.fileName && (
             <span>ファイル: {item.metadata.fileName}</span>
+          )}
+          {(() => {
+            const formattedSize = formatFileSize(item.metadata?.fileSize);
+            return formattedSize ? <span>サイズ: {formattedSize}</span> : null;
+          })()}
+          {item.metadata?.mimeType && (
+            <span>MIME: {item.metadata.mimeType}</span>
           )}
         </div>
       </div>
