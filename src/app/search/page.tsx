@@ -83,7 +83,8 @@ function SearchPageContent() {
       }
 
       if (data.success) {
-        setSearchResults(data.results);
+        const normalizedResults = normalizeSearchResults(data.results);
+        setSearchResults(normalizedResults);
       } else {
         throw new Error(data.message || '検索結果の取得に失敗しました。');
       }
@@ -278,6 +279,23 @@ function SearchPageContent() {
       </div>
     </Layout>
   );
+}
+
+function normalizeSearchResults(results: SearchResult): SearchResult {
+  return {
+    ...results,
+    items: results.items.map(item => ({
+      ...item,
+      metadata: item.metadata
+        ? {
+            ...item.metadata,
+            uploadedAt: item.metadata.uploadedAt
+              ? new Date(item.metadata.uploadedAt)
+              : undefined,
+          }
+        : undefined,
+    })),
+  };
 }
 
 export default function SearchPage() {
