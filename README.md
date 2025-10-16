@@ -4,10 +4,10 @@
 
 ## 🎯 プロジェクト状況
 
-- 🚧 **実装完成度**: コアフローは動作するが一部機能は未実装・改善予定
+- 🚧 **実装完成度**: アップロード～検索までのDB連携は動作、ただしページングや履歴UIは未実装
 - ✅ **TypeScriptエラー**: 0件（現状）
 - ✅ **ESLintエラー・警告**: 0件  
-- ⚠️ **Production Ready**: 本番運用前提では未完成（ローカルストレージ依存など改善予定）
+- ⚠️ **Production Ready**: 本番運用前提では未完成（検索件数制限・セキュリティ強化など改善予定）
 
 ## 📋 主要機能
 
@@ -18,11 +18,11 @@
 - **プレビュー機能**: アップロード前の画像確認・編集
 
 ### 2. メタデータ管理
-- **個人ID管理**: 個人IDの新規作成・選択機能（現在はブラウザの`localStorage`に保存）
+- **個人ID管理**: 個人IDの新規作成・選択機能（PostgreSQLに永続化）
 - **アップロード者情報**: 撮影者名の任意入力
-- **セッション管理**: UI上でセッションIDを付与（サーバー永続化は未実装）
-- **自動メタデータ**: アップロード日時・ファイル名の表示
-- 🔜 **サーバー永続化**: Supabase等の外部DBへデータを保存する計画あり
+- **セッション管理**: アップロードセッションをDBに保存し、検索結果に活用
+- **自動メタデータ**: アップロード日時・ファイル名・ファイルサイズなどを記録
+- 🔜 **管理UI強化**: セッション履歴画面や編集機能は今後実装予定
 
 ### 3. Miroボード連携
 - **自動配置**: 画像とメタデータ付箋の自動配置
@@ -32,7 +32,8 @@
 
 ### 4. 検索・閲覧機能
 - **検索フォーム**: キーワード・個人ID・アップロード者での検索UI
-- ⚠️ **実装制限**: 現状はMiro APIから最大50件を取得しローカルでフィルタしているため、大規模ボードでは結果が欠落する可能性あり（ページング対応を改善予定）
+- ⚠️ **実装制限**: Miro APIから最大50件を取得しローカルでフィルタしているため、大規模ボードでは結果が欠落する可能性あり（ページング対応を改善予定）
+- **DB連携メタデータ**: 検索結果にファイルサイズ・MIMEタイプ・セッション情報などDB由来の情報を付与
 - **詳細検索UI**: 日付range・アイテムタイプの入力欄を提供（Miro API制限により完全反映は今後の課題）
 - **ボード表示**: Miroボードの埋め込み表示・直接リンク
 - **レスポンシブ対応**: スマートフォン・PC・タブレット対応
@@ -68,7 +69,10 @@
   `src/utils/miroClient.ts` でAPIクライアントを実装。画像アップロード・付箋作成・アイテム検索などを行い、ボード上のレイアウトもMiro API経由で調整。
 
 - **ファイルアップロード周り（Formidable / Node File API）**  
-  API Routeで送られてきたBase64画像を一時ファイルに保存し、Miroへ転送。`fileValidation.ts` で簡易的なサイズ・形式チェックを実施。
+  API Routeで送られてきたBase64画像を一時ファイルに保存し、Miroへ転送。`fileValidation.ts` で簡易的なサイズ・形式チェックを実施し、完了後にDBへ記録。
+
+- **PostgreSQL + Prisma**  
+  ローカルPostgreSQLに接続し、Prismaでスキーマを管理。`subjects` / `upload_sessions` / `uploaded_items` テーブルを通じて個人IDやアップロード履歴を永続化し、検索にも活用。
 
 - **ミドルウェア / セキュリティ対策**  
   `middleware.ts` でCORSやレート制限、セキュリティヘッダーを付与。`utils/config.ts` で環境変数の厳格なバリデーションを行う。
@@ -84,9 +88,9 @@ miro-app/
 │   ├── app/                 # Next.js App Router
 │   │   ├── api/            # API Routes
 │   │   │   ├── boards/     # ボード関連API
-│   │   │   ├── subjects/   # 個人ID管理API（現在はlocalStorage依存）
-│   │   │   ├── upload/     # アップロードAPI
-│   │   │   └── search/     # 検索API（最大50件まで取得）
+│   │   │   ├── subjects/   # 個人ID管理API（PostgreSQL + Prisma）
+│   │   │   ├── upload/     # アップロードAPI（アップロード結果をDBに保存）
+│   │   │   └── search/     # 検索API（Miro APIとDBを組み合わせてメタデータを返却）
 │   │   ├── board/          # ボード表示ページ
 │   │   ├── search/         # 検索ページ  
 │   │   └── upload/         # アップロードページ
@@ -125,10 +129,15 @@ miro-app/
   ```
   DATABASE_URL=postgres://ユーザー:パスワード@localhost:5432/miro_app_dev
   ```
-- 初回は Prisma クライアントを生成
+- Prisma クライアントを生成
   ```bash
   npm run prisma:generate
   ```
+- マイグレーションを適用  
+  ```bash
+  npm run prisma:migrate --name init
+  ```
+  ※ 権限エラーが出る場合は `ALTER ROLE miro_app CREATEDB;` などで shadow DB 作成権限を付与してください。
 
 ### 3. 依存関係のインストール
 ```bash
@@ -204,6 +213,51 @@ bun dev
 - 使用頻度による自動ソート
 - 重複チェック機能
 
+## 🗃 データベース設計
+
+```mermaid
+erDiagram
+  Subject {
+    String id PK
+    String name
+    Date created_at
+    Date last_used_at
+  }
+
+  UploadSession {
+    String id PK
+    String session_id
+    String board_id
+    String uploader_name
+    Date created_at
+  }
+
+  UploadedItem {
+    String id PK
+    String session_id FK
+    String subject_id FK
+    String miro_image_id
+    String miro_sticky_id
+    String miro_group_id
+    String file_name
+    Int    file_size
+    String mime_type
+    Int    image_width
+    Int    image_height
+    Float  position_x
+    Float  position_y
+    Date   created_at
+    Date   updated_at
+  }
+
+  Subject ||--o{ UploadedItem : "uploads"
+  UploadSession ||--o{ UploadedItem : "items"
+```
+
+- **subjects**: 個人IDを管理。`last_used_at` を更新することで頻出順ソートに利用。
+- **upload_sessions**: 1回のアップロード処理を表すレコード。MiroボードID・送信者名を保持。
+- **uploaded_items**: アップロードされた各画像／付箋を保存。MiroアイテムIDやファイル情報を検索時に利用。
+
 ## 🔌 API仕様
 
 ### ボード一覧取得
@@ -258,6 +312,29 @@ Parameters: {
   dateTo?: string;
   itemTypes?: string[];
   limit?: number;
+}
+
+Response（一部）: {
+  success: boolean;
+  results: {
+    items: Array<{
+      id: string;
+      type: 'image' | 'sticky_note' | 'group';
+      metadata?: {
+        subjectId?: string;
+        subjectName?: string;
+        uploaderName?: string;
+        uploadedAt?: string;
+        fileName?: string;
+        sessionId?: string;
+        fileSize?: number;
+        mimeType?: string;
+      };
+      // ...
+    }>;
+    totalCount: number;
+    hasMore: boolean;
+  };
 }
 ```
 
@@ -328,10 +405,10 @@ npm run start
 
 ## 🔜 今後の予定
 
-- Supabaseなど外部データベースへの移行（個人ID・アップロード履歴の永続化）
-- Miro API検索のページング対応と結果精度向上
-- 個人IDごとのフレーム自動生成やレイアウト最適化
+- 検索APIのページング対応と、大規模ボード対応の強化
+- アップロード履歴ビューや管理UIの追加
 - 暗号化ユーティリティの本格導入とSecrets管理強化
+- Prisma/DB を利用した統合テストとCI整備
 
 ## 📊 システム要件
 
