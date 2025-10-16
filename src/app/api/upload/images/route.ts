@@ -3,10 +3,11 @@ import { promises as fs } from 'fs';
 import { miroClient } from '@/utils/miroClient';
 import { ErrorHandler, logError } from '@/utils/errorHandler';
 import { saveTempFile, deleteTempFiles, validateFileInfo, TempFileInfo, FileUploadError, formatBytes } from '@/utils/fileUpload';
-import { updateSubjectLastUsed } from '@/utils/subjectStorage';
 import { createSubjectBasedLayout } from '@/utils/miroGrouping';
 import { UploadResponse } from '@/types';
 import { generateCorsHeaders } from '@/utils/securityConfig';
+import { prisma } from '@/lib/prisma';
+import type { Prisma } from '@prisma/client';
 
 interface UploadRequestBody {
   images: {
@@ -86,7 +87,18 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Miroボードへのアップロード処理
-    const uploadedItems = [];
+    const uploadedItems: Array<{
+      imageId: string;
+      stickyNoteId: string;
+      groupId: string;
+      subjectId: string;
+      subjectName: string;
+      fileName: string;
+      imageHeight: number;
+      imageWidth: number;
+      fileSize: number;
+      mimeType: string;
+    }> = [];
     const basePosition = generateRandomBasePosition();
 
     const uploadedImages = [];
@@ -132,8 +144,10 @@ export async function POST(request: NextRequest) {
         subjectName: noteData.imageData.metadata.subjectName,
         fileName: noteData.imageData.tempFile.originalName,
         imageHeight: noteData.imageData.imageHeight,
+        imageWidth: noteData.imageData.image.geometry.width,
+        fileSize: noteData.imageData.tempFile.size,
+        mimeType: noteData.imageData.tempFile.mimetype,
       });
-      updateSubjectLastUsed(noteData.imageData.metadata.subjectId);
     }
 
     // 3. レイアウト適用
@@ -141,7 +155,67 @@ export async function POST(request: NextRequest) {
       await createSubjectBasedLayout(boardId, uploadedItems, basePosition);
     }
 
-    // 4. クリーンアップとレスポンス返却
+    // 4. データベースに保存
+    if (uploadedItems.length > 0) {
+      const sessionIdentifier = metadata[0]?.sessionId ?? `session_${Date.now()}`;
+      const uploaderName = metadata.find(m => m.uploaderName)?.uploaderName ?? null;
+
+      const sessionRecord = await prisma.uploadSession.upsert({
+        where: { sessionId: sessionIdentifier },
+        update: {
+          boardId,
+          uploaderName,
+        },
+        create: {
+          sessionId: sessionIdentifier,
+          boardId,
+          uploaderName,
+        },
+      });
+
+      const subjectIds = Array.from(
+        new Set(uploadedItems.map(item => item.subjectId).filter(Boolean))
+      );
+
+      const transactions: Prisma.PrismaPromise<unknown>[] = [];
+
+      if (subjectIds.length > 0) {
+        transactions.push(
+          prisma.subject.updateMany({
+            where: {
+              id: {
+                in: subjectIds,
+              },
+            },
+            data: {
+              lastUsedAt: new Date(),
+            },
+          })
+        );
+      }
+
+      transactions.push(
+        prisma.uploadedItem.createMany({
+          data: uploadedItems.map(item => ({
+            sessionId: sessionRecord.id,
+            subjectId: item.subjectId || null,
+            miroImageId: item.imageId,
+            miroStickyId: item.stickyNoteId,
+            miroGroupId: item.groupId,
+            fileName: item.fileName,
+            fileSize: item.fileSize,
+            mimeType: item.mimeType,
+            imageHeight: item.imageHeight,
+            imageWidth: item.imageWidth,
+          })),
+          skipDuplicates: true,
+        })
+      );
+
+      await prisma.$transaction(transactions);
+    }
+
+    // 5. クリーンアップとレスポンス返却
     await deleteTempFiles(tempFilesToCleanup);
 
     const response: UploadResponse = {
