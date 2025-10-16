@@ -7,4 +7,49 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/// TODO: Add models for subjects, upload_sessions, uploaded_items in subsequent steps.
+model Subject {
+  id          String         @id @default(uuid())
+  name        String         @unique
+  createdAt   DateTime       @default(now())
+  lastUsedAt  DateTime?      @map("last_used_at")
+  uploadedAt  DateTime       @default(now()) @map("uploaded_at")
+  uploads     UploadedItem[]
+
+  @@map("subjects")
+}
+
+model UploadSession {
+  id           String         @id @default(uuid())
+  sessionId    String         @unique @map("session_id")
+  boardId      String         @map("board_id")
+  uploaderName String?        @map("uploader_name")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  items        UploadedItem[]
+
+  @@map("upload_sessions")
+  @@index([boardId])
+}
+
+model UploadedItem {
+  id           String        @id @default(uuid())
+  session      UploadSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId    String        @map("session_id")
+  subject      Subject?      @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  subjectId    String?       @map("subject_id")
+  miroImageId  String        @map("miro_image_id")
+  miroStickyId String        @map("miro_sticky_id")
+  miroGroupId  String?       @map("miro_group_id")
+  fileName     String        @map("file_name")
+  fileSize     Int?          @map("file_size")
+  mimeType     String?       @map("mime_type")
+  imageWidth   Int?          @map("image_width")
+  imageHeight  Int?          @map("image_height")
+  positionX    Float?        @map("position_x")
+  positionY    Float?        @map("position_y")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  @@map("uploaded_items")
+  @@index([subjectId])
+  @@index([sessionId])
+}
