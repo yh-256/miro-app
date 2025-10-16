@@ -53,6 +53,29 @@
 - **開発ツール**: ESLint, Jest, Testing Library
 - **デプロイ**: Vercel対応
 
+## 🧰 主要技術の解説
+
+- **Next.js 15 / React 19**  
+  App Router構成でクライアント・サーバーコンポーネントを併用。画像アップロードや検索UIなどはクライアントコンポーネント、API RouteでMiro連携処理を実装。
+
+- **TypeScript**  
+  `src/types` を中心に型定義を管理。APIレスポンスやアップロードデータなどのドメイン型を共有し、型安全なフロント・バック間連携を実現。
+
+- **Tailwind CSS 4**  
+  ユーティリティクラスでレスポンシブなUIを構築。`globals.css` で基本設定を行い、コンポーネント単位でスタイルを適用。
+
+- **Miro REST API v2**  
+  `src/utils/miroClient.ts` でAPIクライアントを実装。画像アップロード・付箋作成・アイテム検索などを行い、ボード上のレイアウトもMiro API経由で調整。
+
+- **ファイルアップロード周り（Formidable / Node File API）**  
+  API Routeで送られてきたBase64画像を一時ファイルに保存し、Miroへ転送。`fileValidation.ts` で簡易的なサイズ・形式チェックを実施。
+
+- **ミドルウェア / セキュリティ対策**  
+  `middleware.ts` でCORSやレート制限、セキュリティヘッダーを付与。`utils/config.ts` で環境変数の厳格なバリデーションを行う。
+
+- **テストツール（Jest + Testing Library）**  
+  主要コンポーネント・ユーティリティの単体テストを想定した設定を準備。E2Eテストは未整備だが、将来Playwright等の導入を想定。
+
 ## 📁 プロジェクト構成
 
 ```
