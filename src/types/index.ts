@@ -1,3 +1,5 @@
+import type { ProblemProgressStatus } from '@/constants/problemStatus';
+
 // 個人ID管理
 export interface Subject {
   id: string;           // 一意識別子
@@ -93,6 +95,78 @@ export interface Board {
   thumbnailUrl?: string;
 }
 
+// 問題（Problem）ドメイン
+export interface ProblemProgressSnapshot {
+  status: ProblemProgressStatus;
+  insightSubmittedAt?: string;
+  boardUnlockedAt?: string;
+  boardViewedAt?: string;
+  completedAt?: string;
+}
+
+export interface ProblemSummary extends ProblemProgressSnapshot {
+  id: string;
+  title: string;
+  description?: string;
+  orderIndex: number;
+  isActive: boolean;
+}
+
+export interface ProblemDetail extends ProblemSummary {
+  contentType: string;
+  contentBody?: string;
+  contentUrl?: string;
+  miroBoardId?: string;
+  isBoardUnlocked: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProblemListResponse {
+  problems: ProblemSummary[];
+  activeProblemId?: string;
+  nextProblemId?: string;
+  stats?: {
+    total: number;
+    completed: number;
+    available: number;
+  };
+}
+
+export interface ProblemDetailResponse {
+  problem: ProblemDetail;
+  relatedInsights?: InsightSummary[];
+}
+
+export interface ProblemProgressUpdatePayload {
+  status: ProblemProgressStatus;
+  boardViewed?: boolean;
+  completed?: boolean;
+}
+
+export interface InsightPayload {
+  content: string;
+  isPublic?: boolean;
+}
+
+export interface InsightSummary {
+  id: string;
+  problemId: string;
+  sessionId: string;
+  content: string;
+  isPublic: boolean;
+  createdAt: string;
+  updatedAt: string;
+  author?: {
+    sessionId: string;
+    displayName?: string;
+  };
+}
+
+export interface InsightListResponse {
+  insights: InsightSummary[];
+}
+
 // エラー型
 export class UserFriendlyError extends Error {
   constructor(message: string) {
@@ -105,3 +179,5 @@ export interface MiroApiError {
   code: 'UNAUTHORIZED' | 'RATE_LIMITED' | 'BOARD_NOT_FOUND' | 'UNKNOWN';
   message: string;
 }
+
+export type { ProblemProgressStatus } from '@/constants/problemStatus';
