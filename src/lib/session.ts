@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import crypto from 'crypto';
+import { prisma } from './prisma';
 
 export interface SessionInfo {
   sessionId: string;
@@ -24,6 +25,7 @@ export function ensureSession(): SessionInfo {
   const existing = cookieStore.get(SESSION_COOKIE_NAME)?.value;
 
   if (existing) {
+    // extend cookie lifetime on each access
     cookieStore.set({
       name: SESSION_COOKIE_NAME,
       value: existing,
@@ -50,4 +52,21 @@ export function ensureSession(): SessionInfo {
   });
 
   return { sessionId, isNew: true };
+}
+
+/**
+ * ユーザーセッション（DB）とCookieセッションIDを同期
+ * - 存在する場合は lastActiveAt を更新
+ * - 未作成の場合は新規作成
+ */
+export async function ensureUserSessionRecord(sessionId: string) {
+  return prisma.userSession.upsert({
+    where: { sessionToken: sessionId },
+    update: {
+      lastActiveAt: new Date(),
+    },
+    create: {
+      sessionToken: sessionId,
+    },
+  });
 }
