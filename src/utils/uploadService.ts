@@ -32,12 +32,29 @@ async function fileToBase64(file: File): Promise<string> {
 /**
  * 画像をMiroボードにアップロード
  */
+type UploadOptions =
+  | UploadProgressCallback
+  | {
+      onProgress?: UploadProgressCallback;
+      problemId?: string;
+    };
+
 export async function uploadImagesToMiro(
   images: ImageUploadData[],
   boardId: string,
   sessionId: string,
-  onProgress?: UploadProgressCallback
+  options?: UploadOptions
 ): Promise<UploadResponse> {
+  let onProgress: UploadProgressCallback | undefined;
+  let problemId: string | undefined;
+
+  if (typeof options === 'function') {
+    onProgress = options;
+  } else if (options) {
+    onProgress = options.onProgress;
+    problemId = options.problemId;
+  }
+
   try {
     onProgress?.('validating', 0, 'ファイルを検証しています...');
 
@@ -61,6 +78,7 @@ export async function uploadImagesToMiro(
     const requestBody = {
       images: imageData,
       boardId,
+      problemId,
       metadata: images.map(image => ({
         subjectId: image.subjectId,
         subjectName: image.subjectName,

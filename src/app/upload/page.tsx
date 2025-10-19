@@ -150,7 +150,7 @@ export default function UploadPage() {
         uploadData,
         selectedBoard.id,
         sessionId,
-        updateProgress
+        { onProgress: updateProgress }
       );
 
       // 成功時の最終ステップ更新
