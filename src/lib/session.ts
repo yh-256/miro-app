@@ -20,8 +20,8 @@ function getExpiryDate(): Date {
   return expiry;
 }
 
-export function ensureSession(): SessionInfo {
-  const cookieStore = cookies();
+export async function ensureSession(): Promise<SessionInfo> {
+  const cookieStore = await cookies();
   const existing = cookieStore.get(SESSION_COOKIE_NAME)?.value;
 
   if (existing) {

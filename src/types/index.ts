@@ -139,7 +139,7 @@ export interface ProblemDetailResponse {
 }
 
 export interface ProblemProgressUpdatePayload {
-  status: ProblemProgressStatus;
+  status?: ProblemProgressStatus;
   boardViewed?: boolean;
   completed?: boolean;
 }

@@ -1,80 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ensureSession, ensureUserSessionRecord } from '@/lib/session';
-import {
-  ProblemDetailResponse,
-  ProblemProgressSnapshot,
-  InsightSummary,
-} from '@/types';
-import { ProblemProgressStatus } from '@/constants/problemStatus';
+import { ProblemDetailResponse, InsightSummary } from '@/types';
 import { ErrorHandler, logError } from '@/utils/errorHandler';
-
-const BOARD_UNLOCKED_STATUSES: ReadonlySet<ProblemProgressStatus> = new Set([
-  'INSIGHT_WRITTEN',
-  'BOARD_VIEWED',
-  'COMPLETED',
-]);
-
-function toSnapshot(
-  status: ProblemProgressStatus,
-  progress?: {
-    insightSubmittedAt: Date | null;
-    boardUnlockedAt: Date | null;
-    boardViewedAt: Date | null;
-    completedAt: Date | null;
-  }
-): ProblemProgressSnapshot {
-  return {
-    status,
-    insightSubmittedAt: progress?.insightSubmittedAt
-      ? progress.insightSubmittedAt.toISOString()
-      : undefined,
-    boardUnlockedAt: progress?.boardUnlockedAt
-      ? progress.boardUnlockedAt.toISOString()
-      : undefined,
-    boardViewedAt: progress?.boardViewedAt
-      ? progress.boardViewedAt.toISOString()
-      : undefined,
-    completedAt: progress?.completedAt
-      ? progress.completedAt.toISOString()
-      : undefined,
-  };
-}
-
-function deriveStatus(
-  progressStatus: ProblemProgressStatus | null,
-  isFirstAvailable: boolean
-): ProblemProgressStatus {
-  if (progressStatus) {
-    return progressStatus;
-  }
-  return isFirstAvailable ? 'AVAILABLE' : 'LOCKED';
-}
-
-function mapInsightToSummary(insight: {
-  id: string;
-  problemId: string;
-  userSessionId: string;
-  content: string;
-  isPublic: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-  userSession: { sessionToken: string; displayName: string | null };
-}): InsightSummary {
-  return {
-    id: insight.id,
-    problemId: insight.problemId,
-    sessionId: insight.userSession.sessionToken,
-    content: insight.content,
-    isPublic: insight.isPublic,
-    createdAt: insight.createdAt.toISOString(),
-    updatedAt: insight.updatedAt.toISOString(),
-    author: {
-      sessionId: insight.userSession.sessionToken,
-      displayName: insight.userSession.displayName ?? undefined,
-    },
-  };
-}
+import { loadProblemAccessContext } from '@/utils/problemProgress';
+import { mapInsightToSummary } from '@/utils/insight';
 
 export async function GET(
   _request: NextRequest,
@@ -89,51 +19,19 @@ export async function GET(
       );
     }
 
-    const { sessionId } = ensureSession();
+    const { sessionId } = await ensureSession();
     const userSession = await ensureUserSessionRecord(sessionId);
 
-    const problem = await prisma.problem.findUnique({
-      where: { id: problemId },
-      include: {
-        progress: {
-          where: { userSessionId: userSession.id },
-          take: 1,
-        },
-      },
-    });
+    const context = await loadProblemAccessContext(problemId, userSession.id);
 
-    if (!problem) {
+    if (!context) {
       return NextResponse.json(
         { error: 'PROBLEM_NOT_FOUND', message: '指定された問題が見つかりません。' },
         { status: 404 }
       );
     }
 
-    // Determine previous problems to decide availability
-    const precedingProblems = await prisma.problem.findMany({
-      where: {
-        isActive: true,
-        orderIndex: { lt: problem.orderIndex },
-      },
-      include: {
-        progress: {
-          where: { userSessionId: userSession.id },
-          take: 1,
-        },
-      },
-      orderBy: { orderIndex: 'asc' },
-    });
-
-    const allPreviousCompleted = precedingProblems.every((item) => {
-      const status = item.progress[0]?.status ?? 'LOCKED';
-      return BOARD_UNLOCKED_STATUSES.has(status) || status === 'COMPLETED';
-    });
-
-    const progressRecord = problem.progress[0];
-    const status = deriveStatus(progressRecord?.status ?? null, allPreviousCompleted);
-    const snapshot = toSnapshot(status, progressRecord);
-    const isBoardUnlocked =
-      BOARD_UNLOCKED_STATUSES.has(status) || !!progressRecord?.boardUnlockedAt;
+    const { problem, snapshot, isBoardUnlocked } = context;
 
     const detail = {
       id: problem.id,

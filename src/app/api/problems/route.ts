@@ -1,54 +1,17 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ensureSession, ensureUserSessionRecord } from '@/lib/session';
-import { ProblemListResponse, ProblemProgressSnapshot } from '@/types';
-import { ProblemProgressStatus } from '@/constants/problemStatus';
+import { ProblemListResponse } from '@/types';
 import { ErrorHandler, logError } from '@/utils/errorHandler';
-
-const COMPLETED_STATUSES: ReadonlySet<ProblemProgressStatus> = new Set([
-  'COMPLETED',
-  'BOARD_VIEWED',
-]);
-
-function toSnapshot(
-  status: ProblemProgressStatus,
-  progress?: {
-    insightSubmittedAt: Date | null;
-    boardUnlockedAt: Date | null;
-    boardViewedAt: Date | null;
-    completedAt: Date | null;
-  }
-): ProblemProgressSnapshot {
-  return {
-    status,
-    insightSubmittedAt: progress?.insightSubmittedAt
-      ? progress.insightSubmittedAt.toISOString()
-      : undefined,
-    boardUnlockedAt: progress?.boardUnlockedAt
-      ? progress.boardUnlockedAt.toISOString()
-      : undefined,
-    boardViewedAt: progress?.boardViewedAt
-      ? progress.boardViewedAt.toISOString()
-      : undefined,
-    completedAt: progress?.completedAt
-      ? progress.completedAt.toISOString()
-      : undefined,
-  };
-}
-
-function deriveStatus(
-  progressStatus: ProblemProgressStatus | null,
-  canUnlock: boolean
-): ProblemProgressStatus {
-  if (progressStatus) {
-    return progressStatus;
-  }
-  return canUnlock ? 'AVAILABLE' : 'LOCKED';
-}
+import {
+  COMPLETED_STATUSES,
+  deriveStatus,
+  toSnapshot,
+} from '@/utils/problemProgress';
 
 export async function GET() {
   try {
-    const { sessionId } = ensureSession();
+    const { sessionId } = await ensureSession();
     const userSession = await ensureUserSessionRecord(sessionId);
 
     const problems = await prisma.problem.findMany({
