@@ -144,3 +144,21 @@ export async function loadProblemAccessContext(
     allPreviousCompleted,
   };
 }
+
+export async function getAccessibleProblemIds(
+  userSessionId: string
+): Promise<Set<string>> {
+  const rows = await prisma.problemProgress.findMany({
+    where: {
+      userSessionId,
+      status: {
+        in: Array.from(BOARD_UNLOCKED_STATUSES),
+      },
+    },
+    select: {
+      problemId: true,
+    },
+  });
+
+  return new Set(rows.map((row) => row.problemId));
+}
