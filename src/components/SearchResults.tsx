@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useDeviceDetection } from '@/utils/deviceDetection';
 import { SearchResult, SearchResultItem } from '@/utils/searchService';
 
@@ -309,6 +310,17 @@ function SearchResultCard({
 
       {/* メタデータ */}
       <div className="text-xs text-gray-600 space-y-1">
+        {item.metadata?.problemId && (
+          <div>
+            問題:
+            <Link
+              href={`/problems/${item.metadata.problemId}`}
+              className="ml-1 text-blue-600 hover:text-blue-500 underline"
+            >
+              {item.metadata.problemId}
+            </Link>
+          </div>
+        )}
         {item.metadata?.subjectId && (
           <div>ID: {item.metadata.subjectId}</div>
         )}
@@ -320,6 +332,9 @@ function SearchResultCard({
         )}
         {item.metadata?.fileName && (
           <div>ファイル: {item.metadata.fileName}</div>
+        )}
+        {item.metadata?.userSessionId && (
+          <div>セッション: {item.metadata.userSessionId}</div>
         )}
         {(() => {
           const formattedSize = formatFileSize(item.metadata?.fileSize);
@@ -398,6 +413,17 @@ function SearchResultListItem({
         )}
 
         <div className="flex flex-wrap gap-4 text-xs text-gray-600">
+          {item.metadata?.problemId && (
+            <span>
+              問題:
+              <Link
+                href={`/problems/${item.metadata.problemId}`}
+                className="ml-1 text-blue-600 hover:text-blue-500 underline"
+              >
+                {item.metadata.problemId}
+              </Link>
+            </span>
+          )}
           {item.metadata?.subjectId && (
             <span>ID: {item.metadata.subjectId}</span>
           )}
@@ -409,6 +435,9 @@ function SearchResultListItem({
           )}
           {item.metadata?.fileName && (
             <span>ファイル: {item.metadata.fileName}</span>
+          )}
+          {item.metadata?.userSessionId && (
+            <span>セッション: {item.metadata.userSessionId}</span>
           )}
           {(() => {
             const formattedSize = formatFileSize(item.metadata?.fileSize);

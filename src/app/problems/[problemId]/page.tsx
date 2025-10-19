@@ -390,6 +390,7 @@ export default function ProblemDetailPage() {
                 problemId={problemId}
                 defaultBoardId={detail.problem.miroBoardId}
                 defaultBoardName={detail.problem.title}
+                isBoardUnlocked={boardUnlocked}
                 onUploadCompleted={refreshAfterUpload}
               />
             </section>

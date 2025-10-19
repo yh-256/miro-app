@@ -90,6 +90,7 @@ export async function GET(request: NextRequest) {
         uploaderName: params.uploaderName,
         searchType: params.searchType,
       },
+      restrictedCount: 0,
     };
 
     if (accessibleProblemIds.size === 0) {
@@ -171,10 +172,8 @@ export async function GET(request: NextRequest) {
       searchResults,
       accessibleProblemIds
     );
-    const filteredResults = filterSearchResultsByAccess(
-      enrichedResults,
-      accessibleProblemIds
-    );
+    const { results: filteredResults, restrictedCount } =
+      filterSearchResultsByAccess(enrichedResults, accessibleProblemIds);
 
     return NextResponse.json({
       success: true,
@@ -186,6 +185,7 @@ export async function GET(request: NextRequest) {
         uploaderName: params.uploaderName,
         searchType: params.searchType,
       },
+      restrictedCount,
     });
 
   } catch (error) {
@@ -268,10 +268,8 @@ export async function POST(request: NextRequest) {
       searchResults,
       accessibleProblemIds
     );
-    const filteredResults = filterSearchResultsByAccess(
-      enrichedResults,
-      accessibleProblemIds
-    );
+    const { results: filteredResults, restrictedCount } =
+      filterSearchResultsByAccess(enrichedResults, accessibleProblemIds);
 
     return NextResponse.json({
       success: true,
@@ -280,6 +278,7 @@ export async function POST(request: NextRequest) {
         boardId,
         ...searchCriteria,
       },
+      restrictedCount,
     });
 
   } catch (error) {
@@ -413,9 +412,9 @@ async function enrichSearchResultsWithDatabase(
 function filterSearchResultsByAccess(
   results: SearchResult,
   accessibleProblemIds: Set<string>
-): SearchResult {
+): { results: SearchResult; restrictedCount: number } {
   if (results.items.length === 0) {
-    return results;
+    return { results, restrictedCount: 0 };
   }
 
   const filteredItems = results.items.filter((item) => {
@@ -426,12 +425,17 @@ function filterSearchResultsByAccess(
     return accessibleProblemIds.has(problemId);
   });
 
+  const restrictedCount = results.items.length - filteredItems.length;
+
   return {
-    ...results,
-    items: filteredItems,
-    totalCount: filteredItems.length,
-    hasMore:
-      filteredItems.length === results.items.length ? results.hasMore : false,
+    results: {
+      ...results,
+      items: filteredItems,
+      totalCount: filteredItems.length,
+      hasMore:
+        filteredItems.length === results.items.length ? results.hasMore : false,
+    },
+    restrictedCount,
   };
 }
 

@@ -34,6 +34,7 @@ interface ProblemUploadSectionProps {
   defaultBoardId?: string;
   defaultBoardName?: string;
   defaultBoardDescription?: string;
+  isBoardUnlocked?: boolean;
   onUploadCompleted?: () => void;
 }
 
@@ -42,6 +43,7 @@ export function ProblemUploadSection({
   defaultBoardId,
   defaultBoardName,
   defaultBoardDescription,
+  isBoardUnlocked = true,
   onUploadCompleted,
 }: ProblemUploadSectionProps) {
   const [currentStep, setCurrentStep] = useState<UploadStep>('capture');
@@ -272,6 +274,26 @@ export function ProblemUploadSection({
     setSessionId(generateSessionId());
     setCurrentStep('capture');
   };
+
+  if (!isBoardUnlocked) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">
+              画像アップロードはまだ利用できません
+            </h3>
+            <p className="mt-2 text-sm text-gray-600">
+              気づきを投稿し、ボードが解禁されると画像をアップロードできるようになります。
+            </p>
+          </div>
+          <span className="text-xs font-medium text-gray-500 px-2 py-1 bg-gray-100 rounded">
+            問題ID: {problemId}
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
