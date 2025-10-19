@@ -7,12 +7,12 @@ import {
   loadProblemAccessContext,
   toSnapshot,
   maxStatus,
-  isStatusAtLeast,
-  BOARD_UNLOCKED_STATUSES,
 } from '@/utils/problemProgress';
 import {
   isProblemProgressStatus,
   PROBLEM_STATUS_LABEL,
+  isStatusAtLeast,
+  BOARD_UNLOCKED_STATUSES,
 } from '@/constants/problemStatus';
 
 function validatePayload(body: unknown): ProblemProgressUpdatePayload {

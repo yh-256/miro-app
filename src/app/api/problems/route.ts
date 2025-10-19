@@ -3,11 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { ensureSession, ensureUserSessionRecord } from '@/lib/session';
 import { ProblemListResponse } from '@/types';
 import { ErrorHandler, logError } from '@/utils/errorHandler';
-import {
-  COMPLETED_STATUSES,
-  deriveStatus,
-  toSnapshot,
-} from '@/utils/problemProgress';
+import { deriveStatus, toSnapshot } from '@/utils/problemProgress';
+import { COMPLETED_STATUSES } from '@/constants/problemStatus';
 
 export async function GET() {
   try {

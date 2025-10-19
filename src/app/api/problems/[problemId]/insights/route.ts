@@ -7,8 +7,8 @@ import {
   loadProblemAccessContext,
   toSnapshot,
   maxStatus,
-  isStatusAtLeast,
 } from '@/utils/problemProgress';
+import { isStatusAtLeast } from '@/constants/problemStatus';
 import { mapInsightToSummary } from '@/utils/insight';
 
 function validatePayload(body: unknown): InsightPayload {

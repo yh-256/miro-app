@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Layout } from '@/components/Layout';
 import { ResponsiveContainer } from '@/components/ResponsiveContainer';
@@ -11,8 +12,7 @@ import {
   InsightSummary,
   ProblemProgressUpdatePayload,
 } from '@/types';
-import { PROBLEM_STATUS_LABEL } from '@/constants/problemStatus';
-import { isStatusAtLeast } from '@/utils/problemProgress';
+import { PROBLEM_STATUS_LABEL, isStatusAtLeast } from '@/constants/problemStatus';
 
 interface InsightFormState {
   content: string;
@@ -209,6 +209,14 @@ export default function ProblemDetailPage() {
                   )}
                 </div>
                 <div className="text-sm text-gray-500 space-y-1">
+                  <div className="flex justify-end">
+                    <Link
+                      href="/problems"
+                      className="btn-outline text-xs px-3 py-2"
+                    >
+                      ← 問題一覧に戻る
+                    </Link>
+                  </div>
                   <p>ステップ番号: #{detail.problem.orderIndex}</p>
                   <p>問題ID: {detail.problem.id}</p>
                 </div>

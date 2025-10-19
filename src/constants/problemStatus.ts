@@ -24,10 +24,24 @@ export const PROBLEM_STATUS_LABEL: Record<ProblemProgressStatus, string> = {
   COMPLETED: '完了',
 };
 
+export const BOARD_UNLOCKED_STATUSES: ReadonlySet<ProblemProgressStatus> =
+  new Set(['INSIGHT_WRITTEN', 'BOARD_VIEWED', 'COMPLETED']);
+export const COMPLETED_STATUSES: ReadonlySet<ProblemProgressStatus> = new Set([
+  'COMPLETED',
+  'BOARD_VIEWED',
+]);
+
 export function isProblemProgressStatus(value: unknown): value is ProblemProgressStatus {
   return typeof value === 'string' && PROBLEM_STATUSES.includes(value as ProblemProgressStatus);
 }
 
 export function compareProblemStatus(a: ProblemProgressStatus, b: ProblemProgressStatus): number {
   return PROBLEM_STATUS_ORDER[a] - PROBLEM_STATUS_ORDER[b];
+}
+
+export function isStatusAtLeast(
+  value: ProblemProgressStatus,
+  threshold: ProblemProgressStatus
+): boolean {
+  return PROBLEM_STATUS_ORDER[value] >= PROBLEM_STATUS_ORDER[threshold];
 }

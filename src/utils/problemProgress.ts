@@ -1,18 +1,11 @@
 import {
   PROBLEM_STATUS_ORDER,
   ProblemProgressStatus,
+  BOARD_UNLOCKED_STATUSES,
 } from '@/constants/problemStatus';
 import { ProblemProgressSnapshot } from '@/types';
 import { prisma } from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
-
-export const COMPLETED_STATUSES: ReadonlySet<ProblemProgressStatus> = new Set([
-  'COMPLETED',
-  'BOARD_VIEWED',
-]);
-
-export const BOARD_UNLOCKED_STATUSES: ReadonlySet<ProblemProgressStatus> =
-  new Set(['INSIGHT_WRITTEN', 'BOARD_VIEWED', 'COMPLETED']);
 
 export function deriveStatus(
   progressStatus: ProblemProgressStatus | null,
@@ -57,13 +50,6 @@ export function maxStatus(
   return PROBLEM_STATUS_ORDER[current] >= PROBLEM_STATUS_ORDER[candidate]
     ? current
     : candidate;
-}
-
-export function isStatusAtLeast(
-  value: ProblemProgressStatus,
-  threshold: ProblemProgressStatus
-): boolean {
-  return PROBLEM_STATUS_ORDER[value] >= PROBLEM_STATUS_ORDER[threshold];
 }
 
 type ProblemWithProgress = Prisma.ProblemGetPayload<{
