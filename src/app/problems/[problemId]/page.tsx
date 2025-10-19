@@ -241,42 +241,6 @@ export default function ProblemDetailPage() {
             </section>
 
             <section className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 space-y-4">
-              <h2 className="text-lg font-semibold text-gray-900">
-                進捗状況
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-sm text-gray-600">
-                {statusTimeline.map((item) => (
-                  <div key={item.label}>
-                    <p className="font-medium text-gray-500 mb-1">{item.label}</p>
-                    <p>{item.value ?? '未実施'}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => updateProgress({ boardViewed: true })}
-                  disabled={
-                    progressUpdating ||
-                    !isStatusAtLeast(detail.problem.status, 'INSIGHT_WRITTEN')
-                  }
-                  className="btn-outline text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  ボード閲覧済みにする
-                </button>
-                <button
-                  onClick={() => updateProgress({ completed: true })}
-                  disabled={
-                    progressUpdating ||
-                    !isStatusAtLeast(detail.problem.status, 'BOARD_VIEWED')
-                  }
-                  className="btn-primary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  ステップ完了を報告
-                </button>
-              </div>
-            </section>
-
-            <section className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-gray-900">
                   気づきの記録
@@ -370,37 +334,71 @@ export default function ProblemDetailPage() {
               </div>
             </section>
 
-            <section className="space-y-6">
-              <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                  ボード閲覧
-                </h2>
-                {boardUnlocked && detail.problem.miroBoardId ? (
-                  <div className="space-y-4">
-                    <BoardEmbed
-                      boardId={detail.problem.miroBoardId}
-                      boardName={detail.problem.title}
-                      height={600}
-                    />
-                    <p className="text-xs text-gray-500">
-                      ボードを閲覧後、「ボード閲覧済みにする」ボタンを押すと、ステップ3が完了します。
-                    </p>
-                  </div>
-                ) : (
-                  <div className="text-sm text-gray-600">
-                    まず気づきを入力して投稿すると、Miroボードが閲覧できるようになります。
-                  </div>
-                )}
-              </div>
+            <ProblemUploadSection
+              key={uploadKey}
+              problemId={problemId}
+              defaultBoardId={detail.problem.miroBoardId}
+              defaultBoardName={detail.problem.title}
+              isBoardUnlocked={boardUnlocked}
+              onUploadCompleted={refreshAfterUpload}
+            />
 
-              <ProblemUploadSection
-                key={uploadKey}
-                problemId={problemId}
-                defaultBoardId={detail.problem.miroBoardId}
-                defaultBoardName={detail.problem.title}
-                isBoardUnlocked={boardUnlocked}
-                onUploadCompleted={refreshAfterUpload}
-              />
+            <section className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 space-y-4">
+              <h2 className="text-lg font-semibold text-gray-900">
+                ボード閲覧
+              </h2>
+              {boardUnlocked && detail.problem.miroBoardId ? (
+                <div className="space-y-4">
+                  <BoardEmbed
+                    boardId={detail.problem.miroBoardId}
+                    boardName={detail.problem.title}
+                    height={600}
+                  />
+                  <p className="text-xs text-gray-500">
+                    ボードを閲覧後、「ボード閲覧済みにする」ボタンを押すと、ステップ3が完了します。
+                  </p>
+                </div>
+              ) : (
+                <div className="text-sm text-gray-600">
+                  まず気づきを入力して投稿すると、Miroボードが閲覧できるようになります。
+                </div>
+              )}
+            </section>
+
+            <section className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 space-y-4">
+              <h2 className="text-lg font-semibold text-gray-900">
+                進捗状況
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-sm text-gray-600">
+                {statusTimeline.map((item) => (
+                  <div key={item.label}>
+                    <p className="font-medium text-gray-500 mb-1">{item.label}</p>
+                    <p>{item.value ?? '未実施'}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => updateProgress({ boardViewed: true })}
+                  disabled={
+                    progressUpdating ||
+                    !isStatusAtLeast(detail.problem.status, 'INSIGHT_WRITTEN')
+                  }
+                  className="btn-outline text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  ボード閲覧済みにする
+                </button>
+                <button
+                  onClick={() => updateProgress({ completed: true })}
+                  disabled={
+                    progressUpdating ||
+                    !isStatusAtLeast(detail.problem.status, 'BOARD_VIEWED')
+                  }
+                  className="btn-primary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  ステップ完了を報告
+                </button>
+              </div>
             </section>
           </div>
         )}
