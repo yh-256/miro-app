@@ -36,6 +36,7 @@ interface ProblemUploadSectionProps {
   defaultBoardDescription?: string;
   isBoardUnlocked?: boolean;
   onUploadCompleted?: () => void;
+  lockBoardSelection?: boolean;
 }
 
 export function ProblemUploadSection({
@@ -45,6 +46,7 @@ export function ProblemUploadSection({
   defaultBoardDescription,
   isBoardUnlocked = true,
   onUploadCompleted,
+  lockBoardSelection = false,
 }: ProblemUploadSectionProps) {
   const [currentStep, setCurrentStep] = useState<UploadStep>('capture');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -71,35 +73,85 @@ export function ProblemUploadSection({
     Array<{ fileName: string; reason: string }>
   >([]);
 
+  const boardStepEnabled = !lockBoardSelection;
+
   useEffect(() => {
     if (selectedFiles.length === 0) {
       setMetadata([]);
     }
   }, [selectedFiles]);
 
+  useEffect(() => {
+    if (lockBoardSelection) {
+      if (defaultBoardId) {
+        setSelectedBoard({
+          id: defaultBoardId,
+          name: defaultBoardName || '選択されたボード',
+          description: defaultBoardDescription,
+        });
+      } else {
+        setSelectedBoard(null);
+      }
+    }
+  }, [
+    lockBoardSelection,
+    defaultBoardId,
+    defaultBoardName,
+    defaultBoardDescription,
+  ]);
+
   const canProceedToMetadata = selectedFiles.length > 0;
   const canProceedToBoard =
     metadata.length > 0 && metadata.every((item) => item.subjectId);
-  const canUpload = selectedBoard && canProceedToBoard;
+  const canUpload = Boolean(selectedBoard) && canProceedToBoard;
 
-  const stepper = useMemo(
-    () => [
-      { key: 'capture', label: '画像選択', number: 1 },
-      { key: 'metadata', label: 'メタデータ', number: 2 },
-      { key: 'board', label: 'ボード選択', number: 3 },
-      { key: 'upload', label: 'アップロード', number: 4 },
-    ],
-    []
-  );
+  const stepper = useMemo<
+    Array<{ key: UploadStep; label: string; number: number }>
+  >(() => {
+    const steps: Array<{ key: UploadStep; label: string }> = [
+      { key: 'capture', label: '画像選択' },
+      { key: 'metadata', label: 'メタデータ' },
+    ];
+
+    if (boardStepEnabled) {
+      steps.push({ key: 'board', label: 'ボード選択' });
+    }
+
+    steps.push({ key: 'upload', label: 'アップロード' });
+
+    return steps.map((step, index) => ({
+      ...step,
+      number: index + 1,
+    }));
+  }, [boardStepEnabled]);
 
   const goToNext = () => {
-    if (currentStep === 'capture' && canProceedToMetadata) {
-      setCurrentStep('metadata');
-    } else if (currentStep === 'metadata' && canProceedToBoard) {
-      setCurrentStep('board');
-    } else if (currentStep === 'board' && canUpload) {
-      setCurrentStep('upload');
-      handleUpload();
+    if (currentStep === 'capture') {
+      if (canProceedToMetadata) {
+        setCurrentStep('metadata');
+      }
+      return;
+    }
+
+    if (currentStep === 'metadata') {
+      if (!canProceedToBoard) {
+        return;
+      }
+
+      if (boardStepEnabled) {
+        setCurrentStep('board');
+      } else if (selectedBoard) {
+        setCurrentStep('upload');
+        handleUpload();
+      }
+      return;
+    }
+
+    if (currentStep === 'board') {
+      if (canUpload) {
+        setCurrentStep('upload');
+        handleUpload();
+      }
     }
   };
 
@@ -109,7 +161,7 @@ export function ProblemUploadSection({
     } else if (currentStep === 'board') {
       setCurrentStep('metadata');
     } else if (currentStep === 'upload') {
-      setCurrentStep('board');
+      setCurrentStep(boardStepEnabled ? 'board' : 'metadata');
     }
   };
 
@@ -275,6 +327,11 @@ export function ProblemUploadSection({
     setCurrentStep('capture');
   };
 
+  const isUploadTriggerStep = boardStepEnabled
+    ? currentStep === 'board'
+    : currentStep === 'metadata';
+  const nextButtonLabel = isUploadTriggerStep ? 'アップロード開始' : '次へ →';
+
   if (!isBoardUnlocked) {
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -310,6 +367,18 @@ export function ProblemUploadSection({
           セッションID: {sessionId}
         </span>
       </div>
+
+      {lockBoardSelection && selectedBoard && (
+        <div className="mb-6 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800">
+          このアップロードは「{selectedBoard.name}」ボードに固定されています。
+        </div>
+      )}
+
+      {lockBoardSelection && !selectedBoard && (
+        <div className="mb-6 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          この問題には紐付いたボードが設定されていません。管理者に確認してください。
+        </div>
+      )}
 
       <div className="flex items-center justify-between mb-6">
         {stepper.map((step, index) => {
@@ -364,7 +433,7 @@ export function ProblemUploadSection({
           />
         )}
 
-        {currentStep === 'board' && (
+        {currentStep === 'board' && boardStepEnabled && (
           <div className="space-y-4">
             <BoardSelector
               onBoardSelect={setSelectedBoard}
@@ -404,13 +473,14 @@ export function ProblemUploadSection({
           onClick={goToNext}
           disabled={
             (currentStep === 'capture' && !canProceedToMetadata) ||
-            (currentStep === 'metadata' && !canProceedToBoard) ||
+            (currentStep === 'metadata' &&
+              (boardStepEnabled ? !canProceedToBoard : !canUpload)) ||
             (currentStep === 'board' && !canUpload) ||
             currentStep === 'upload'
           }
           className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {currentStep === 'board' ? 'アップロード開始' : '次へ →'}
+          {nextButtonLabel}
         </button>
       </div>
 

@@ -341,6 +341,7 @@ export default function ProblemDetailPage() {
               defaultBoardName={detail.problem.title}
               isBoardUnlocked={boardUnlocked}
               onUploadCompleted={refreshAfterUpload}
+              lockBoardSelection
             />
 
             <section className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 space-y-4">
