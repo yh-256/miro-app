@@ -1,37 +1,43 @@
+import { ProblemStatus } from '@prisma/client';
+
 export const PROBLEM_STATUSES = [
-  'LOCKED',
-  'AVAILABLE',
-  'INSIGHT_WRITTEN',
-  'UPLOAD_COMPLETED',
-  'BOARD_VIEWED',
-  'COMPLETED',
+  ProblemStatus.LOCKED,
+  ProblemStatus.AVAILABLE,
+  ProblemStatus.INSIGHT_WRITTEN,
+  ProblemStatus.UPLOAD_COMPLETED,
+  ProblemStatus.BOARD_VIEWED,
+  ProblemStatus.COMPLETED,
 ] as const;
 
-export type ProblemProgressStatus = (typeof PROBLEM_STATUSES)[number];
+export type ProblemProgressStatus = ProblemStatus;
 
 export const PROBLEM_STATUS_ORDER: Record<ProblemProgressStatus, number> = {
-  LOCKED: 0,
-  AVAILABLE: 1,
-  INSIGHT_WRITTEN: 2,
-  UPLOAD_COMPLETED: 3,
-  BOARD_VIEWED: 4,
-  COMPLETED: 5,
+  [ProblemStatus.LOCKED]: 0,
+  [ProblemStatus.AVAILABLE]: 1,
+  [ProblemStatus.INSIGHT_WRITTEN]: 2,
+  [ProblemStatus.UPLOAD_COMPLETED]: 3,
+  [ProblemStatus.BOARD_VIEWED]: 4,
+  [ProblemStatus.COMPLETED]: 5,
 };
 
 export const PROBLEM_STATUS_LABEL: Record<ProblemProgressStatus, string> = {
-  LOCKED: '未解禁',
-  AVAILABLE: '回答可能',
-  INSIGHT_WRITTEN: '気づき記入済み',
-  UPLOAD_COMPLETED: 'アップロード済み',
-  BOARD_VIEWED: 'ボード閲覧済み',
-  COMPLETED: '完了',
+  [ProblemStatus.LOCKED]: '未解禁',
+  [ProblemStatus.AVAILABLE]: '回答可能',
+  [ProblemStatus.INSIGHT_WRITTEN]: '気づき記入済み',
+  [ProblemStatus.UPLOAD_COMPLETED]: 'アップロード済み',
+  [ProblemStatus.BOARD_VIEWED]: 'ボード閲覧済み',
+  [ProblemStatus.COMPLETED]: '完了',
 };
 
 export const BOARD_UNLOCKED_STATUSES: ReadonlySet<ProblemProgressStatus> =
-  new Set(['UPLOAD_COMPLETED', 'BOARD_VIEWED', 'COMPLETED']);
+  new Set([
+    ProblemStatus.UPLOAD_COMPLETED,
+    ProblemStatus.BOARD_VIEWED,
+    ProblemStatus.COMPLETED,
+  ]);
 export const COMPLETED_STATUSES: ReadonlySet<ProblemProgressStatus> = new Set([
-  'COMPLETED',
-  'BOARD_VIEWED',
+  ProblemStatus.COMPLETED,
+  ProblemStatus.BOARD_VIEWED,
 ]);
 
 export function isProblemProgressStatus(value: unknown): value is ProblemProgressStatus {

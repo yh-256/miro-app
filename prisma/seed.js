@@ -43,7 +43,7 @@ async function seedProblems() {
     },
     {
       id: 'problem-002',
-      title: '安全面のリスクを洗い出す',
+      title: '安全面の洗い出す',
       description:
         '現場で想定されるリスクや改善点を列挙し、具体的な対策を検討しましょう。',
       orderIndex: 2,
