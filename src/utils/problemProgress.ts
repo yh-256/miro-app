@@ -119,18 +119,15 @@ export async function loadProblemAccessContext(
   });
 
   const status = deriveStatus(progress?.status ?? null, allPreviousCompleted);
-  const snapshot = toSnapshot(status, progress ?? undefined);
-  const isUploadUnlocked = isStatusAtLeast(status, 'INSIGHT_WRITTEN');
-  const isBoardUnlocked =
-    BOARD_UNLOCKED_STATUSES.has(status) || !!progress?.boardUnlockedAt;
 
   return {
     problem,
     progress,
     status,
-    snapshot,
-    isUploadUnlocked,
-    isBoardUnlocked,
+    snapshot: toSnapshot(status, progress ?? undefined),
+    isUploadUnlocked: isStatusAtLeast(status, 'AVAILABLE'),
+    isBoardUnlocked:
+      BOARD_UNLOCKED_STATUSES.has(status) || !!progress?.boardUnlockedAt,
     allPreviousCompleted,
   };
 }
