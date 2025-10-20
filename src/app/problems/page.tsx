@@ -4,36 +4,36 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Layout } from '@/components/Layout';
 import { ResponsiveContainer } from '@/components/ResponsiveContainer';
-import { ProblemListResponse, ProblemSummary } from '@/types';
+import { ProblemListResponse } from '@/types';
 import { PROBLEM_STATUS_LABEL } from '@/constants/problemStatus';
-
-type ProblemStatus = ProblemSummary['status'];
+import type { ProblemProgressStatus } from '@/constants/problemStatus';
+import { ProblemStatus as PrismaProblemStatus } from '@prisma/client';
 
 const STATUS_STYLES: Record<
-  ProblemStatus,
+  ProblemProgressStatus,
   { badge: string; dot: string }
 > = {
-  LOCKED: {
+  [PrismaProblemStatus.LOCKED]: {
     badge: 'bg-gray-100 text-gray-600 border border-gray-200',
     dot: 'bg-gray-400',
   },
-  AVAILABLE: {
+  [PrismaProblemStatus.AVAILABLE]: {
     badge: 'bg-blue-50 text-blue-700 border border-blue-200',
     dot: 'bg-blue-500',
   },
-  INSIGHT_WRITTEN: {
+  [PrismaProblemStatus.INSIGHT_WRITTEN]: {
     badge: 'bg-indigo-50 text-indigo-700 border border-indigo-200',
     dot: 'bg-indigo-500',
   },
-  UPLOAD_COMPLETED: {
+  [PrismaProblemStatus.UPLOAD_COMPLETED]: {
     badge: 'bg-purple-50 text-purple-700 border border-purple-200',
     dot: 'bg-purple-500',
   },
-  BOARD_VIEWED: {
+  [PrismaProblemStatus.BOARD_VIEWED]: {
     badge: 'bg-teal-50 text-teal-700 border border-teal-200',
     dot: 'bg-teal-500',
   },
-  COMPLETED: {
+  [PrismaProblemStatus.COMPLETED]: {
     badge: 'bg-green-50 text-green-700 border border-green-200',
     dot: 'bg-green-500',
   },

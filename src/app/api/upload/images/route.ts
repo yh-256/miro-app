@@ -7,7 +7,7 @@ import { createSubjectBasedLayout } from '@/utils/miroGrouping';
 import { UploadResponse } from '@/types';
 import { generateCorsHeaders } from '@/utils/securityConfig';
 import { prisma } from '@/lib/prisma';
-import type { Prisma } from '@prisma/client';
+import { ProblemStatus, type Prisma } from '@prisma/client';
 import { ensureSession, ensureUserSessionRecord } from '@/lib/session';
 import { loadProblemAccessContext, maxStatus } from '@/utils/problemProgress';
 import { isStatusAtLeast } from '@/constants/problemStatus';
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!isStatusAtLeast(context.status, 'INSIGHT_WRITTEN')) {
+    if (!isStatusAtLeast(context.status, ProblemStatus.INSIGHT_WRITTEN)) {
       return NextResponse.json(
         {
           error: 'UPLOAD_FORBIDDEN',
@@ -274,8 +274,8 @@ export async function POST(request: NextRequest) {
 
       const currentProgress = context.progress;
       const targetStatus = maxStatus(
-        currentProgress?.status ?? 'LOCKED',
-        'UPLOAD_COMPLETED'
+        currentProgress?.status ?? ProblemStatus.LOCKED,
+        ProblemStatus.UPLOAD_COMPLETED
       );
 
       transactions.push(
