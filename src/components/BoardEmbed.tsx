@@ -121,12 +121,14 @@ export const BoardEmbed = forwardRef<BoardEmbedRef, BoardEmbedProps>(({
           <div className="flex space-x-2">
             <button
               onClick={openInNewTab}
+              type="button"
               className="btn-primary"
             >
               新しいタブで開く
             </button>
             <button
               onClick={copyBoardUrl}
+              type="button"
               className="btn-outline"
             >
               URLをコピー
@@ -154,6 +156,7 @@ export const BoardEmbed = forwardRef<BoardEmbedRef, BoardEmbedProps>(({
           {/* リフレッシュボタン */}
           <button
             onClick={refreshBoard}
+            type="button"
             className="btn-outline text-sm"
             title="ボードを更新"
             disabled={isLoading}
@@ -167,6 +170,7 @@ export const BoardEmbed = forwardRef<BoardEmbedRef, BoardEmbedProps>(({
           {/* フルスクリーンで開く */}
           <button
             onClick={openInNewTab}
+            type="button"
             className="btn-outline text-sm"
             title="新しいタブで開く"
           >
@@ -179,6 +183,7 @@ export const BoardEmbed = forwardRef<BoardEmbedRef, BoardEmbedProps>(({
           {/* URLコピー */}
           <button
             onClick={copyBoardUrl}
+            type="button"
             className="btn-outline text-sm"
             title="URLをコピー"
           >

@@ -2,6 +2,7 @@ export const PROBLEM_STATUSES = [
   'LOCKED',
   'AVAILABLE',
   'INSIGHT_WRITTEN',
+  'UPLOAD_COMPLETED',
   'BOARD_VIEWED',
   'COMPLETED',
 ] as const;
@@ -12,20 +13,22 @@ export const PROBLEM_STATUS_ORDER: Record<ProblemProgressStatus, number> = {
   LOCKED: 0,
   AVAILABLE: 1,
   INSIGHT_WRITTEN: 2,
-  BOARD_VIEWED: 3,
-  COMPLETED: 4,
+  UPLOAD_COMPLETED: 3,
+  BOARD_VIEWED: 4,
+  COMPLETED: 5,
 };
 
 export const PROBLEM_STATUS_LABEL: Record<ProblemProgressStatus, string> = {
   LOCKED: '未解禁',
   AVAILABLE: '回答可能',
   INSIGHT_WRITTEN: '気づき記入済み',
+  UPLOAD_COMPLETED: 'アップロード済み',
   BOARD_VIEWED: 'ボード閲覧済み',
   COMPLETED: '完了',
 };
 
 export const BOARD_UNLOCKED_STATUSES: ReadonlySet<ProblemProgressStatus> =
-  new Set(['INSIGHT_WRITTEN', 'BOARD_VIEWED', 'COMPLETED']);
+  new Set(['UPLOAD_COMPLETED', 'BOARD_VIEWED', 'COMPLETED']);
 export const COMPLETED_STATUSES: ReadonlySet<ProblemProgressStatus> = new Set([
   'COMPLETED',
   'BOARD_VIEWED',

@@ -117,6 +117,7 @@ export interface ProblemDetail extends ProblemSummary {
   contentBody?: string;
   contentUrl?: string;
   miroBoardId?: string;
+  isUploadUnlocked: boolean;
   isBoardUnlocked: boolean;
   createdAt: string;
   updatedAt: string;

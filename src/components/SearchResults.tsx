@@ -142,6 +142,7 @@ export function SearchResults({
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => setViewMode('grid')}
+                type="button"
                 className={`p-2 rounded-md ${
                   viewMode === 'grid' 
                     ? 'bg-blue-100 text-blue-600' 
@@ -155,6 +156,7 @@ export function SearchResults({
               </button>
               <button
                 onClick={() => setViewMode('list')}
+                type="button"
                 className={`p-2 rounded-md ${
                   viewMode === 'list' 
                     ? 'bg-blue-100 text-blue-600' 
@@ -230,6 +232,7 @@ export function SearchResults({
           <div className="mt-6 text-center">
             <button
               onClick={onLoadMore}
+              type="button"
               disabled={isLoading}
               className="btn-outline"
             >

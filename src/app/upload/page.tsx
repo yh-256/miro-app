@@ -368,6 +368,7 @@ export default function UploadPage() {
                 defaultBoardId={problemDetail.problem.miroBoardId}
                 defaultBoardName={problemDetail.problem.title}
                 defaultBoardDescription={problemDetail.problem.description}
+                isUploadUnlocked={problemDetail.problem.isUploadUnlocked}
                 isBoardUnlocked={problemDetail.problem.isBoardUnlocked}
                 onUploadCompleted={refreshProblemDetail}
               />
@@ -395,6 +396,7 @@ export default function UploadPage() {
             <div>
               <button
                 onClick={handleBack}
+                type="button"
                 disabled={currentStep === 'capture'}
                 className="btn-outline disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -404,6 +406,7 @@ export default function UploadPage() {
 
             <button
               onClick={handleNext}
+              type="button"
               disabled={
                 (currentStep === 'capture' && !canProceedToMetadata) ||
                 (currentStep === 'metadata' && !canProceedToBoard) ||

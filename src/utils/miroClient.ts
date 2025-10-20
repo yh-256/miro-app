@@ -187,7 +187,7 @@ export class MiroApiClient implements IMiroClient {
       formData.append('position.x', String(position.x));
       formData.append('position.y', String(position.y));
       formData.append('geometry.width', '400'); // デフォルトサイズ
-      formData.append('geometry.height', '300');
+      formData.append('geometry.height', '400');
 
       const response = await fetch(`${this.baseUrl}/boards/${boardId}/images`, {
         method: 'POST',

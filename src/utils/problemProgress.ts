@@ -2,6 +2,7 @@ import {
   PROBLEM_STATUS_ORDER,
   ProblemProgressStatus,
   BOARD_UNLOCKED_STATUSES,
+  isStatusAtLeast,
 } from '@/constants/problemStatus';
 import { ProblemProgressSnapshot } from '@/types';
 import { prisma } from '@/lib/prisma';
@@ -73,6 +74,7 @@ export interface ProblemAccessContext {
   progress: ProblemProgressRecord | null;
   status: ProblemProgressStatus;
   snapshot: ProblemProgressSnapshot;
+  isUploadUnlocked: boolean;
   isBoardUnlocked: boolean;
   allPreviousCompleted: boolean;
 }
@@ -118,6 +120,7 @@ export async function loadProblemAccessContext(
 
   const status = deriveStatus(progress?.status ?? null, allPreviousCompleted);
   const snapshot = toSnapshot(status, progress ?? undefined);
+  const isUploadUnlocked = isStatusAtLeast(status, 'INSIGHT_WRITTEN');
   const isBoardUnlocked =
     BOARD_UNLOCKED_STATUSES.has(status) || !!progress?.boardUnlockedAt;
 
@@ -126,6 +129,7 @@ export async function loadProblemAccessContext(
     progress,
     status,
     snapshot,
+    isUploadUnlocked,
     isBoardUnlocked,
     allPreviousCompleted,
   };

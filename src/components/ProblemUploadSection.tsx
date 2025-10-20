@@ -34,6 +34,7 @@ interface ProblemUploadSectionProps {
   defaultBoardId?: string;
   defaultBoardName?: string;
   defaultBoardDescription?: string;
+  isUploadUnlocked?: boolean;
   isBoardUnlocked?: boolean;
   onUploadCompleted?: () => void;
   lockBoardSelection?: boolean;
@@ -44,6 +45,7 @@ export function ProblemUploadSection({
   defaultBoardId,
   defaultBoardName,
   defaultBoardDescription,
+  isUploadUnlocked = true,
   isBoardUnlocked = true,
   onUploadCompleted,
   lockBoardSelection = false,
@@ -332,7 +334,7 @@ export function ProblemUploadSection({
     : currentStep === 'metadata';
   const nextButtonLabel = isUploadTriggerStep ? 'アップロード開始' : '次へ →';
 
-  if (!isBoardUnlocked) {
+  if (!isUploadUnlocked) {
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
@@ -341,7 +343,7 @@ export function ProblemUploadSection({
               画像アップロードはまだ利用できません
             </h3>
             <p className="mt-2 text-sm text-gray-600">
-              気づきを投稿し、ボードが解禁されると画像をアップロードできるようになります。
+              まず気づきを投稿すると、この問題で画像をアップロードできるようになります。
             </p>
           </div>
           <span className="text-xs font-medium text-gray-500 px-2 py-1 bg-gray-100 rounded">
@@ -377,6 +379,12 @@ export function ProblemUploadSection({
       {lockBoardSelection && !selectedBoard && (
         <div className="mb-6 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           この問題には紐付いたボードが設定されていません。管理者に確認してください。
+        </div>
+      )}
+
+      {!isBoardUnlocked && (
+        <div className="mb-6 rounded-md border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm text-yellow-800">
+          画像のアップロードが完了すると、対応するMiroボードを閲覧できるようになります。
         </div>
       )}
 
@@ -463,6 +471,7 @@ export function ProblemUploadSection({
       <div className="flex justify-between items-center">
         <button
           onClick={goBack}
+          type="button"
           disabled={currentStep === 'capture'}
           className="btn-outline disabled:opacity-50 disabled:cursor-not-allowed"
         >
@@ -471,6 +480,7 @@ export function ProblemUploadSection({
 
         <button
           onClick={goToNext}
+          type="button"
           disabled={
             (currentStep === 'capture' && !canProceedToMetadata) ||
             (currentStep === 'metadata' &&

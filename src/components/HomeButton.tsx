@@ -48,6 +48,7 @@ export function HomeButton({
   return (
     <button
       onClick={handleHomeClick}
+      type="button"
       className={`
         inline-flex items-center gap-2 font-medium rounded-md
         transition-colors duration-200 focus:outline-none focus:ring-2 
@@ -104,6 +105,7 @@ export function FloatingHomeButton({ className = '' }: { className?: string }) {
   return (
     <button
       onClick={handleHomeClick}
+      type="button"
       className={`
         fixed bottom-6 right-6 w-14 h-14 bg-blue-600 text-white rounded-full
         shadow-lg hover:bg-blue-700 hover:shadow-xl transform hover:scale-105

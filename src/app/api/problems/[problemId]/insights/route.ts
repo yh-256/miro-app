@@ -152,7 +152,6 @@ export async function POST(
             status: targetStatus,
             insightSubmittedAt:
               currentProgress.insightSubmittedAt ?? now,
-            boardUnlockedAt: currentProgress.boardUnlockedAt ?? now,
           },
         });
       } else {
@@ -162,7 +161,6 @@ export async function POST(
             userSessionId: userSession.id,
             status: targetStatus,
             insightSubmittedAt: now,
-            boardUnlockedAt: now,
           },
         });
       }

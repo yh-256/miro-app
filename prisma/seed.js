@@ -1,5 +1,5 @@
-/* eslint-disable no-console */
-const { PrismaClient } = require('@prisma/client');
+// /* eslint-disable no-console */
+import { PrismaClient } from '@prisma/client'; 
 
 const prisma = new PrismaClient();
 
@@ -26,8 +26,8 @@ async function seedSubjects() {
 }
 
 async function seedProblems() {
-  const defaultBoardId =
-    process.env.MOCK_MIRO_BOARD_ID ?? 'mock-miro-board-id-1';
+  // const defaultBoardId =
+  //   process.env.MOCK_MIRO_BOARD_ID ?? 'mock-miro-board-id-1';
 
   const problems = [
     {
@@ -36,7 +36,7 @@ async function seedProblems() {
       description:
         '撮影した写真を観察し、チームで共有できる気づきを整理してください。',
       orderIndex: 1,
-      miroBoardId: defaultBoardId,
+      miroBoardId: 'uXjVJZIz_Aw=',
       contentType: 'text',
       contentBody:
         '1. 写真を確認\n2. 重要なポイントを箇条書きにする\n3. 気づき投稿フォームに記載して送信',
@@ -47,7 +47,7 @@ async function seedProblems() {
       description:
         '現場で想定されるリスクや改善点を列挙し、具体的な対策を検討しましょう。',
       orderIndex: 2,
-      miroBoardId: defaultBoardId,
+      miroBoardId: 'uXjVJZOg96A=',
       contentType: 'text',
       contentBody:
         '想定されるリスク・改善点をできるだけ多く挙げ、写真やアップロードする画像と紐付けてください。',
@@ -58,7 +58,7 @@ async function seedProblems() {
       description:
         '得られた気づきとリスク情報をもとに、改善案を整理し共有します。',
       orderIndex: 3,
-      miroBoardId: defaultBoardId,
+      miroBoardId: 'uXjVJZeHD7I=',
       contentType: 'text',
       contentBody:
         'これまでの気づき・リスクを踏まえた改善案をまとめ、画像や資料があればアップロードしてください。',

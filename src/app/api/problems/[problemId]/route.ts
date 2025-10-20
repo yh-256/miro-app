@@ -31,7 +31,7 @@ export async function GET(
       );
     }
 
-    const { problem, snapshot, isBoardUnlocked } = context;
+    const { problem, snapshot, isBoardUnlocked, isUploadUnlocked } = context;
 
     const detail = {
       id: problem.id,
@@ -42,7 +42,11 @@ export async function GET(
       contentType: problem.contentType,
       contentBody: problem.contentBody ?? undefined,
       contentUrl: problem.contentUrl ?? undefined,
-      miroBoardId: isBoardUnlocked ? problem.miroBoardId ?? undefined : undefined,
+      miroBoardId:
+        isUploadUnlocked || isBoardUnlocked
+          ? problem.miroBoardId ?? undefined
+          : undefined,
+      isUploadUnlocked,
       isBoardUnlocked,
       createdAt: problem.createdAt.toISOString(),
       updatedAt: problem.updatedAt.toISOString(),

@@ -195,8 +195,10 @@ export function ImageCapture({
         {
           video: {
             facingMode: deviceInfo?.type === 'mobile' ? 'environment' : 'user',
-            width: { ideal: deviceInfo?.type === 'mobile' ? 1280 : 1920 },
-            height: { ideal: deviceInfo?.type === 'mobile' ? 720 : 1080 },
+            // width: { ideal: deviceInfo?.type === 'mobile' ? 1280 : 1920 },
+            // height: { ideal: deviceInfo?.type === 'mobile' ? 720 : 1080 },
+            width: { ideal: deviceInfo?.type === 'mobile' ? 720 : 720 },
+            height: { ideal: deviceInfo?.type === 'mobile' ? 720 : 720 },
           },
           audio: false,
         },
@@ -455,6 +457,7 @@ export function ImageCapture({
             <div className="text-center">
               <button
                 onClick={startCamera}
+                type="button"
                 disabled={!!camera.error}
                 className="btn-primary"
               >
@@ -524,12 +527,14 @@ export function ImageCapture({
               <div className="flex justify-center space-x-4">
                 <button
                   onClick={takePhoto}
+                  type="button"
                   className="btn-primary px-6 py-3 text-lg"
                 >
                   📸 撮影
                 </button>
                 <button
                   onClick={stopCamera}
+                  type="button"
                   className="btn-secondary px-6 py-3 text-lg"
                 >
                   ❌ 停止
@@ -570,6 +575,7 @@ export function ImageCapture({
               
               <button
                 onClick={() => fileInputRef.current?.click()}
+                type="button"
                 disabled={uploading}
                 className="btn-outline"
               >
@@ -598,6 +604,7 @@ export function ImageCapture({
             </h4>
             <button
               onClick={clearFiles}
+              type="button"
               className="text-sm text-red-600 hover:text-red-800"
             >
               すべて削除
@@ -620,6 +627,7 @@ export function ImageCapture({
                 
                 <button
                   onClick={() => removeFile(fileWithPreview.id)}
+                  type="button"
                   className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full text-xs hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   ×

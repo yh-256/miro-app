@@ -25,6 +25,10 @@ const STATUS_STYLES: Record<
     badge: 'bg-indigo-50 text-indigo-700 border border-indigo-200',
     dot: 'bg-indigo-500',
   },
+  UPLOAD_COMPLETED: {
+    badge: 'bg-purple-50 text-purple-700 border border-purple-200',
+    dot: 'bg-purple-500',
+  },
   BOARD_VIEWED: {
     badge: 'bg-teal-50 text-teal-700 border border-teal-200',
     dot: 'bg-teal-500',

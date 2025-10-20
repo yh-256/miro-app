@@ -9,6 +9,9 @@ import { generateCorsHeaders } from '@/utils/securityConfig';
 import { prisma } from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
 import { ensureSession, ensureUserSessionRecord } from '@/lib/session';
+import { loadProblemAccessContext, maxStatus } from '@/utils/problemProgress';
+import { isStatusAtLeast } from '@/constants/problemStatus';
+
 
 interface UploadRequestBody {
   images: {
@@ -61,6 +64,37 @@ export async function POST(request: NextRequest) {
     }
     if (images.length === 0) {
       return NextResponse.json({ success: true, uploadedItems: [], skippedItems: [] });
+    }
+
+    const context = await loadProblemAccessContext(problemId, userSession.id);
+    if (!context) {
+      return NextResponse.json(
+        { error: 'PROBLEM_NOT_FOUND', message: '指定された問題が見つかりません。' },
+        { status: 404 }
+      );
+    }
+
+    if (!isStatusAtLeast(context.status, 'INSIGHT_WRITTEN')) {
+      return NextResponse.json(
+        {
+          error: 'UPLOAD_FORBIDDEN',
+          message: '気づきを投稿した後に画像をアップロードしてください。',
+        },
+        { status: 403 }
+      );
+    }
+
+    if (
+      context.problem.miroBoardId &&
+      context.problem.miroBoardId !== boardId
+    ) {
+      return NextResponse.json(
+        {
+          error: 'INVALID_BOARD_SELECTION',
+          message: 'この問題に紐付いたボード以外にはアップロードできません。',
+        },
+        { status: 403 }
+      );
     }
 
     // 1. ファイルの前処理と検証
@@ -175,6 +209,7 @@ export async function POST(request: NextRequest) {
 
     // 4. データベースに保存
     if (uploadedItems.length > 0) {
+      const now = new Date();
       const sessionIdentifier =
         validFilesInfo[0]?.metadata.sessionId ?? sessionId;
       const uploaderName = metadata.find(m => m.uploaderName)?.uploaderName ?? null;
@@ -234,6 +269,36 @@ export async function POST(request: NextRequest) {
             userSessionId: userSession.id,
           })),
           skipDuplicates: true,
+        })
+      );
+
+      const currentProgress = context.progress;
+      const targetStatus = maxStatus(
+        currentProgress?.status ?? 'LOCKED',
+        'UPLOAD_COMPLETED'
+      );
+
+      transactions.push(
+        prisma.problemProgress.upsert({
+          where: {
+            problemId_userSessionId: {
+              problemId,
+              userSessionId: userSession.id,
+            },
+          },
+          update: {
+            status: targetStatus,
+            insightSubmittedAt:
+              currentProgress?.insightSubmittedAt ?? now,
+            boardUnlockedAt: currentProgress?.boardUnlockedAt ?? now,
+          },
+          create: {
+            problemId,
+            userSessionId: userSession.id,
+            status: targetStatus,
+            insightSubmittedAt: currentProgress?.insightSubmittedAt ?? now,
+            boardUnlockedAt: now,
+          },
         })
       );
 

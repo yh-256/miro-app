@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { Layout } from '@/components/Layout';
 import { ResponsiveContainer } from '@/components/ResponsiveContainer';
 import { BoardEmbed } from '@/components/BoardEmbed';
@@ -29,6 +29,7 @@ function formatTimestamp(timestamp?: string) {
 export default function ProblemDetailPage() {
   const params = useParams();
   const problemId = (params?.problemId as string) ?? '';
+  const router = useRouter();
 
   const [detail, setDetail] = useState<ProblemDetailResponse | null>(null);
   const [insights, setInsights] = useState<InsightSummary[]>([]);
@@ -79,11 +80,16 @@ export default function ProblemDetailPage() {
     : '';
 
   const canPostInsight = detail
-    ? ['AVAILABLE', 'INSIGHT_WRITTEN', 'BOARD_VIEWED', 'COMPLETED'].includes(
-        detail.problem.status
-      )
+    ? [
+        'AVAILABLE',
+        'INSIGHT_WRITTEN',
+        'UPLOAD_COMPLETED',
+        'BOARD_VIEWED',
+        'COMPLETED',
+      ].includes(detail.problem.status)
     : false;
 
+  const uploadUnlocked = detail?.problem.isUploadUnlocked ?? false;
   const boardUnlocked = detail?.problem.isBoardUnlocked ?? false;
 
   const handleInsightSubmit = async () => {
@@ -138,6 +144,11 @@ export default function ProblemDetailPage() {
         );
       }
 
+      if (update.completed) {
+        router.push('/problems');
+        return;
+      }
+
       await fetchDetail();
     } catch (err) {
       alert(
@@ -161,7 +172,7 @@ export default function ProblemDetailPage() {
         value: formatTimestamp(detail.problem.insightSubmittedAt),
       },
       {
-        label: 'ボード解禁',
+        label: 'アップロード完了',
         value: formatTimestamp(detail.problem.boardUnlockedAt),
       },
       {
@@ -282,12 +293,13 @@ export default function ProblemDetailPage() {
                       公開気づきとして共有
                     </label>
                     <button
-                      onClick={handleInsightSubmit}
-                      disabled={
-                        submittingInsight ||
-                        !canPostInsight ||
-                        !insightForm.content.trim()
-                      }
+                    onClick={handleInsightSubmit}
+                    type="button"
+                    disabled={
+                      submittingInsight ||
+                      !canPostInsight ||
+                      !insightForm.content.trim()
+                    }
                       className="btn-primary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {submittingInsight ? '送信中...' : '気づきを投稿'}
@@ -339,6 +351,7 @@ export default function ProblemDetailPage() {
               problemId={problemId}
               defaultBoardId={detail.problem.miroBoardId}
               defaultBoardName={detail.problem.title}
+              isUploadUnlocked={uploadUnlocked}
               isBoardUnlocked={boardUnlocked}
               onUploadCompleted={refreshAfterUpload}
               lockBoardSelection
@@ -359,9 +372,13 @@ export default function ProblemDetailPage() {
                     ボードを閲覧後、「ボード閲覧済みにする」ボタンを押すと、ステップ3が完了します。
                   </p>
                 </div>
+              ) : !uploadUnlocked ? (
+                <div className="text-sm text-gray-600">
+                  まず気づきを入力して投稿すると、画像アップロードとボード閲覧が順番に解禁されます。
+                </div>
               ) : (
                 <div className="text-sm text-gray-600">
-                  まず気づきを入力して投稿すると、Miroボードが閲覧できるようになります。
+                  画像をアップロードすると、Miroボードが閲覧できるようになります。
                 </div>
               )}
             </section>
@@ -380,6 +397,7 @@ export default function ProblemDetailPage() {
               </div>
               <div className="flex gap-3">
                 <button
+                  type="button"
                   onClick={() => updateProgress({ boardViewed: true })}
                   disabled={
                     progressUpdating ||
@@ -390,6 +408,7 @@ export default function ProblemDetailPage() {
                   ボード閲覧済みにする
                 </button>
                 <button
+                  type="button"
                   onClick={() => updateProgress({ completed: true })}
                   disabled={
                     progressUpdating ||

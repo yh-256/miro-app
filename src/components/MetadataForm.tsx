@@ -131,7 +131,7 @@ export function MetadataForm({
       <div className={`${className}`}>
         <div className="text-center py-8">
           <p className="text-red-600 mb-4">{error}</p>
-          <button onClick={fetchSubjects} className="btn-primary">
+          <button onClick={fetchSubjects} type="button" className="btn-primary">
             再試行
           </button>
         </div>
@@ -165,6 +165,7 @@ export function MetadataForm({
           {!showNewSubjectForm ? (
             <button
               onClick={() => setShowNewSubjectForm(true)}
+              type="button"
               className="btn-outline text-sm"
             >
               + 新しい個人IDを追加
@@ -183,6 +184,7 @@ export function MetadataForm({
                 />
                 <button
                   onClick={handleCreateSubject}
+                  type="button"
                   disabled={!newSubjectName.trim() || creatingSubject}
                   className="btn-primary px-4 disabled:opacity-50"
                 >
@@ -193,6 +195,7 @@ export function MetadataForm({
                     setShowNewSubjectForm(false);
                     setNewSubjectName('');
                   }}
+                  type="button"
                   className="btn-outline px-4"
                 >
                   キャンセル

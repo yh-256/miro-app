@@ -92,6 +92,7 @@ export function BoardSelector({
           </div>
           <button
             onClick={handleRetry}
+            type="button"
             className="btn-primary"
           >
             再試行
