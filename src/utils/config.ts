@@ -279,6 +279,7 @@ async function validateMiroToken(token: string): Promise<boolean> {
  */
 export function validateConfig(): { isValid: boolean; errors: string[] } {
   const errors: string[] = [];
+  const isServer = typeof window === 'undefined';
 
   // Miro設定の検証
   if (!config.miro.clientId || config.miro.clientId.length < 10) {
@@ -309,8 +310,8 @@ export function validateConfig(): { isValid: boolean; errors: string[] } {
     errors.push(`Invalid file types: ${invalidTypes.join(', ')}`);
   }
 
-  // セキュリティ設定の検証
-  if (config.isProduction && config.app.encryptionKey.length < 32) {
+  // セキュリティ設定の検証（サーバーサイドでのみ実行）
+  if (isServer && config.isProduction && config.app.encryptionKey.length < 32) {
     errors.push('Production environment requires encryption key of at least 32 characters');
   }
 
