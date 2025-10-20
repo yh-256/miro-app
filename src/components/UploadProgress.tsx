@@ -54,6 +54,7 @@ export function UploadProgress({
           {(isCompleted || hasError) && onClose && (
             <button
               onClick={onClose}
+              type="button"
               className="text-gray-400 hover:text-gray-600"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

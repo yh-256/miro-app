@@ -8,6 +8,10 @@ import { UploadResponse } from '@/types';
 import { generateCorsHeaders } from '@/utils/securityConfig';
 import { prisma } from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
+import { ensureSession, ensureUserSessionRecord } from '@/lib/session';
+import { loadProblemAccessContext, maxStatus } from '@/utils/problemProgress';
+import { isStatusAtLeast } from '@/constants/problemStatus';
+
 
 interface UploadRequestBody {
   images: {
@@ -16,11 +20,12 @@ interface UploadRequestBody {
     type: string;
   }[];
   boardId: string;
+  problemId: string;
   metadata: {
     subjectId: string;
     subjectName: string;
     uploaderName?: string;
-    sessionId: string;
+    sessionId?: string;
   }[];
 }
 
@@ -43,20 +48,63 @@ export async function POST(request: NextRequest) {
   
   try {
     const body: UploadRequestBody = await request.json();
-    const { images, boardId, metadata } = body;
+    const { images, boardId, metadata, problemId } = body;
+    const { sessionId } = await ensureSession();
+    const userSession = await ensureUserSessionRecord(sessionId);
 
-    if (!boardId || !images || !metadata || images.length !== metadata.length) {
+    if (
+      !boardId ||
+      !images ||
+      !metadata ||
+      images.length !== metadata.length ||
+      typeof problemId !== 'string' ||
+      problemId.trim().length === 0
+    ) {
       return NextResponse.json({ error: 'INVALID_REQUEST', message: 'リクエストデータが不正です。' }, { status: 400 });
     }
     if (images.length === 0) {
       return NextResponse.json({ success: true, uploadedItems: [], skippedItems: [] });
     }
 
+    const context = await loadProblemAccessContext(problemId, userSession.id);
+    if (!context) {
+      return NextResponse.json(
+        { error: 'PROBLEM_NOT_FOUND', message: '指定された問題が見つかりません。' },
+        { status: 404 }
+      );
+    }
+
+    if (!isStatusAtLeast(context.status, 'INSIGHT_WRITTEN')) {
+      return NextResponse.json(
+        {
+          error: 'UPLOAD_FORBIDDEN',
+          message: '気づきを投稿した後に画像をアップロードしてください。',
+        },
+        { status: 403 }
+      );
+    }
+
+    if (
+      context.problem.miroBoardId &&
+      context.problem.miroBoardId !== boardId
+    ) {
+      return NextResponse.json(
+        {
+          error: 'INVALID_BOARD_SELECTION',
+          message: 'この問題に紐付いたボード以外にはアップロードできません。',
+        },
+        { status: 403 }
+      );
+    }
+
     // 1. ファイルの前処理と検証
     const validFilesInfo: { tempFile: TempFileInfo; metadata: typeof metadata[0] }[] = [];
     for (let i = 0; i < images.length; i++) {
       const image = images[i];
-      const meta = metadata[i];
+      const meta = {
+        ...metadata[i],
+        sessionId: metadata[i].sessionId ?? sessionId,
+      };
       try {
         const base64Data = image.data.replace(/^data:image\/[a-z]+;base64,/, '');
         const buffer = Buffer.from(base64Data, 'base64');
@@ -161,7 +209,9 @@ export async function POST(request: NextRequest) {
 
     // 4. データベースに保存
     if (uploadedItems.length > 0) {
-      const sessionIdentifier = metadata[0]?.sessionId ?? `session_${Date.now()}`;
+      const now = new Date();
+      const sessionIdentifier =
+        validFilesInfo[0]?.metadata.sessionId ?? sessionId;
       const uploaderName = metadata.find(m => m.uploaderName)?.uploaderName ?? null;
 
       const sessionRecord = await prisma.uploadSession.upsert({
@@ -169,11 +219,15 @@ export async function POST(request: NextRequest) {
         update: {
           boardId,
           uploaderName,
+          problemId,
+          userSessionId: userSession.id,
         },
         create: {
           sessionId: sessionIdentifier,
           boardId,
           uploaderName,
+          problemId,
+          userSessionId: userSession.id,
         },
       });
 
@@ -211,8 +265,40 @@ export async function POST(request: NextRequest) {
             mimeType: item.mimeType,
             imageHeight: item.imageHeight,
             imageWidth: item.imageWidth,
+            problemId,
+            userSessionId: userSession.id,
           })),
           skipDuplicates: true,
+        })
+      );
+
+      const currentProgress = context.progress;
+      const targetStatus = maxStatus(
+        currentProgress?.status ?? 'LOCKED',
+        'UPLOAD_COMPLETED'
+      );
+
+      transactions.push(
+        prisma.problemProgress.upsert({
+          where: {
+            problemId_userSessionId: {
+              problemId,
+              userSessionId: userSession.id,
+            },
+          },
+          update: {
+            status: targetStatus,
+            insightSubmittedAt:
+              currentProgress?.insightSubmittedAt ?? now,
+            boardUnlockedAt: currentProgress?.boardUnlockedAt ?? now,
+          },
+          create: {
+            problemId,
+            userSessionId: userSession.id,
+            status: targetStatus,
+            insightSubmittedAt: currentProgress?.insightSubmittedAt ?? now,
+            boardUnlockedAt: now,
+          },
         })
       );
 

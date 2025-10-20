@@ -24,6 +24,7 @@ function SearchPageContent() {
   const [availableSubjects, setAvailableSubjects] = useState<Array<{ id: string; name: string }>>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [restrictedCount, setRestrictedCount] = useState(0);
 
   const searchParams = useSearchParams();
 
@@ -85,6 +86,7 @@ function SearchPageContent() {
       if (data.success) {
         const normalizedResults = normalizeSearchResults(data.results);
         setSearchResults(normalizedResults);
+        setRestrictedCount(data.restrictedCount ?? 0);
       } else {
         throw new Error(data.message || '検索結果の取得に失敗しました。');
       }
@@ -92,6 +94,7 @@ function SearchPageContent() {
       console.error('Search error:', error);
       setError(error instanceof Error ? error.message : '検索中にエラーが発生しました。');
       setSearchResults(null);
+      setRestrictedCount(0);
     } finally {
       setIsSearching(false);
     }
@@ -130,6 +133,7 @@ function SearchPageContent() {
     setSearchResults(null);
     setSearchQuery('');
     setError(null);
+    setRestrictedCount(0);
   };
 
   const handleItemClick = (item: SearchResultItem) => {
@@ -222,6 +226,12 @@ function SearchPageContent() {
                     );
                   })()}
                 </div>
+              </div>
+            )}
+
+            {restrictedCount > 0 && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-800">
+                権限のない問題に紐付くアイテム {restrictedCount} 件を結果から除外しました。
               </div>
             )}
 

@@ -226,6 +226,7 @@ function ToastItem({ toast, onRemove }: ToastItemProps) {
           <div className="ml-4 flex-shrink-0 flex">
             <button
               onClick={handleClose}
+              type="button"
               className="inline-flex text-gray-400 hover:text-gray-600 focus:outline-none focus:text-gray-600 transition ease-in-out duration-150"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

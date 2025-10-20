@@ -42,6 +42,7 @@ export function HomePage() {
         <div className="w-full max-w-md space-y-4">
           <button
             onClick={navigateToUpload}
+            type="button"
             className="w-full btn-primary text-lg py-4 px-6 rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200"
           >
             <div className="flex items-center justify-center gap-3">
@@ -67,6 +68,7 @@ export function HomePage() {
 
           <button
             onClick={navigateToBoard}
+            type="button"
             className="w-full btn-outline text-lg py-4 px-6 rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200"
           >
             <div className="flex items-center justify-center gap-3">
@@ -92,6 +94,7 @@ export function HomePage() {
 
           <button
             onClick={navigateToSearch}
+            type="button"
             className="w-full btn-outline text-lg py-4 px-6 rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200"
           >
             <div className="flex items-center justify-center gap-3">

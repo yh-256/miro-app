@@ -34,13 +34,13 @@ export interface SubjectGroup {
 const LAYOUT_CONFIG = {
   // 実際のMiroアイテムサイズ（miroClient.uploadImageで設定される値）
   IMAGE_WIDTH: 400,           // 画像の実際の幅
-  IMAGE_HEIGHT: 300,          // 画像の実際の高さ
+  IMAGE_HEIGHT: 400,          // 画像の実際の高さ
   STICKY_NOTE_WIDTH: 200,     // 付箋の推定幅
   STICKY_NOTE_HEIGHT: 120,    // 付箋の高さ
   
   // レイアウト間隔（実際のアイテムサイズ + 余白）
   IMAGE_SPACING_X: 450,       // 画像幅400px + 余白50px
-  IMAGE_SPACING_Y: 380,       // 画像高さ300px + 付箋間隔 + 余白
+  IMAGE_SPACING_Y: 480,       // 画像高さ400px + 付箋間隔 + 余白
   STICKY_NOTE_OFFSET: 20,     // 画像と付箋の間隔
   ITEMS_PER_ROW: 3,           // 1行あたりのアイテム数
   

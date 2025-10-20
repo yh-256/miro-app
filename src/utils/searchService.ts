@@ -37,6 +37,8 @@ export interface SearchResultItem {
     sessionId?: string;
     fileSize?: number;
     mimeType?: string;
+    problemId?: string;
+    userSessionId?: string;
   };
   content?: string;
   imageUrl?: string;

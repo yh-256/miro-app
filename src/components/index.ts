@@ -10,3 +10,4 @@ export * from './SearchForm';
 export * from './SearchResults';
 export * from './Toast';
 export * from './HomeButton';
+export * from './ProblemUploadSection';

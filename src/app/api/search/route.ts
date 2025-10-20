@@ -9,6 +9,8 @@ import {
 import { ErrorHandler, logError } from '@/utils/errorHandler';
 import { prisma } from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
+import { ensureSession, ensureUserSessionRecord } from '@/lib/session';
+import { getAccessibleProblemIds } from '@/utils/problemProgress';
 
 interface SearchRequestQuery {
   boardId: string;
@@ -74,6 +76,26 @@ export async function GET(request: NextRequest) {
     }
 
     const limit = parseInt(params.limit || '200') || 200;
+    const { sessionId } = await ensureSession();
+    const userSession = await ensureUserSessionRecord(sessionId);
+    const accessibleProblemIds = await getAccessibleProblemIds(userSession.id);
+
+    const limitExceededResponse = {
+      success: true,
+      results: { items: [], totalCount: 0, hasMore: false },
+      searchCriteria: {
+        boardId: params.boardId,
+        query: params.query,
+        subjectId: params.subjectId,
+        uploaderName: params.uploaderName,
+        searchType: params.searchType,
+      },
+      restrictedCount: 0,
+    };
+
+    if (accessibleProblemIds.size === 0) {
+      return NextResponse.json(limitExceededResponse);
+    }
     let searchResults: SearchResult;
 
     // 検索タイプに応じた検索実行
@@ -146,11 +168,16 @@ export async function GET(request: NextRequest) {
     }
 
     // 成功レスポンス
-    const enrichedResults = await enrichSearchResultsWithDatabase(searchResults);
+    const enrichedResults = await enrichSearchResultsWithDatabase(
+      searchResults,
+      accessibleProblemIds
+    );
+    const { results: filteredResults, restrictedCount } =
+      filterSearchResultsByAccess(enrichedResults, accessibleProblemIds);
 
     return NextResponse.json({
       success: true,
-      results: enrichedResults,
+      results: filteredResults,
       searchCriteria: {
         boardId: params.boardId,
         query: params.query,
@@ -158,6 +185,7 @@ export async function GET(request: NextRequest) {
         uploaderName: params.uploaderName,
         searchType: params.searchType,
       },
+      restrictedCount,
     });
 
   } catch (error) {
@@ -220,16 +248,37 @@ export async function POST(request: NextRequest) {
     }
 
     // 検索実行
+    const { sessionId } = await ensureSession();
+    const userSession = await ensureUserSessionRecord(sessionId);
+    const accessibleProblemIds = await getAccessibleProblemIds(userSession.id);
+
+    if (accessibleProblemIds.size === 0) {
+      return NextResponse.json({
+        success: true,
+        results: { items: [], totalCount: 0, hasMore: false },
+        searchCriteria: {
+          boardId,
+          ...searchCriteria,
+        },
+      });
+    }
+
     const searchResults = await searchBoardItems(boardId, searchCriteria, limit);
-    const enrichedResults = await enrichSearchResultsWithDatabase(searchResults);
+    const enrichedResults = await enrichSearchResultsWithDatabase(
+      searchResults,
+      accessibleProblemIds
+    );
+    const { results: filteredResults, restrictedCount } =
+      filterSearchResultsByAccess(enrichedResults, accessibleProblemIds);
 
     return NextResponse.json({
       success: true,
-      results: enrichedResults,
+      results: filteredResults,
       searchCriteria: {
         boardId,
         ...searchCriteria,
       },
+      restrictedCount,
     });
 
   } catch (error) {
@@ -249,7 +298,10 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function enrichSearchResultsWithDatabase(results: SearchResult): Promise<SearchResult> {
+async function enrichSearchResultsWithDatabase(
+  results: SearchResult,
+  accessibleProblemIds?: Set<string>
+): Promise<SearchResult> {
   if (results.items.length === 0) {
     return results;
   }
@@ -276,6 +328,9 @@ async function enrichSearchResultsWithDatabase(results: SearchResult): Promise<S
   const uploadedItems = await prisma.uploadedItem.findMany({
     where: {
       OR: conditions,
+      ...(accessibleProblemIds && accessibleProblemIds.size > 0
+        ? { problemId: { in: Array.from(accessibleProblemIds) } }
+        : {}),
     },
     include: {
       subject: true,
@@ -338,6 +393,8 @@ async function enrichSearchResultsWithDatabase(results: SearchResult): Promise<S
       sessionId: dbRecord.session?.sessionId ?? resultItem.metadata?.sessionId,
       fileSize: dbRecord.fileSize ?? resultItem.metadata?.fileSize,
       mimeType: dbRecord.mimeType ?? resultItem.metadata?.mimeType,
+      problemId: dbRecord.problemId ?? resultItem.metadata?.problemId,
+      userSessionId: dbRecord.userSessionId ?? resultItem.metadata?.userSessionId,
     };
 
     return {
@@ -349,6 +406,36 @@ async function enrichSearchResultsWithDatabase(results: SearchResult): Promise<S
   return {
     ...results,
     items: enrichedItems,
+  };
+}
+
+function filterSearchResultsByAccess(
+  results: SearchResult,
+  accessibleProblemIds: Set<string>
+): { results: SearchResult; restrictedCount: number } {
+  if (results.items.length === 0) {
+    return { results, restrictedCount: 0 };
+  }
+
+  const filteredItems = results.items.filter((item) => {
+    const problemId = item.metadata?.problemId;
+    if (!problemId) {
+      return false;
+    }
+    return accessibleProblemIds.has(problemId);
+  });
+
+  const restrictedCount = results.items.length - filteredItems.length;
+
+  return {
+    results: {
+      ...results,
+      items: filteredItems,
+      totalCount: filteredItems.length,
+      hasMore:
+        filteredItems.length === results.items.length ? results.hasMore : false,
+    },
+    restrictedCount,
   };
 }
 
