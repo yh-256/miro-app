@@ -3,7 +3,7 @@ import { UploadPageClient } from '@/components/UploadPageClient';
 type SearchParamsValue = string | string[] | undefined;
 
 interface UploadPageProps {
-  searchParams?: Record<string, SearchParamsValue>;
+  searchParams?: Promise<Record<string, SearchParamsValue>>;
 }
 
 const getSearchParamValue = (value: SearchParamsValue): string | null => {
@@ -13,8 +13,8 @@ const getSearchParamValue = (value: SearchParamsValue): string | null => {
   return value ?? null;
 };
 
-export default function UploadPage({ searchParams }: UploadPageProps) {
-  const problemIdFromQuery = getSearchParamValue(searchParams?.problemId);
-
+export default async function UploadPage({ searchParams }: UploadPageProps) {
+  const sp = (await searchParams) ?? {};
+  const problemIdFromQuery = getSearchParamValue(sp.problemId);
   return <UploadPageClient problemIdFromQuery={problemIdFromQuery} />;
 }
