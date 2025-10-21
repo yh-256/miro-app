@@ -16,29 +16,55 @@ enum ProblemStatus {
   COMPLETED
 }
 
+enum UserRole {
+  ADMIN
+  USER
+}
+
+model User {
+  id          String    @id @default(uuid())
+  userId      String    @unique @map("user_id")
+  pinHash     String    @map("pin_hash")
+  displayName String?   @map("display_name")
+  role        UserRole  @default(USER)
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  createdBy   String?   @map("created_by")
+  lastLoginAt DateTime? @map("last_login_at")
+
+  userSessions UserSession[]
+
+  @@index([userId])
+  @@index([isActive])
+  @@map("users")
+}
+
 model Subject {
-  id          String         @id @default(uuid())
-  name        String         @unique
-  createdAt   DateTime       @default(now())
-  lastUsedAt  DateTime?      @map("last_used_at")
-  uploadedAt  DateTime       @default(now()) @map("uploaded_at")
-  uploads     UploadedItem[]
+  id         String         @id @default(uuid())
+  name       String         @unique
+  createdAt  DateTime       @default(now())
+  lastUsedAt DateTime?      @map("last_used_at")
+  uploadedAt DateTime       @default(now()) @map("uploaded_at")
+  uploads    UploadedItem[]
 
   @@map("subjects")
 }
 
 model UserSession {
-  id             String             @id @default(uuid())
-  sessionToken   String             @unique @map("session_token")
-  displayName    String?            @map("display_name")
-  createdAt      DateTime           @default(now()) @map("created_at")
-  lastActiveAt   DateTime           @default(now()) @map("last_active_at")
-  expiresAt      DateTime?          @map("expires_at")
+  id             String            @id @default(uuid())
+  sessionToken   String            @unique @map("session_token")
+  displayName    String?           @map("display_name")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  lastActiveAt   DateTime          @default(now()) @map("last_active_at")
+  expiresAt      DateTime?         @map("expires_at")
+  user           User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId         String?           @map("user_id")
   progress       ProblemProgress[]
   insights       Insight[]
   uploadSessions UploadSession[]
   uploadedItems  UploadedItem[]
 
+  @@index([userId])
   @@map("user_sessions")
 }
 
@@ -59,89 +85,89 @@ model Problem {
   uploads       UploadSession[]
   uploadedItems UploadedItem[]
 
-  @@map("problems")
   @@unique([orderIndex])
+  @@map("problems")
 }
 
 model ProblemProgress {
-  id                  String        @id @default(uuid())
-  problem             Problem       @relation(fields: [problemId], references: [id], onDelete: Cascade)
-  problemId           String        @map("problem_id")
-  userSession         UserSession   @relation(fields: [userSessionId], references: [id], onDelete: Cascade)
-  userSessionId       String        @map("user_session_id")
-  status              ProblemStatus @default(LOCKED)
-  insightSubmittedAt  DateTime?     @map("insight_submitted_at")
-  boardUnlockedAt     DateTime?     @map("board_unlocked_at")
-  boardViewedAt       DateTime?     @map("board_viewed_at")
-  completedAt         DateTime?     @map("completed_at")
-  createdAt           DateTime      @default(now()) @map("created_at")
-  updatedAt           DateTime      @updatedAt @map("updated_at")
+  id                 String        @id @default(uuid())
+  problem            Problem       @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  problemId          String        @map("problem_id")
+  userSession        UserSession   @relation(fields: [userSessionId], references: [id], onDelete: Cascade)
+  userSessionId      String        @map("user_session_id")
+  status             ProblemStatus @default(LOCKED)
+  insightSubmittedAt DateTime?     @map("insight_submitted_at")
+  boardUnlockedAt    DateTime?     @map("board_unlocked_at")
+  boardViewedAt      DateTime?     @map("board_viewed_at")
+  completedAt        DateTime?     @map("completed_at")
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
 
-  @@map("problem_progress")
   @@unique([problemId, userSessionId])
   @@index([userSessionId])
+  @@map("problem_progress")
 }
 
 model Insight {
-  id            String       @id @default(uuid())
-  problem       Problem      @relation(fields: [problemId], references: [id], onDelete: Cascade)
-  problemId     String       @map("problem_id")
-  userSession   UserSession  @relation(fields: [userSessionId], references: [id], onDelete: Cascade)
-  userSessionId String       @map("user_session_id")
+  id            String      @id @default(uuid())
+  problem       Problem     @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  problemId     String      @map("problem_id")
+  userSession   UserSession @relation(fields: [userSessionId], references: [id], onDelete: Cascade)
+  userSessionId String      @map("user_session_id")
   content       String
-  isPublic      Boolean      @default(true) @map("is_public")
-  createdAt     DateTime     @default(now()) @map("created_at")
-  updatedAt     DateTime     @updatedAt @map("updated_at")
+  isPublic      Boolean     @default(true) @map("is_public")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
 
-  @@map("insights")
   @@index([problemId])
   @@index([userSessionId])
+  @@map("insights")
 }
 
 model UploadSession {
-  id           String         @id @default(uuid())
-  sessionId    String         @unique @map("session_id")
-  boardId      String         @map("board_id")
-  uploaderName String?        @map("uploader_name")
-  createdAt    DateTime       @default(now()) @map("created_at")
-  problem      Problem?       @relation(fields: [problemId], references: [id], onDelete: SetNull)
-  problemId    String?        @map("problem_id")
-  userSession  UserSession?   @relation(fields: [userSessionId], references: [id], onDelete: SetNull)
-  userSessionId String?       @map("user_session_id")
-  items        UploadedItem[]
+  id            String         @id @default(uuid())
+  sessionId     String         @unique @map("session_id")
+  boardId       String         @map("board_id")
+  uploaderName  String?        @map("uploader_name")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  problem       Problem?       @relation(fields: [problemId], references: [id], onDelete: SetNull)
+  problemId     String?        @map("problem_id")
+  userSession   UserSession?   @relation(fields: [userSessionId], references: [id], onDelete: SetNull)
+  userSessionId String?        @map("user_session_id")
+  items         UploadedItem[]
 
-  @@map("upload_sessions")
   @@index([boardId])
   @@index([problemId])
   @@index([userSessionId])
+  @@map("upload_sessions")
 }
 
 model UploadedItem {
-  id           String        @id @default(uuid())
-  session      UploadSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  sessionId    String        @map("session_id")
-  subject      Subject?      @relation(fields: [subjectId], references: [id], onDelete: SetNull)
-  subjectId    String?       @map("subject_id")
-  miroImageId  String        @map("miro_image_id")
-  miroStickyId String        @map("miro_sticky_id")
-  miroGroupId  String?       @map("miro_group_id")
-  fileName     String        @map("file_name")
-  fileSize     Int?          @map("file_size")
-  mimeType     String?       @map("mime_type")
-  imageWidth   Int?          @map("image_width")
-  imageHeight  Int?          @map("image_height")
-  positionX    Float?        @map("position_x")
-  positionY    Float?        @map("position_y")
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
-  problem      Problem?      @relation(fields: [problemId], references: [id], onDelete: SetNull)
-  problemId    String?       @map("problem_id")
-  userSession  UserSession?  @relation(fields: [userSessionId], references: [id], onDelete: SetNull)
-  userSessionId String?      @map("user_session_id")
+  id            String        @id @default(uuid())
+  session       UploadSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId     String        @map("session_id")
+  subject       Subject?      @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  subjectId     String?       @map("subject_id")
+  miroImageId   String        @map("miro_image_id")
+  miroStickyId  String        @map("miro_sticky_id")
+  miroGroupId   String?       @map("miro_group_id")
+  fileName      String        @map("file_name")
+  fileSize      Int?          @map("file_size")
+  mimeType      String?       @map("mime_type")
+  imageWidth    Int?          @map("image_width")
+  imageHeight   Int?          @map("image_height")
+  positionX     Float?        @map("position_x")
+  positionY     Float?        @map("position_y")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  problem       Problem?      @relation(fields: [problemId], references: [id], onDelete: SetNull)
+  problemId     String?       @map("problem_id")
+  userSession   UserSession?  @relation(fields: [userSessionId], references: [id], onDelete: SetNull)
+  userSessionId String?       @map("user_session_id")
 
-  @@map("uploaded_items")
   @@index([subjectId])
   @@index([sessionId])
   @@index([problemId])
   @@index([userSessionId])
+  @@map("uploaded_items")
 }
