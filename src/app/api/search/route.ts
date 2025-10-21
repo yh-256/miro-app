@@ -325,15 +325,64 @@ async function enrichSearchResultsWithDatabase(
         ? { problemId: { in: Array.from(accessibleProblemIds) } }
         : {}),
     },
-    include: {
-      user: true,
-      session: true,
+    select: {
+      id: true,
+      miroImageId: true,
+      miroStickyId: true,
+      miroGroupId: true,
+      fileName: true,
+      fileSize: true,
+      mimeType: true,
+      imageHeight: true,
+      imageWidth: true,
+      positionX: true,
+      positionY: true,
+      createdAt: true,
+      updatedAt: true,
+      problemId: true,
+      userSessionId: true,
+      sessionId: true,
+      userId: true,
     },
   });
 
-  const mapByImageId = new Map<string, typeof uploadedItems[number]>();
-  const mapByStickyId = new Map<string, typeof uploadedItems[number]>();
-  const mapByGroupId = new Map<string, typeof uploadedItems[number]>();
+  const sessionIds = Array.from(
+    new Set(uploadedItems.map((item) => item.sessionId).filter(Boolean))
+  ) as string[];
+
+  const sessions = sessionIds.length
+    ? await prisma.uploadSession.findMany({
+        where: { id: { in: sessionIds } },
+        select: {
+          id: true,
+          sessionId: true,
+          uploaderName: true,
+          createdAt: true,
+        },
+      })
+    : [];
+
+  const sessionMap = new Map(sessions.map((session) => [session.id, session]));
+
+  const userIds = Array.from(
+    new Set(uploadedItems.map((item) => item.userId).filter(Boolean))
+  ) as string[];
+
+  const users = userIds.length
+    ? await prisma.user.findMany({
+        where: { id: { in: userIds } },
+        select: {
+          id: true,
+          displayName: true,
+        },
+      })
+    : [];
+
+  const userMap = new Map(users.map((user) => [user.id, user]));
+
+  const mapByImageId = new Map<string, (typeof uploadedItems)[number]>();
+  const mapByStickyId = new Map<string, (typeof uploadedItems)[number]>();
+  const mapByGroupId = new Map<string, (typeof uploadedItems)[number]>();
 
   for (const item of uploadedItems) {
     if (item.miroImageId) {
@@ -348,9 +397,7 @@ async function enrichSearchResultsWithDatabase(
   }
 
   const enrichedItems = results.items.map(resultItem => {
-    let dbRecord:
-      | typeof uploadedItems[number]
-      | undefined = undefined;
+    let dbRecord: (typeof uploadedItems)[number] | undefined;
 
     if (resultItem.type === 'image') {
       dbRecord = mapByImageId.get(resultItem.id);
@@ -378,12 +425,17 @@ async function enrichSearchResultsWithDatabase(
 
     const mergedMetadata = {
       ...(resultItem.metadata ?? {}),
-      userId: dbRecord.userId ?? resultItem.metadata?.userId,
-      userDisplayName: dbRecord.user?.displayName ?? resultItem.metadata?.userDisplayName,
-      uploaderName: dbRecord.session?.uploaderName ?? resultItem.metadata?.uploaderName,
-      uploadedAt: dbRecord.session?.createdAt ?? resultItem.metadata?.uploadedAt,
+      userId: dbRecord.userId ?? resultItem.metadata?.userId ?? undefined,
+      userDisplayName: dbRecord.userId
+        ? userMap.get(dbRecord.userId)?.displayName ?? resultItem.metadata?.userDisplayName
+        : resultItem.metadata?.userDisplayName,
+      uploaderName:
+        sessionMap.get(dbRecord.sessionId)?.uploaderName ?? resultItem.metadata?.uploaderName,
+      uploadedAt:
+        sessionMap.get(dbRecord.sessionId)?.createdAt ?? resultItem.metadata?.uploadedAt,
       fileName: dbRecord.fileName ?? resultItem.metadata?.fileName,
-      sessionId: dbRecord.session?.sessionId ?? resultItem.metadata?.sessionId,
+      sessionId:
+        sessionMap.get(dbRecord.sessionId)?.sessionId ?? resultItem.metadata?.sessionId,
       fileSize: dbRecord.fileSize ?? resultItem.metadata?.fileSize,
       mimeType: dbRecord.mimeType ?? resultItem.metadata?.mimeType,
       problemId: dbRecord.problemId ?? resultItem.metadata?.problemId,

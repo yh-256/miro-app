@@ -7,6 +7,7 @@
  *   node scripts/generate-secrets.js
  */
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const crypto = require('crypto');
 
 console.log('='.repeat(80));

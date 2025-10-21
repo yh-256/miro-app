@@ -91,11 +91,42 @@ async function seedAdminUser() {
   console.info('   ⚠️  Please change the default PIN after first login!');
 }
 
+async function seedStandardUsers(count = 50) {
+  const userPromises = Array.from({ length: count }).map(async (_, index) => {
+    const userId = `user-${String(index + 1).padStart(2, '0')}`;
+
+    const existing = await prisma.user.findUnique({
+      where: { userId },
+    });
+    if (existing) {
+      return null;
+    }
+
+    const pin = '1234';
+    const pinHash = await bcrypt.hash(pin, 10);
+    await prisma.user.create({
+      data: {
+        userId,
+        pinHash,
+        displayName: `一般ユーザー${index + 1}`,
+        role: 'USER',
+        isActive: true,
+      },
+    });
+    return null;
+  });
+
+  await Promise.all(userPromises);
+  console.info(`✅ ${count} standard users created successfully!`);
+}
+
 async function main() {
   console.info('Seeding problems...');
   await seedProblems();
   console.info('Seeding admin user...');
   await seedAdminUser();
+  console.info('Seeding standard users...');
+  await seedStandardUsers(50);
   console.info('Seed completed.');
 }
 
