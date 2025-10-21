@@ -27,6 +27,39 @@ interface MigrationCheck {
   details?: string[];
 }
 
+type ExecSyncException = Error & {
+  stdout?: Buffer | string;
+  stderr?: Buffer | string;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isExecSyncException(error: unknown): error is ExecSyncException {
+  return (
+    error instanceof Error &&
+    isRecord(error) &&
+    ('stdout' in error || 'stderr' in error)
+  );
+}
+
+function isErrorWithMessage(error: unknown): error is { message: string } {
+  return isRecord(error) && typeof error.message === 'string';
+}
+
+function bufferToString(output?: Buffer | string): string {
+  if (typeof output === 'string') {
+    return output;
+  }
+
+  if (output instanceof Buffer) {
+    return output.toString('utf-8');
+  }
+
+  return '';
+}
+
 async function checkDatabaseConnection(): Promise<MigrationCheck> {
   try {
     await prisma.$connect();
@@ -85,9 +118,19 @@ async function checkMigrationStatus(): Promise<MigrationCheck> {
       details: lines.filter(line => line.trim() !== ''),
     };
   } catch (error) {
-    const errorOutput = error instanceof Error && 'stdout' in error
-      ? (error as any).stdout?.toString() || (error as any).stderr?.toString()
-      : String(error);
+    const errorOutput = (() => {
+      if (isExecSyncException(error)) {
+        const stdout = bufferToString(error.stdout);
+        const stderr = bufferToString(error.stderr);
+        return stdout || stderr || error.message;
+      }
+
+      if (isErrorWithMessage(error)) {
+        return error.message;
+      }
+
+      return String(error);
+    })();
 
     // エラー出力からpendingマイグレーションを検出
     if (errorOutput?.toLowerCase().includes('pending')) {
