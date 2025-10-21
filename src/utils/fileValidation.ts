@@ -1,4 +1,4 @@
-import { config } from './config';
+import { CLIENT_CONFIG } from './clientConfig';
 import { ValidationNotifications } from './notificationService';
 
 /**
@@ -14,14 +14,14 @@ export interface FileValidationResult {
  * ファイル形式の検証
  */
 export function validateFileType(file: File): boolean {
-  return config.upload.allowedFileTypes.includes(file.type);
+  return CLIENT_CONFIG.upload.allowedFileTypes.includes(file.type);
 }
 
 /**
  * ファイルサイズの検証
  */
 export function validateFileSize(file: File): boolean {
-  return file.size <= config.upload.maxFileSize;
+  return file.size <= CLIENT_CONFIG.upload.maxFileSize;
 }
 
 /**
@@ -89,14 +89,14 @@ export async function validateSingleFile(file: File): Promise<FileValidationResu
 
   // ファイルサイズ検証
   if (!validateFileSize(file)) {
-    const maxSizeMB = Math.round(config.upload.maxFileSize / 1024 / 1024);
+    const maxSizeMB = Math.round(CLIENT_CONFIG.upload.maxFileSize / 1024 / 1024);
     return { isValid: false, error: `ファイルサイズが${maxSizeMB}MBを超えています。` };
   }
 
   // MIME type検証
   if (!validateFileType(file)) {
-    const allowedTypes = config.upload.allowedFileTypes
-      .map(type => type.split('/')[1].toUpperCase())
+    const allowedTypes = CLIENT_CONFIG.upload.allowedFileTypes
+      .map((type: string) => type.split('/')[1].toUpperCase())
       .join('、');
     return { 
       isValid: false, 
@@ -283,7 +283,7 @@ export async function scanFileContent(file: File): Promise<SecurityValidationRes
     }
 
     // 異常に大きなファイルのチェック
-    if (file.size > config.upload.maxFileSize * 2) {
+    if (file.size > CLIENT_CONFIG.upload.maxFileSize * 2) {
       result.warnings.push('ファイルサイズが通常より大きいです');
       result.riskLevel = 'medium';
     }
@@ -468,7 +468,7 @@ export async function performPreUploadValidation(
   }
 
   const totalSize = files.reduce((sum, file) => sum + file.size, 0);
-  const maxTotalSize = config.upload.maxFileSize * files.length;
+  const maxTotalSize = CLIENT_CONFIG.upload.maxFileSize * files.length;
   
   if (totalSize > maxTotalSize) {
     const maxTotalSizeMB = Math.round(maxTotalSize / 1024 / 1024);
