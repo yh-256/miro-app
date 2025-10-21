@@ -13,7 +13,8 @@
     "test:watch": "jest --watch",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:seed": "prisma db seed"
+    "prisma:seed": "prisma db seed",
+    "generate:secrets": "node scripts/generate-secrets.js"
   },
   "dependencies": {
     "@mirohq/websdk-types": "^2.16.1",

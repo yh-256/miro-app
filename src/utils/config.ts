@@ -64,6 +64,30 @@ function validateEnvironmentSecurity(): { isSecure: boolean; warnings: string[] 
     if (process.env.NEXTAUTH_SECRET === 'your-secret-here') {
       warnings.push('本番環境ではデフォルトのシークレットを変更してください');
     }
+
+    // SESSION_SECRETの強度チェック
+    if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET.length < 32) {
+      warnings.push('本番環境では32文字以上のSESSION_SECRETが必要です');
+    }
+
+    // 弱いシークレットの検出
+    const weakSecrets = [
+      'development_secret_min_32_chars_required_here',
+      'your_secret_here',
+      'change_me',
+      'CHANGE_THIS',
+    ];
+    if (process.env.SESSION_SECRET && weakSecrets.some(weak => process.env.SESSION_SECRET?.includes(weak))) {
+      warnings.push('SESSION_SECRETが開発用のデフォルト値のままです。強力なランダム文字列に変更してください');
+    }
+    if (process.env.NEXTAUTH_SECRET && weakSecrets.some(weak => process.env.NEXTAUTH_SECRET?.includes(weak))) {
+      warnings.push('NEXTAUTH_SECRETが開発用のデフォルト値のままです。強力なランダム文字列に変更してください');
+    }
+
+    // データベースURLのチェック
+    if (process.env.DATABASE_URL?.includes('localhost') || process.env.DATABASE_URL?.includes('127.0.0.1')) {
+      warnings.push('本番環境でlocalhostデータベースを使用しています');
+    }
   }
 
   // 環境変数の露出チェック
@@ -186,6 +210,7 @@ function loadConfig(): AppConfig {
       'MIRO_ACCESS_TOKEN',
       'NEXT_PUBLIC_APP_URL',
       'NEXTAUTH_SECRET',
+      'SESSION_SECRET', // iron-session用（最低32文字）
     ];
 
     // 必須環境変数の存在確認
@@ -193,6 +218,11 @@ function loadConfig(): AppConfig {
       if (!process.env[key]) {
         throw new Error(`Missing required environment variable: ${key}`);
       }
+    }
+
+    // SESSION_SECRETの長さチェック
+    if (process.env.SESSION_SECRET && process.env.SESSION_SECRET.length < 32) {
+      throw new Error('SESSION_SECRET must be at least 32 characters long');
     }
   } else {
     // クライアントサイドでの必須環境変数の確認
