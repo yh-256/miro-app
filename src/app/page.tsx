@@ -1,10 +1,5 @@
-import { Layout } from '@/components/Layout';
-import { HomePage } from '@/components/HomePage';
+import { redirect } from 'next/navigation';
 
 export default function Home() {
-  return (
-    <Layout title="Miro Image Upload App">
-      <HomePage />
-    </Layout>
-  );
+  redirect('/login');
 }

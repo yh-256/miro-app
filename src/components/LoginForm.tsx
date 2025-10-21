@@ -39,7 +39,7 @@ export default function LoginForm() {
       showSuccess('ログイン成功', `${data.user.displayName || data.user.userId}さん、ようこそ!`);
       
       // リダイレクト先を確認（デフォルトはホーム）
-      const redirectTo = searchParams.get('redirect') || '/';
+      const redirectTo = searchParams.get('redirect') || '/problems';
       router.push(redirectTo);
       router.refresh();
     } catch (err) {
