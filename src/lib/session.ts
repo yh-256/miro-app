@@ -1,10 +1,26 @@
 import { cookies } from 'next/headers';
 import crypto from 'crypto';
 import { prisma } from './prisma';
+import { getSession as getIronSession } from './auth/iron-session';
 
 export interface SessionInfo {
   sessionId: string;
   isNew: boolean;
+}
+
+export interface AuthenticatedSessionInfo {
+  ironSession: {
+    userId?: string;
+    displayName?: string;
+    role?: 'ADMIN' | 'USER';
+    isLoggedIn: boolean;
+  };
+  userSession: {
+    id: string;
+    sessionToken: string;
+    userId?: string | null;
+    displayName?: string | null;
+  };
 }
 
 const SESSION_COOKIE_NAME = 'app_session';
@@ -69,4 +85,57 @@ export async function ensureUserSessionRecord(sessionId: string) {
       sessionToken: sessionId,
     },
   });
+}
+
+/**
+ * 認証ユーザーとUserSessionを統合
+ * iron-sessionで認証済みの場合、UserSession.userIdを更新
+ */
+export async function ensureAuthenticatedSession(): Promise<AuthenticatedSessionInfo> {
+  const ironSession = await getIronSession();
+  
+  // 匿名セッションを確保
+  const { sessionId } = await ensureSession();
+  const userSession = await ensureUserSessionRecord(sessionId);
+  
+  // ログイン中で、まだUserSessionと紐づいていない場合
+  if (ironSession.isLoggedIn && ironSession.userId && !userSession.userId) {
+    const updatedSession = await prisma.userSession.update({
+      where: { id: userSession.id },
+      data: { 
+        userId: ironSession.userId,
+        displayName: ironSession.displayName,
+      },
+    });
+    
+    return {
+      ironSession: {
+        userId: ironSession.userId,
+        displayName: ironSession.displayName,
+        role: ironSession.role,
+        isLoggedIn: ironSession.isLoggedIn,
+      },
+      userSession: {
+        id: updatedSession.id,
+        sessionToken: updatedSession.sessionToken,
+        userId: updatedSession.userId,
+        displayName: updatedSession.displayName,
+      },
+    };
+  }
+  
+  return {
+    ironSession: {
+      userId: ironSession.userId,
+      displayName: ironSession.displayName,
+      role: ironSession.role,
+      isLoggedIn: ironSession.isLoggedIn ?? false,
+    },
+    userSession: {
+      id: userSession.id,
+      sessionToken: userSession.sessionToken,
+      userId: userSession.userId,
+      displayName: userSession.displayName,
+    },
+  };
 }
