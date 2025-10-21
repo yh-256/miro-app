@@ -6,7 +6,7 @@ import { Layout } from '@/components/Layout';
 import { SearchForm, SearchFormData } from '@/components/SearchForm';
 import { SearchResults } from '@/components/SearchResults';
 import { BoardSelector } from '@/components/BoardSelector';
-import { SearchResult, SearchResultItem, getSearchStats } from '@/utils/searchService';
+import { SearchResult, SearchResultItem, getSearchStats } from '@/utils/searchService.types';
 import { fetchSubjects as fetchSubjectsFromApi } from '@/utils/subjectStorage';
 
 interface Board {

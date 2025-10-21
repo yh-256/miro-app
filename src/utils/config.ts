@@ -2,6 +2,7 @@
  * セキュリティ強化された環境変数の管理とバリデーション
  */
 
+import 'server-only';
 import crypto from 'crypto';
 
 interface AppConfig {

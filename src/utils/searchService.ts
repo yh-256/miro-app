@@ -1,49 +1,19 @@
-import { miroClient, MiroItem, MiroImageItem, MiroStickyNote, IMiroClient } from './miroClient';
+import 'server-only';
+
+import { miroClient, type MiroItem, type MiroImageItem, type MiroStickyNote, type IMiroClient } from './miroClient';
 import { logError } from './errorHandler';
 import { extractPersonalIdFromContent } from './subjectStorage';
 import { findNearbyItems as findNearbyByType } from './proximity';
 import { toPlainText } from './text';
 
+// 型定義とクライアント用ユーティリティは別ファイルから再エクスポート
+import type { SearchCriteria, SearchResult, SearchResultItem } from './searchService.types';
+export type { SearchCriteria, SearchResult, SearchResultItem };
+export { getSearchStats } from './searchService.types';
+
 /**
- * 検索機能の基盤サービス
+ * 検索機能の基盤サービス（サーバー専用）
  */
-
-export interface SearchCriteria {
-  query?: string;
-  subjectId?: string;
-  subjectName?: string;
-  uploaderName?: string;
-  dateFrom?: Date;
-  dateTo?: Date;
-  itemTypes?: string[];
-}
-
-export interface SearchResult {
-  items: SearchResultItem[];
-  totalCount: number;
-  hasMore: boolean;
-}
-
-export interface SearchResultItem {
-  id: string;
-  type: 'image' | 'sticky_note' | 'group';
-  position: { x: number; y: number };
-  metadata?: {
-    subjectId?: string;
-    subjectName?: string;
-    uploaderName?: string;
-    uploadedAt?: Date;
-    fileName?: string;
-    sessionId?: string;
-    fileSize?: number;
-    mimeType?: string;
-    problemId?: string;
-    userSessionId?: string;
-  };
-  content?: string;
-  imageUrl?: string;
-  groupedItems?: string[];
-}
 
 /**
  * ボード内アイテムの包括的検索
@@ -374,51 +344,4 @@ export function highlightSearchTerms(text: string, searchTerms: string[]): strin
   });
   
   return highlightedText;
-}
-
-/**
- * 検索結果の統計情報を取得
- */
-export function getSearchStats(results: SearchResult): {
-  totalImages: number;
-  totalStickyNotes: number;
-  totalGroups: number;
-  subjectCounts: Map<string, number>;
-  uploaderCounts: Map<string, number>;
-} {
-  const stats = {
-    totalImages: 0,
-    totalStickyNotes: 0,
-    totalGroups: 0,
-    subjectCounts: new Map<string, number>(),
-    uploaderCounts: new Map<string, number>(),
-  };
-  
-  results.items.forEach(item => {
-    switch (item.type) {
-      case 'image':
-        stats.totalImages++;
-        break;
-      case 'sticky_note':
-        stats.totalStickyNotes++;
-        break;
-      case 'group':
-        stats.totalGroups++;
-        break;
-    }
-    
-    // 個人ID統計
-    if (item.metadata?.subjectName) {
-      const current = stats.subjectCounts.get(item.metadata.subjectName) || 0;
-      stats.subjectCounts.set(item.metadata.subjectName, current + 1);
-    }
-    
-    // アップロード者統計
-    if (item.metadata?.uploaderName) {
-      const current = stats.uploaderCounts.get(item.metadata.uploaderName) || 0;
-      stats.uploaderCounts.set(item.metadata.uploaderName, current + 1);
-    }
-  });
-  
-  return stats;
 }

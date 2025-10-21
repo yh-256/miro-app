@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useDeviceDetection } from '@/utils/deviceDetection';
-import { SearchResult, SearchResultItem } from '@/utils/searchService';
+import { SearchResult, SearchResultItem } from '@/utils/searchService.types';
 
 interface SearchResultsProps {
   results: SearchResult;

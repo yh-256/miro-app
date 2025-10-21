@@ -23,6 +23,7 @@
     "next": "15.4.4",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "server-only": "^0.0.1",
     "sharp": "^0.34.3"
   },
   "devDependencies": {
@@ -37,11 +38,11 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "prisma": "^5.17.0",
     "eslint": "^9",
     "eslint-config-next": "15.4.4",
     "jest": "^30.0.5",
     "jest-environment-jsdom": "^30.0.5",
+    "prisma": "^5.17.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   },

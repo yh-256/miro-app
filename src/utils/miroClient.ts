@@ -1,3 +1,4 @@
+import 'server-only';
 import { config } from './config';
 import { ErrorHandler, logError } from './errorHandler';
 import { UserFriendlyError } from '@/types';
