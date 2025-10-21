@@ -13,7 +13,12 @@
     "test:watch": "jest --watch",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "prisma:migrate:status": "prisma migrate status",
     "prisma:seed": "prisma db seed",
+    "prisma:check-migrations": "ts-node prisma/scripts/check-migrations.ts",
+    "prisma:backup": "bash prisma/scripts/backup.sh",
+    "prisma:restore": "bash prisma/scripts/restore.sh",
     "generate:secrets": "node scripts/generate-secrets.js"
   },
   "dependencies": {
