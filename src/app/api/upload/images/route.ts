@@ -8,7 +8,7 @@ import { UploadResponse } from '@/types';
 import { generateCorsHeaders } from '@/utils/securityConfig';
 import { prisma } from '@/lib/prisma';
 import { ProblemStatus, type Prisma } from '@prisma/client';
-import { ensureSession, ensureUserSessionRecord } from '@/lib/session';
+import { ensureAuthenticatedSession } from '@/lib/session';
 import { loadProblemAccessContext, maxStatus } from '@/utils/problemProgress';
 import { isStatusAtLeast } from '@/constants/problemStatus';
 
@@ -49,8 +49,7 @@ export async function POST(request: NextRequest) {
   try {
     const body: UploadRequestBody = await request.json();
     const { images, boardId, metadata, problemId } = body;
-    const { sessionId } = await ensureSession();
-    const userSession = await ensureUserSessionRecord(sessionId);
+    const { ironSession: _ironSession, userSession } = await ensureAuthenticatedSession();
 
     if (
       !boardId ||
@@ -103,7 +102,7 @@ export async function POST(request: NextRequest) {
       const image = images[i];
       const meta = {
         ...metadata[i],
-        sessionId: metadata[i].sessionId ?? sessionId,
+        sessionId: metadata[i].sessionId ?? userSession.id,
       };
       try {
         const base64Data = image.data.replace(/^data:image\/[a-z]+;base64,/, '');
@@ -211,7 +210,7 @@ export async function POST(request: NextRequest) {
     if (uploadedItems.length > 0) {
       const now = new Date();
       const sessionIdentifier =
-        validFilesInfo[0]?.metadata.sessionId ?? sessionId;
+        validFilesInfo[0]?.metadata.sessionId ?? userSession.id;
       const uploaderName = metadata.find(m => m.uploaderName)?.uploaderName ?? null;
 
       const sessionRecord = await prisma.uploadSession.upsert({

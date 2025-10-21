@@ -9,7 +9,7 @@ import {
 import { ErrorHandler, logError } from '@/utils/errorHandler';
 import { prisma } from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
-import { ensureSession, ensureUserSessionRecord } from '@/lib/session';
+import { ensureAuthenticatedSession } from '@/lib/session';
 import { getAccessibleProblemIds } from '@/utils/problemProgress';
 
 interface SearchRequestQuery {
@@ -76,8 +76,7 @@ export async function GET(request: NextRequest) {
     }
 
     const limit = parseInt(params.limit || '200') || 200;
-    const { sessionId } = await ensureSession();
-    const userSession = await ensureUserSessionRecord(sessionId);
+    const { ironSession: _ironSession, userSession } = await ensureAuthenticatedSession();
     const accessibleProblemIds = await getAccessibleProblemIds(userSession.id);
 
     const limitExceededResponse = {
@@ -248,9 +247,8 @@ export async function POST(request: NextRequest) {
     }
 
     // 検索実行
-    const { sessionId } = await ensureSession();
-    const userSession = await ensureUserSessionRecord(sessionId);
-    const accessibleProblemIds = await getAccessibleProblemIds(userSession.id);
+    const { ironSession: _ironSession2, userSession: userSession2 } = await ensureAuthenticatedSession();
+    const accessibleProblemIds = await getAccessibleProblemIds(userSession2.id);
 
     if (accessibleProblemIds.size === 0) {
       return NextResponse.json({

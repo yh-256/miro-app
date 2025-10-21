@@ -1,13 +1,20 @@
 'use client';
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Layout } from '@/components/Layout';
 import { SearchForm, SearchFormData } from '@/components/SearchForm';
 import { SearchResults } from '@/components/SearchResults';
 import { BoardSelector } from '@/components/BoardSelector';
 import { SearchResult, SearchResultItem, getSearchStats } from '@/utils/searchService.types';
 import { fetchSubjects as fetchSubjectsFromApi } from '@/utils/subjectStorage';
+
+interface AuthStatus {
+  isLoggedIn: boolean;
+  userId?: string;
+  displayName?: string;
+  role?: 'ADMIN' | 'USER';
+}
 
 interface Board {
   id: string;
@@ -17,6 +24,9 @@ interface Board {
 }
 
 function SearchPageContent() {
+  const router = useRouter();
+  const [authStatus, setAuthStatus] = useState<AuthStatus>({ isLoggedIn: false });
+  const [authLoading, setAuthLoading] = useState(true);
   const [selectedBoard, setSelectedBoard] = useState<Board | null>(null);
   const [searchResults, setSearchResults] = useState<SearchResult | null>(null);
   const [isSearching, setIsSearching] = useState(false);
@@ -27,6 +37,23 @@ function SearchPageContent() {
   const [restrictedCount, setRestrictedCount] = useState(0);
 
   const searchParams = useSearchParams();
+
+  // 認証状態を取得
+  useEffect(() => {
+    const fetchAuthStatus = async () => {
+      try {
+        const response = await fetch('/api/auth/session');
+        const data = await response.json();
+        setAuthStatus(data);
+      } catch (error) {
+        console.error('Failed to fetch auth status:', error);
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+
+    fetchAuthStatus();
+  }, []);
 
   // 個人ID一覧の取得
   const fetchSubjects = async () => {
@@ -177,6 +204,30 @@ function SearchPageContent() {
             className="bg-white"
           />
         </div>
+
+        {/* ログイン推奨バナー */}
+        {!authLoading && !authStatus.isLoggedIn && (
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-md mb-6">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-yellow-700">
+                  <button
+                    onClick={() => router.push('/login')}
+                    className="font-medium underline hover:text-yellow-800"
+                  >
+                    ログイン
+                  </button>
+                  すると、検索履歴が記録され、よりパーソナライズされた結果が表示されます。
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {selectedBoard && (
           <div className="space-y-6">

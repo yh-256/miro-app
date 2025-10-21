@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { ensureSession, ensureUserSessionRecord } from '@/lib/session';
+import { ensureAuthenticatedSession } from '@/lib/session';
 import { ProblemListResponse } from '@/types';
 import { ErrorHandler, logError } from '@/utils/errorHandler';
 import { deriveStatus, toSnapshot } from '@/utils/problemProgress';
@@ -8,8 +8,7 @@ import { COMPLETED_STATUSES } from '@/constants/problemStatus';
 
 export async function GET() {
   try {
-    const { sessionId } = await ensureSession();
-    const userSession = await ensureUserSessionRecord(sessionId);
+    const { ironSession: _ironSession, userSession } = await ensureAuthenticatedSession();
 
     const problems = await prisma.problem.findMany({
       where: { isActive: true },

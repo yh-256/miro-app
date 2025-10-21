@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { ensureSession, ensureUserSessionRecord } from '@/lib/session';
+import { ensureAuthenticatedSession } from '@/lib/session';
 import { ProblemDetailResponse, InsightSummary } from '@/types';
 import { ErrorHandler, logError } from '@/utils/errorHandler';
 import { loadProblemAccessContext } from '@/utils/problemProgress';
@@ -19,8 +19,7 @@ export async function GET(
       );
     }
 
-    const { sessionId } = await ensureSession();
-    const userSession = await ensureUserSessionRecord(sessionId);
+    const { ironSession: _ironSession, userSession } = await ensureAuthenticatedSession();
 
     const context = await loadProblemAccessContext(problemId, userSession.id);
 

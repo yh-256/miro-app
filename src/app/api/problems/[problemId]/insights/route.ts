@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { ensureSession, ensureUserSessionRecord } from '@/lib/session';
+import { ensureAuthenticatedSession } from '@/lib/session';
 import { InsightListResponse, InsightPayload } from '@/types';
 import { ErrorHandler, logError } from '@/utils/errorHandler';
 import {
@@ -39,8 +39,7 @@ export async function GET(
       );
     }
 
-    const { sessionId } = await ensureSession();
-    const userSession = await ensureUserSessionRecord(sessionId);
+    const { ironSession: _ironSession, userSession } = await ensureAuthenticatedSession();
 
     const context = await loadProblemAccessContext(problemId, userSession.id);
     if (!context) {
@@ -104,8 +103,7 @@ export async function POST(
 
     const payload = validatePayload(await request.json());
 
-    const { sessionId } = await ensureSession();
-    const userSession = await ensureUserSessionRecord(sessionId);
+    const { ironSession: _ironSession, userSession } = await ensureAuthenticatedSession();
 
     const context = await loadProblemAccessContext(problemId, userSession.id);
     if (!context) {
