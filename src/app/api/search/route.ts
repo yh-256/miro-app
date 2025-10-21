@@ -73,8 +73,14 @@ export async function GET(request: NextRequest) {
     }
 
     const limit = parseInt(params.limit || '200') || 200;
-    const { ironSession: _ironSession, userSession } = await ensureAuthenticatedSession();
-    const accessibleProblemIds = await getAccessibleProblemIds(userSession.id);
+    const { ironSession } = await ensureAuthenticatedSession();
+    if (!ironSession.isLoggedIn || !ironSession.userId) {
+      return NextResponse.json(
+        { error: 'UNAUTHORIZED', message: 'ログインが必要です。', success: false, results: { items: [], totalCount: 0, hasMore: false } },
+        { status: 401 }
+      );
+    }
+    const accessibleProblemIds = await getAccessibleProblemIds(ironSession.userId);
 
     const limitExceededResponse = {
       success: true,
@@ -242,8 +248,19 @@ export async function POST(request: NextRequest) {
     }
 
     // 検索実行
-    const { ironSession: _ironSession2, userSession: userSession2 } = await ensureAuthenticatedSession();
-    const accessibleProblemIds = await getAccessibleProblemIds(userSession2.id);
+    const { ironSession: ironSession2 } = await ensureAuthenticatedSession();
+    if (!ironSession2.isLoggedIn || !ironSession2.userId) {
+      return NextResponse.json(
+        {
+          error: 'UNAUTHORIZED',
+          message: 'ログインが必要です。',
+          success: false,
+          results: { items: [], totalCount: 0, hasMore: false },
+        },
+        { status: 401 }
+      );
+    }
+    const accessibleProblemIds = await getAccessibleProblemIds(ironSession2.userId);
 
     if (accessibleProblemIds.size === 0) {
       return NextResponse.json({

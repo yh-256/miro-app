@@ -49,7 +49,13 @@ export async function POST(request: NextRequest) {
   try {
     const body: UploadRequestBody = await request.json();
     const { images, boardId, metadata, problemId } = body;
-    const { ironSession: _ironSession, userSession } = await ensureAuthenticatedSession();
+    const { ironSession, userSession } = await ensureAuthenticatedSession();
+    if (!ironSession.isLoggedIn || !ironSession.userId) {
+      return NextResponse.json(
+        { error: 'UNAUTHORIZED', message: 'ログインが必要です。' },
+        { status: 401 }
+      );
+    }
 
     if (
       !boardId ||
@@ -65,7 +71,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, uploadedItems: [], skippedItems: [] });
     }
 
-    const context = await loadProblemAccessContext(problemId, userSession.id);
+    const context = await loadProblemAccessContext(problemId, ironSession.userId);
     if (!context) {
       return NextResponse.json(
         { error: 'PROBLEM_NOT_FOUND', message: '指定された問題が見つかりません。' },
@@ -102,12 +108,10 @@ export async function POST(request: NextRequest) {
       const image = images[i];
       const meta = {
         ...metadata[i],
+        userId: ironSession.userId,
+        userDisplayName: metadata[i].userDisplayName ?? ironSession.displayName ?? undefined,
         sessionId: metadata[i].sessionId ?? userSession.id,
       };
-      if (typeof meta.userId !== 'string' || meta.userId.trim().length === 0) {
-        skippedItems.push({ fileName: image.name, reason: 'ユーザーIDが指定されていません。' });
-        continue;
-      }
       try {
         const base64Data = image.data.replace(/^data:image\/[a-z]+;base64,/, '');
         const buffer = Buffer.from(base64Data, 'base64');
@@ -268,12 +272,13 @@ export async function POST(request: NextRequest) {
       transactions.push(
         prisma.problemProgress.upsert({
           where: {
-            problemId_userSessionId: {
+            problemId_userId: {
               problemId,
-              userSessionId: userSession.id,
+              userId: ironSession.userId,
             },
           },
           update: {
+            userSessionId: userSession.id,
             status: targetStatus,
             insightSubmittedAt:
               currentProgress?.insightSubmittedAt ?? now,
@@ -281,6 +286,7 @@ export async function POST(request: NextRequest) {
           },
           create: {
             problemId,
+            userId: ironSession.userId,
             userSessionId: userSession.id,
             status: targetStatus,
             insightSubmittedAt: currentProgress?.insightSubmittedAt ?? now,

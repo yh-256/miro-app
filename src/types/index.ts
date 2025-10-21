@@ -135,13 +135,13 @@ export interface InsightPayload {
 export interface InsightSummary {
   id: string;
   problemId: string;
-  sessionId: string;
+  userId: string;
   content: string;
   isPublic: boolean;
   createdAt: string;
   updatedAt: string;
   author?: {
-    sessionId: string;
+    userId: string;
     displayName?: string;
   };
 }

@@ -8,14 +8,20 @@ import { COMPLETED_STATUSES } from '@/constants/problemStatus';
 
 export async function GET() {
   try {
-    const { ironSession: _ironSession, userSession } = await ensureAuthenticatedSession();
+    const { ironSession } = await ensureAuthenticatedSession();
+    if (!ironSession.isLoggedIn || !ironSession.userId) {
+      return NextResponse.json(
+        { error: 'UNAUTHORIZED', message: 'ログインが必要です。' },
+        { status: 401 }
+      );
+    }
 
     const problems = await prisma.problem.findMany({
       where: { isActive: true },
       orderBy: { orderIndex: 'asc' },
       include: {
         progress: {
-          where: { userSessionId: userSession.id },
+          where: { userId: ironSession.userId },
           take: 1,
         },
       },

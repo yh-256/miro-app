@@ -19,9 +19,15 @@ export async function GET(
       );
     }
 
-    const { ironSession: _ironSession, userSession } = await ensureAuthenticatedSession();
+    const { ironSession } = await ensureAuthenticatedSession();
+    if (!ironSession.isLoggedIn || !ironSession.userId) {
+      return NextResponse.json(
+        { error: 'UNAUTHORIZED', message: 'ログインが必要です。' },
+        { status: 401 }
+      );
+    }
 
-    const context = await loadProblemAccessContext(problemId, userSession.id);
+    const context = await loadProblemAccessContext(problemId, ironSession.userId);
 
     if (!context) {
       return NextResponse.json(
@@ -59,12 +65,12 @@ export async function GET(
           problemId,
           OR: [
             { isPublic: true },
-            { userSessionId: userSession.id },
+            { userId: ironSession.userId },
           ],
         },
         orderBy: { createdAt: 'asc' },
         include: {
-          userSession: true,
+          user: true,
         },
       });
 

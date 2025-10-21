@@ -57,7 +57,7 @@ type ProblemWithProgress = Prisma.ProblemGetPayload<{
   include: {
     progress: {
       where: {
-        userSessionId: string;
+        userId: string;
       };
       take: 1;
     };
@@ -81,13 +81,13 @@ export interface ProblemAccessContext {
 
 export async function loadProblemAccessContext(
   problemId: string,
-  userSessionId: string
+  userId: string
 ): Promise<ProblemAccessContext | null> {
   const problem = (await prisma.problem.findUnique({
     where: { id: problemId },
     include: {
       progress: {
-        where: { userSessionId },
+        where: { userId },
         take: 1,
       },
     },
@@ -106,7 +106,7 @@ export async function loadProblemAccessContext(
     },
     include: {
       progress: {
-        where: { userSessionId },
+        where: { userId },
         take: 1,
       },
     },
@@ -133,11 +133,11 @@ export async function loadProblemAccessContext(
 }
 
 export async function getAccessibleProblemIds(
-  userSessionId: string
+  userId: string
 ): Promise<Set<string>> {
   const rows = await prisma.problemProgress.findMany({
     where: {
-      userSessionId,
+      userId,
       status: {
         in: Array.from(BOARD_UNLOCKED_STATUSES),
       },

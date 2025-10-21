@@ -34,6 +34,8 @@ model User {
 
   userSessions UserSession[]
   uploadedItems UploadedItem[]
+  problemProgress ProblemProgress[]
+  insights        Insight[]
 
   @@index([userId])
   @@index([isActive])
@@ -83,8 +85,10 @@ model ProblemProgress {
   id                 String        @id @default(uuid())
   problem            Problem       @relation(fields: [problemId], references: [id], onDelete: Cascade)
   problemId          String        @map("problem_id")
-  userSession        UserSession   @relation(fields: [userSessionId], references: [id], onDelete: Cascade)
-  userSessionId      String        @map("user_session_id")
+  userSession        UserSession?  @relation(fields: [userSessionId], references: [id], onDelete: SetNull)
+  userSessionId      String?       @map("user_session_id")
+  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId             String        @map("user_id")
   status             ProblemStatus @default(LOCKED)
   insightSubmittedAt DateTime?     @map("insight_submitted_at")
   boardUnlockedAt    DateTime?     @map("board_unlocked_at")
@@ -93,8 +97,8 @@ model ProblemProgress {
   createdAt          DateTime      @default(now()) @map("created_at")
   updatedAt          DateTime      @updatedAt @map("updated_at")
 
-  @@unique([problemId, userSessionId])
-  @@index([userSessionId])
+  @@unique([problemId, userId])
+  @@index([userId])
   @@map("problem_progress")
 }
 
@@ -102,15 +106,17 @@ model Insight {
   id            String      @id @default(uuid())
   problem       Problem     @relation(fields: [problemId], references: [id], onDelete: Cascade)
   problemId     String      @map("problem_id")
-  userSession   UserSession @relation(fields: [userSessionId], references: [id], onDelete: Cascade)
-  userSessionId String      @map("user_session_id")
+  userSession   UserSession? @relation(fields: [userSessionId], references: [id], onDelete: SetNull)
+  userSessionId String?     @map("user_session_id")
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String      @map("user_id")
   content       String
   isPublic      Boolean     @default(true) @map("is_public")
   createdAt     DateTime    @default(now()) @map("created_at")
   updatedAt     DateTime    @updatedAt @map("updated_at")
 
   @@index([problemId])
-  @@index([userSessionId])
+  @@index([userId])
   @@map("insights")
 }
 

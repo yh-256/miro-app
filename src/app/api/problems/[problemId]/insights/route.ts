@@ -39,9 +39,15 @@ export async function GET(
       );
     }
 
-    const { ironSession: _ironSession, userSession } = await ensureAuthenticatedSession();
+    const { ironSession } = await ensureAuthenticatedSession();
+    if (!ironSession.isLoggedIn || !ironSession.userId) {
+      return NextResponse.json(
+        { error: 'UNAUTHORIZED', message: 'ログインが必要です。' },
+        { status: 401 }
+      );
+    }
 
-    const context = await loadProblemAccessContext(problemId, userSession.id);
+    const context = await loadProblemAccessContext(problemId, ironSession.userId);
     if (!context) {
       return NextResponse.json(
         { error: 'PROBLEM_NOT_FOUND', message: '指定された問題が見つかりません。' },
@@ -62,11 +68,11 @@ export async function GET(
     const insights = await prisma.insight.findMany({
       where: {
         problemId,
-        OR: [{ isPublic: true }, { userSessionId: userSession.id }],
+        OR: [{ isPublic: true }, { userId: ironSession.userId }],
       },
       orderBy: { createdAt: 'asc' },
       include: {
-        userSession: true,
+        user: true,
       },
     });
 
@@ -103,9 +109,16 @@ export async function POST(
 
     const payload = validatePayload(await request.json());
 
-    const { ironSession: _ironSession, userSession } = await ensureAuthenticatedSession();
+    const { ironSession, userSession } = await ensureAuthenticatedSession();
+    if (!ironSession.isLoggedIn || !ironSession.userId) {
+      return NextResponse.json(
+        { error: 'UNAUTHORIZED', message: 'ログインが必要です。' },
+        { status: 401 }
+      );
+    }
+    const userId = ironSession.userId;
 
-    const context = await loadProblemAccessContext(problemId, userSession.id);
+    const context = await loadProblemAccessContext(problemId, userId);
     if (!context) {
       return NextResponse.json(
         { error: 'PROBLEM_NOT_FOUND', message: '指定された問題が見つかりません。' },
@@ -134,12 +147,13 @@ export async function POST(
       const createdInsight = await tx.insight.create({
         data: {
           problemId,
+          userId,
           userSessionId: userSession.id,
           content: payload.content,
           isPublic: payload.isPublic ?? true,
         },
         include: {
-          userSession: true,
+          user: true,
         },
       });
 
@@ -147,6 +161,7 @@ export async function POST(
         await tx.problemProgress.update({
           where: { id: currentProgress.id },
           data: {
+            userSessionId: userSession.id,
             status: targetStatus,
             insightSubmittedAt:
               currentProgress.insightSubmittedAt ?? now,
@@ -156,6 +171,7 @@ export async function POST(
         await tx.problemProgress.create({
           data: {
             problemId,
+            userId,
             userSessionId: userSession.id,
             status: targetStatus,
             insightSubmittedAt: now,
@@ -168,7 +184,7 @@ export async function POST(
 
     const updatedContext = await loadProblemAccessContext(
       problemId,
-      userSession.id
+      userId
     );
 
     return NextResponse.json({

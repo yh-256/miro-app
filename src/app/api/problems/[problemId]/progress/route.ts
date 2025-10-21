@@ -84,9 +84,15 @@ export async function PATCH(
       );
     }
 
-    const { ironSession: _ironSession, userSession } = await ensureAuthenticatedSession();
+    const { ironSession, userSession } = await ensureAuthenticatedSession();
+    if (!ironSession.isLoggedIn || !ironSession.userId) {
+      return NextResponse.json(
+        { error: 'UNAUTHORIZED', message: 'ログインが必要です。' },
+        { status: 401 }
+      );
+    }
 
-    const context = await loadProblemAccessContext(problemId, userSession.id);
+    const context = await loadProblemAccessContext(problemId, ironSession.userId);
     if (!context) {
       return NextResponse.json(
         { error: 'PROBLEM_NOT_FOUND', message: '指定された問題が見つかりません。' },
@@ -124,12 +130,13 @@ export async function PATCH(
 
     const updatedProgress = await prisma.problemProgress.upsert({
       where: {
-        problemId_userSessionId: {
+        problemId_userId: {
           problemId,
-          userSessionId: userSession.id,
+          userId: ironSession.userId,
         },
       },
       update: {
+        userSessionId: userSession.id,
         status: targetStatus,
         boardUnlockedAt:
           isStatusAtLeast(targetStatus, 'INSIGHT_WRITTEN')
@@ -140,6 +147,7 @@ export async function PATCH(
       },
       create: {
         problemId,
+        userId: ironSession.userId,
         userSessionId: userSession.id,
         status: targetStatus,
         boardUnlockedAt: isStatusAtLeast(targetStatus, 'INSIGHT_WRITTEN')
