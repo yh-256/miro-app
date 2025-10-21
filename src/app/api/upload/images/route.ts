@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { promises as fs } from 'fs';
-import { miroClient } from '@/utils/miroClient';
+import sharp from 'sharp';
+import { miroClient, MiroApiClient } from '@/utils/miroClient';
 import { ErrorHandler, logError } from '@/utils/errorHandler';
 import { saveTempFile, deleteTempFiles, validateFileInfo, TempFileInfo, FileUploadError, formatBytes } from '@/utils/fileUpload';
 import { createUserBasedLayout } from '@/utils/miroGrouping';
@@ -37,6 +38,35 @@ function generateRandomBasePosition(): { x: number; y: number } {
     x: (Math.random() - 0.5) * 3200, // -1600 ~ +1600
     y: (Math.random() - 0.5) * 2400, // -1200 ~ +1200
   };
+}
+
+async function resizeImageToSquare(
+  buffer: Buffer,
+  size: number,
+  mimeType: string
+): Promise<Buffer> {
+  const animated = mimeType === 'image/gif';
+  const background = mimeType === 'image/jpeg'
+    ? { r: 255, g: 255, b: 255, alpha: 1 }
+    : { r: 0, g: 0, b: 0, alpha: 0 };
+
+  const pipeline = sharp(buffer, { animated })
+    .resize(size, size, {
+      fit: 'contain',
+      background,
+    });
+
+  switch (mimeType) {
+    case 'image/png':
+      return pipeline.png().toBuffer();
+    case 'image/gif':
+      return pipeline.gif().toBuffer();
+    case 'image/webp':
+      return pipeline.webp({ lossless: mimeType === 'image/webp' }).toBuffer();
+    case 'image/jpeg':
+    default:
+      return pipeline.jpeg({ mozjpeg: true }).toBuffer();
+  }
 }
 
 /**
@@ -151,65 +181,108 @@ export async function POST(request: NextRequest) {
       fileName: string;
       imageHeight: number;
       imageWidth: number;
+      stickyWidth: number;
+      stickyHeight: number;
       fileSize: number;
       mimeType: string;
     }> = [];
     const basePosition = generateRandomBasePosition();
+    const TARGET_IMAGE_SIZE = MiroApiClient.DEFAULT_IMAGE_SIZE;
+    const STICKY_SCALE = 1.5;
+    const TARGET_STICKY_SIZE = Math.round(TARGET_IMAGE_SIZE * STICKY_SCALE);
 
-    const uploadedImages = [];
     for (const { tempFile, metadata: imageMetadata } of validFilesInfo) {
-      const fileBuffer = await fs.readFile(tempFile.path);
-      const arrayBuffer = fileBuffer.buffer.slice(
-        fileBuffer.byteOffset,
-        fileBuffer.byteOffset + fileBuffer.byteLength
-      ) as ArrayBuffer;
-      const file = new File([arrayBuffer], tempFile.originalName, { type: tempFile.mimetype });
-      const uploadedImage = await miroClient.uploadImage(boardId, file, basePosition);
-      uploadedImages.push({ 
-        image: uploadedImage, 
-        imageHeight: uploadedImage.geometry.height, 
-        metadata: imageMetadata, 
-        tempFile 
-      });
-    }
+      const originalBuffer = await fs.readFile(tempFile.path);
+      const resizedBuffer = await resizeImageToSquare(originalBuffer, TARGET_IMAGE_SIZE, tempFile.mimetype);
 
-    const stickyNotes = [];
-    for (const imageData of uploadedImages) {
+      await fs.writeFile(tempFile.path, resizedBuffer);
+      tempFile.size = resizedBuffer.byteLength;
+
+      const arrayBuffer = resizedBuffer.buffer.slice(
+        resizedBuffer.byteOffset,
+        resizedBuffer.byteOffset + resizedBuffer.byteLength
+      ) as ArrayBuffer;
+
+      const file = new File([arrayBuffer], tempFile.originalName, { type: tempFile.mimetype });
+
       const userLabel =
-        imageData.metadata.userDisplayName && imageData.metadata.userDisplayName !== imageData.metadata.userId
-          ? imageData.metadata.userDisplayName
+        imageMetadata.userDisplayName && imageMetadata.userDisplayName !== imageMetadata.userId
+          ? imageMetadata.userDisplayName
           : null;
+
       const stickyNoteContent = [
-        `ユーザーID: ${imageData.metadata.userId}`,
+        `ユーザーID: ${imageMetadata.userId}`,
         userLabel ? `ユーザー名: ${userLabel}` : '',
-        imageData.metadata.uploaderName ? `アップロード者: ${imageData.metadata.uploaderName}` : '',
+        imageMetadata.uploaderName ? `アップロード者: ${imageMetadata.uploaderName}` : '',
         `アップロード日時: ${new Date().toLocaleString('ja-JP')}`,
-        `ファイル名: ${imageData.tempFile.originalName}`,
-        `セッションID: ${imageData.metadata.sessionId}`,
+        `ファイル名: ${tempFile.originalName}`,
+        `セッションID: ${imageMetadata.sessionId}`,
       ].filter(Boolean).join('\n');
 
-      const stickyNote = await miroClient.createStickyNote(boardId, stickyNoteContent, basePosition, {
-        fillColor: getUserColor(imageData.metadata.userId),
-        textAlign: 'left',
-      });
-      stickyNotes.push({ stickyNote, imageData });
-    }
+      const stickyNote = await miroClient.createStickyNote(
+        boardId,
+        stickyNoteContent,
+        basePosition,
+        {
+          fillColor: getUserColor(imageMetadata.userId),
+          textAlign: 'left',
+        },
+        {
+          geometry: {
+            width: TARGET_STICKY_SIZE,
+            height: TARGET_STICKY_SIZE,
+          },
+        }
+      );
 
-    for (const noteData of stickyNotes) {
-      const imageId = noteData.imageData.image.id;
-      const stickyId = noteData.stickyNote.id;
-      const payload = buildGroupPayload(imageId, stickyId);
+      await miroClient.patchItem(boardId, stickyNote.id, {
+        geometry: {
+          width: TARGET_STICKY_SIZE,
+          height: TARGET_STICKY_SIZE,
+        },
+        position: {
+          x: basePosition.x,
+          y: basePosition.y,
+          origin: 'center',
+        },
+      });
+
+      const uploadedImage = await miroClient.uploadImage(boardId, file, {
+        position: basePosition,
+        geometry: {
+          width: TARGET_IMAGE_SIZE,
+          height: TARGET_IMAGE_SIZE,
+        },
+      });
+
+      await miroClient.patchItem(boardId, uploadedImage.id, {
+        geometry: {
+          width: TARGET_IMAGE_SIZE,
+          height: TARGET_IMAGE_SIZE,
+        },
+        position: {
+          x: basePosition.x,
+          y: basePosition.y,
+          origin: 'center',
+        },
+      });
+
+      const payload = buildGroupPayload(uploadedImage.id, stickyNote.id);
       const group = await miroClient.createGroup(boardId, payload);
-      
+
       uploadedItems.push({
-        imageId, stickyNoteId: stickyId, groupId: group.id,
-        userId: noteData.imageData.metadata.userId,
-        userDisplayName: noteData.imageData.metadata.userDisplayName,
-        fileName: noteData.imageData.tempFile.originalName,
-        imageHeight: noteData.imageData.imageHeight,
-        imageWidth: noteData.imageData.image.geometry.width,
-        fileSize: noteData.imageData.tempFile.size,
-        mimeType: noteData.imageData.tempFile.mimetype,
+        imageId: uploadedImage.id,
+        stickyNoteId: stickyNote.id,
+        groupId: group.id,
+        userId: imageMetadata.userId,
+        userDisplayName: imageMetadata.userDisplayName,
+        fileName: tempFile.originalName,
+        imageHeight: TARGET_IMAGE_SIZE,
+        imageWidth: TARGET_IMAGE_SIZE,
+        stickyWidth: TARGET_STICKY_SIZE,
+        stickyHeight: TARGET_STICKY_SIZE,
+        fileSize: tempFile.size,
+        mimeType: tempFile.mimetype,
       });
     }
 

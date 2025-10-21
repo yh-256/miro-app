@@ -1,4 +1,4 @@
-import { miroClient, MiroImageItem, MiroStickyNote, IMiroClient } from './miroClient';
+import { miroClient, MiroImageItem, MiroStickyNote, IMiroClient, MiroApiClient } from './miroClient';
 import { logError } from './errorHandler';
 import { findNearbyItems } from './proximity';
 
@@ -14,7 +14,10 @@ export interface UploadedItem {
   userDisplayName?: string;
   position: { x: number; y: number };
   fileName: string;
-  imageHeight: number; // 画像の実際の高さを追加
+  imageWidth: number;
+  imageHeight: number;
+  stickyWidth: number;
+  stickyHeight: number;
 }
 
 export interface UserGroup {
@@ -32,21 +35,20 @@ export interface UserGroup {
 /**
  * 画像配置の基本設定（実際のMiroアイテムサイズに基づく）
  */
+const IMAGE_SIZE = MiroApiClient.DEFAULT_IMAGE_SIZE;
+const STICKY_SIZE = Math.round(IMAGE_SIZE * 1.5);
+
 const LAYOUT_CONFIG = {
-  // 実際のMiroアイテムサイズ（miroClient.uploadImageで設定される値）
-  IMAGE_WIDTH: 400,           // 画像の実際の幅
-  IMAGE_HEIGHT: 400,          // 画像の実際の高さ
-  STICKY_NOTE_WIDTH: 200,     // 付箋の推定幅
-  STICKY_NOTE_HEIGHT: 120,    // 付箋の高さ
-  
-  // レイアウト間隔（実際のアイテムサイズ + 余白）
-  IMAGE_SPACING_X: 450,       // 画像幅400px + 余白50px
-  IMAGE_SPACING_Y: 480,       // 画像高さ400px + 付箋間隔 + 余白
-  STICKY_NOTE_OFFSET: 20,     // 画像と付箋の間隔
-  ITEMS_PER_ROW: 3,           // 1行あたりのアイテム数
-  
-  // グループ間隔設定
-  USER_GROUP_SPACING: 600, // ユーザーグループ間の間隔
+  IMAGE_WIDTH: IMAGE_SIZE,
+  IMAGE_HEIGHT: IMAGE_SIZE,
+  STICKY_NOTE_WIDTH: STICKY_SIZE,
+  STICKY_NOTE_HEIGHT: STICKY_SIZE,
+
+  IMAGE_SPACING_X: STICKY_SIZE + 120,
+  IMAGE_SPACING_Y: STICKY_SIZE + 140,
+  ITEMS_PER_ROW: 3,
+
+  USER_GROUP_SPACING: STICKY_SIZE + 300,
 };
 
 /**
@@ -61,7 +63,10 @@ export async function createUserBasedLayout(
     userId: string;
     userDisplayName?: string;
     fileName: string;
-    imageHeight: number; // 画像の高さを受け取る
+    imageWidth: number;
+    imageHeight: number;
+    stickyWidth: number;
+    stickyHeight: number;
   }>,
   basePosition: { x: number; y: number } = { x: 0, y: 0 },
   client: IMiroClient = miroClient
@@ -89,7 +94,10 @@ export async function createUserBasedLayout(
         userDisplayName: item.userDisplayName,
         position: { x: 0, y: 0 }, // 後で計算
         fileName: item.fileName,
-        imageHeight: item.imageHeight, // 画像の高さを格納
+        imageWidth: item.imageWidth,
+        imageHeight: item.imageHeight,
+        stickyWidth: item.stickyWidth,
+        stickyHeight: item.stickyHeight,
       });
     });
 
@@ -100,15 +108,17 @@ export async function createUserBasedLayout(
     for (let groupIndex = 0; groupIndex < userGroupsArray.length; groupIndex++) {
       const userGroup = userGroupsArray[groupIndex];
       const groupBaseY = basePosition.y;
-      
+
       // グループ内でのアイテム配置
       await layoutItemsInGroup(boardId, userGroup, {
         x: currentUserX,
         y: groupBaseY,
       }, client);
-      
-      // 次のユーザーグループの位置を計算
-      currentUserX += userGroup.bounds.width + LAYOUT_CONFIG.USER_GROUP_SPACING;
+
+      // 次のユーザーグループの中心位置を計算（右端 + 余白 + 付箋半分）
+      const groupRightEdge = userGroup.bounds.x + userGroup.bounds.width;
+      const halfSticky = LAYOUT_CONFIG.STICKY_NOTE_WIDTH / 2;
+      currentUserX = groupRightEdge + LAYOUT_CONFIG.USER_GROUP_SPACING + halfSticky;
     }
 
     return userGroupsArray;
@@ -128,8 +138,10 @@ async function layoutItemsInGroup(
   client: IMiroClient
 ): Promise<void> {
   const items = userGroup.items;
-  let maxWidth = 0;
-  let totalHeight = 0;
+  let minLeft = Infinity;
+  let maxRight = -Infinity;
+  let minTop = Infinity;
+  let maxBottom = -Infinity;
   
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
@@ -145,37 +157,47 @@ async function layoutItemsInGroup(
     item.position = newPosition;
     
     try {
-      // 画像の位置を更新
-      await client.patchItem(boardId, item.imageId, {
-        position: newPosition,
-      });
-
-      // 実際の画像の高さを取得（なければデフォルト値を使用）
+      const imageWidth = item.imageWidth || LAYOUT_CONFIG.IMAGE_WIDTH;
       const imageHeight = item.imageHeight || LAYOUT_CONFIG.IMAGE_HEIGHT;
-
-      // 付箋の位置を計算して更新（画像の下に配置）
-      const stickyNoteY = newPosition.y + 
-                        (imageHeight / 2) + 
-                        LAYOUT_CONFIG.STICKY_NOTE_OFFSET + 
-                        (LAYOUT_CONFIG.STICKY_NOTE_HEIGHT / 2);
+      const stickyWidth = item.stickyWidth || LAYOUT_CONFIG.STICKY_NOTE_WIDTH;
+      const stickyHeight = item.stickyHeight || LAYOUT_CONFIG.STICKY_NOTE_HEIGHT;
 
       await client.patchItem(boardId, item.stickyNoteId, {
         position: {
           x: newPosition.x,
-          y: stickyNoteY,
+          y: newPosition.y,
+          origin: 'center',
+        },
+        geometry: {
+          width: stickyWidth,
+          height: stickyHeight,
         },
       });
 
-      // バウンディングボックスを正確に計算
-      const itemRight = newPosition.x + (LAYOUT_CONFIG.IMAGE_WIDTH / 2);
-      const itemBottom = newPosition.y + 
-                         (imageHeight / 2) + 
-                         LAYOUT_CONFIG.STICKY_NOTE_OFFSET + 
-                         LAYOUT_CONFIG.STICKY_NOTE_HEIGHT;
-      
-      maxWidth = Math.max(maxWidth, itemRight - basePosition.x);
-      totalHeight = Math.max(totalHeight, itemBottom - basePosition.y);
-      
+      await client.patchItem(boardId, item.imageId, {
+        position: {
+          x: newPosition.x,
+          y: newPosition.y,
+          origin: 'center',
+        },
+        geometry: {
+          width: imageWidth,
+          height: imageHeight,
+        },
+      });
+
+      const halfWidth = Math.max(stickyWidth, imageWidth) / 2;
+      const halfHeight = Math.max(stickyHeight, imageHeight) / 2;
+
+      const left = newPosition.x - halfWidth;
+      const right = newPosition.x + halfWidth;
+      const top = newPosition.y - halfHeight;
+      const bottom = newPosition.y + halfHeight;
+
+      minLeft = Math.min(minLeft, left);
+      maxRight = Math.max(maxRight, right);
+      minTop = Math.min(minTop, top);
+      maxBottom = Math.max(maxBottom, bottom);
     } catch (error) {
       logError(error as Error, `layoutItemsInGroup - item ${item.imageId}`);
       // 個別のアイテム移動に失敗しても継続
@@ -183,11 +205,14 @@ async function layoutItemsInGroup(
   }
   
   // グループのバウンディング情報を更新
+  const width = maxRight - minLeft;
+  const height = maxBottom - minTop;
+
   userGroup.bounds = {
-    x: basePosition.x,
-    y: basePosition.y,
-    width: maxWidth,
-    height: totalHeight,
+    x: Number.isFinite(minLeft) ? minLeft : basePosition.x,
+    y: Number.isFinite(minTop) ? minTop : basePosition.y,
+    width: Number.isFinite(width) ? width : 0,
+    height: Number.isFinite(height) ? height : 0,
   };
 }
 

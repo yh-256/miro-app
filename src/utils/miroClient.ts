@@ -57,17 +57,29 @@ export interface IMiroClient {
   request<T>(endpoint: string, options?: RequestInit): Promise<T>;
   getBoards(limit?: number): Promise<MiroBoardInfo[]>;
   getBoard(boardId: string): Promise<MiroBoardInfo>;
-  uploadImage(boardId: string, imageFile: File, position?: { x: number; y: number }): Promise<MiroImageItem>;
+  uploadImage(
+    boardId: string,
+    imageFile: File,
+    options?: {
+      position?: { x: number; y: number };
+      geometry?: { width: number; height: number };
+    }
+  ): Promise<MiroImageItem>;
   createStickyNote(
     boardId: string,
     content: string,
     position: { x: number; y: number },
-    style?: { fillColor?: string; textAlign?: 'left' | 'center' | 'right' }
+    style?: { fillColor?: string; textAlign?: 'left' | 'center' | 'right' },
+    options?: { geometry?: { width: number; height: number } }
   ): Promise<MiroStickyNote>;
   patchItem(
     boardId: string,
     itemId: string,
-    body: { position?: { x: number; y: number }; parent?: { id: string } }
+    body: {
+      position?: { x: number; y: number; origin?: 'center' };
+      parent?: { id: string };
+      geometry?: { width?: number; height?: number };
+    }
   ): Promise<void>;
   createGroup(boardId: string, payload: { data: { items: string[] } }): Promise<MiroGroup>;
   searchItems(boardId: string, query?: string, type?: string): Promise<MiroItem[]>;
@@ -80,6 +92,8 @@ export interface IMiroClient {
 export class MiroApiClient implements IMiroClient {
   private accessToken: string;
   private baseUrl = 'https://api.miro.com/v2';
+
+  static readonly DEFAULT_IMAGE_SIZE = 400;
 
   constructor(accessToken?: string) {
     this.accessToken = accessToken || config.miro.accessToken;
@@ -180,15 +194,24 @@ export class MiroApiClient implements IMiroClient {
   async uploadImage(
     boardId: string,
     imageFile: File,
-    position: { x: number; y: number } = { x: 0, y: 0 }
+    options: {
+      position?: { x: number; y: number };
+      geometry?: { width: number; height: number };
+    } = {}
   ): Promise<MiroImageItem> {
     try {
+      const position = options.position ?? { x: 0, y: 0 };
+      const geometry = options.geometry ?? {
+        width: MiroApiClient.DEFAULT_IMAGE_SIZE,
+        height: MiroApiClient.DEFAULT_IMAGE_SIZE,
+      };
+
       const formData = new FormData();
       formData.append('resource', imageFile);
       formData.append('position.x', String(position.x));
       formData.append('position.y', String(position.y));
-      formData.append('geometry.width', '400'); // デフォルトサイズ
-      formData.append('geometry.height', '400');
+      formData.append('geometry.width', String(geometry.width));
+      formData.append('geometry.height', String(geometry.height));
 
       const response = await fetch(`${this.baseUrl}/boards/${boardId}/images`, {
         method: 'POST',
@@ -225,7 +248,8 @@ export class MiroApiClient implements IMiroClient {
     style: {
       fillColor?: string;
       textAlign?: 'left' | 'center' | 'right';
-    } = {}
+    } = {},
+    options: { geometry?: { width: number; height: number } } = {}
   ): Promise<MiroStickyNote> {
     try {
       // コンテンツを簡易HTMLに変換（改行を<br/>に）
@@ -248,6 +272,14 @@ export class MiroApiClient implements IMiroClient {
           y: position.y,
           origin: 'center' as const,
         },
+        ...(options.geometry
+          ? {
+              geometry: {
+                width: options.geometry.width,
+                height: options.geometry.height,
+              },
+            }
+          : {}),
       };
 
       // デバッグ用ログ
@@ -321,7 +353,11 @@ export class MiroApiClient implements IMiroClient {
   async patchItem(
     boardId: string,
     itemId: string,
-    body: { position?: { x: number; y: number }; parent?: { id: string } }
+    body: {
+      position?: { x: number; y: number; origin?: 'center' };
+      parent?: { id: string };
+      geometry?: { width?: number; height?: number };
+    }
   ): Promise<void> {
     try {
       await this.makeRequest(`/boards/${boardId}/items/${itemId}`, {
