@@ -32,9 +32,30 @@ const SECURITY_CONFIG = {
 };
 
 export function middleware(request: NextRequest) {
-  const { pathname, origin } = request.nextUrl;
+  const { pathname } = request.nextUrl;
   const method = request.method;
   const requestOrigin = request.headers.get('origin');
+
+  // HTTPS強制リダイレクト（本番環境のみ）
+  if (process.env.NODE_ENV === 'production') {
+    const proto = request.headers.get('x-forwarded-proto');
+    const host = request.headers.get('host');
+    
+    // HTTPSでない場合はリダイレクト
+    if (proto === 'http' && host) {
+      const url = request.nextUrl.clone();
+      url.protocol = 'https:';
+      url.host = host;
+      
+      console.log('HTTPS redirect:', {
+        from: `http://${host}${pathname}`,
+        to: url.toString(),
+        timestamp: new Date().toISOString(),
+      });
+      
+      return NextResponse.redirect(url, 301); // Permanent redirect
+    }
+  }
 
   // API ルートに対してのみミドルウェアを適用
   if (pathname.startsWith('/api/')) {
