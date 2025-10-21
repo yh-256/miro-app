@@ -1,13 +1,5 @@
 import type { ProblemProgressStatus } from '@/constants/problemStatus';
 
-// 個人ID管理
-export interface Subject {
-  id: string;           // 一意識別子
-  name: string;         // 表示名
-  createdAt: Date;      // 作成日時
-  lastUsedAt: Date;     // 最終使用日時
-}
-
 // アップロードセッション
 export interface UploadSession {
   sessionId: string;    // セッション識別子
@@ -16,7 +8,8 @@ export interface UploadSession {
   boardId: string;      // 送信先ボードID
   images: Array<{
     tempId: string;     // 一時ID
-    subjectId: string;  // 個人ID
+    userId: string;     // ユーザーID
+    userDisplayName?: string; // ユーザー表示名
     filename: string;   // ファイル名
     mimeType: string;   // MIMEタイプ
   }>;
@@ -28,7 +21,8 @@ export interface MiroItemGroup {
   imageId: string;      // Miro画像アイテムID
   stickyNoteId: string; // Miro付箋アイテムID
   metadata: {
-    subjectId: string;
+    userId: string;
+    userDisplayName?: string;
     uploaderName?: string;
     uploadedAt: Date;
     sessionId: string;
@@ -42,18 +36,6 @@ export interface BoardListResponse {
     name: string;
     description?: string;
     thumbnailUrl?: string;
-  }>;
-  success?: boolean;
-  error?: string;
-  message?: string;
-}
-
-export interface SubjectListResponse {
-  subjects: Array<{
-    id: string;
-    name: string;
-    createdAt: string;
-    lastUsedAt?: string;
   }>;
   success?: boolean;
   error?: string;

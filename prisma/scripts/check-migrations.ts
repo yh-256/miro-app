@@ -110,7 +110,6 @@ async function checkRequiredTables(): Promise<MigrationCheck> {
   const requiredTables = [
     'users',
     'user_sessions',
-    'subjects',
     'problems',
     'problem_progress',
     'insights',

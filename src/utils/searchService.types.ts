@@ -5,8 +5,8 @@
 
 export interface SearchCriteria {
   query?: string;
-  subjectId?: string;
-  subjectName?: string;
+  userId?: string;
+  userDisplayName?: string;
   uploaderName?: string;
   dateFrom?: Date;
   dateTo?: Date;
@@ -24,8 +24,8 @@ export interface SearchResultItem {
   type: 'image' | 'sticky_note' | 'group';
   position: { x: number; y: number };
   metadata?: {
-    subjectId?: string;
-    subjectName?: string;
+    userId?: string;
+    userDisplayName?: string;
     uploaderName?: string;
     uploadedAt?: Date;
     fileName?: string;
@@ -48,14 +48,14 @@ export function getSearchStats(results: SearchResult): {
   totalImages: number;
   totalStickyNotes: number;
   totalGroups: number;
-  subjectCounts: Map<string, number>;
+  userCounts: Map<string, number>;
   uploaderCounts: Map<string, number>;
 } {
   const stats = {
     totalImages: 0,
     totalStickyNotes: 0,
     totalGroups: 0,
-    subjectCounts: new Map<string, number>(),
+    userCounts: new Map<string, number>(),
     uploaderCounts: new Map<string, number>(),
   };
   
@@ -72,10 +72,11 @@ export function getSearchStats(results: SearchResult): {
         break;
     }
     
-    // 個人ID統計
-    if (item.metadata?.subjectName) {
-      const current = stats.subjectCounts.get(item.metadata.subjectName) || 0;
-      stats.subjectCounts.set(item.metadata.subjectName, current + 1);
+    // ユーザー統計
+    if (item.metadata?.userId) {
+      const displayLabel = item.metadata.userDisplayName ?? item.metadata.userId;
+      const current = stats.userCounts.get(displayLabel) || 0;
+      stats.userCounts.set(displayLabel, current + 1);
     }
     
     // アップロード者統計

@@ -33,21 +33,11 @@ model User {
   lastLoginAt DateTime? @map("last_login_at")
 
   userSessions UserSession[]
+  uploadedItems UploadedItem[]
 
   @@index([userId])
   @@index([isActive])
   @@map("users")
-}
-
-model Subject {
-  id         String         @id @default(uuid())
-  name       String         @unique
-  createdAt  DateTime       @default(now())
-  lastUsedAt DateTime?      @map("last_used_at")
-  uploadedAt DateTime       @default(now()) @map("uploaded_at")
-  uploads    UploadedItem[]
-
-  @@map("subjects")
 }
 
 model UserSession {
@@ -146,8 +136,8 @@ model UploadedItem {
   id            String        @id @default(uuid())
   session       UploadSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   sessionId     String        @map("session_id")
-  subject       Subject?      @relation(fields: [subjectId], references: [id], onDelete: SetNull)
-  subjectId     String?       @map("subject_id")
+  user          User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId        String?       @map("user_id")
   miroImageId   String        @map("miro_image_id")
   miroStickyId  String        @map("miro_sticky_id")
   miroGroupId   String?       @map("miro_group_id")
@@ -165,9 +155,9 @@ model UploadedItem {
   userSession   UserSession?  @relation(fields: [userSessionId], references: [id], onDelete: SetNull)
   userSessionId String?       @map("user_session_id")
 
-  @@index([subjectId])
   @@index([sessionId])
   @@index([problemId])
   @@index([userSessionId])
+  @@index([userId])
   @@map("uploaded_items")
 }

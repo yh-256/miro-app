@@ -5,9 +5,9 @@ import { useDeviceDetection } from '@/utils/deviceDetection';
 
 export interface SearchFormData {
   query: string;
-  subjectId: string;
+  userId: string;
   uploaderName: string;
-  searchType: 'general' | 'subject' | 'uploader';
+  searchType: 'general' | 'user' | 'uploader';
   dateFrom: string;
   dateTo: string;
   itemTypes: string[];
@@ -17,7 +17,6 @@ interface SearchFormProps {
   onSearch: (searchData: SearchFormData) => void;
   onClear: () => void;
   isLoading?: boolean;
-  availableSubjects?: Array<{ id: string; name: string }>;
   className?: string;
 }
 
@@ -25,12 +24,11 @@ export function SearchForm({
   onSearch,
   onClear,
   isLoading = false,
-  availableSubjects = [],
   className = '',
 }: SearchFormProps) {
   const [formData, setFormData] = useState<SearchFormData>({
     query: '',
-    subjectId: '',
+    userId: '',
     uploaderName: '',
     searchType: 'general',
     dateFrom: '',
@@ -54,7 +52,7 @@ export function SearchForm({
       searchType: type,
       // 検索タイプ変更時に関連フィールドをクリア
       query: type === 'general' ? prev.query : '',
-      subjectId: type === 'subject' ? prev.subjectId : '',
+      userId: type === 'user' ? prev.userId : '',
       uploaderName: type === 'uploader' ? prev.uploaderName : '',
     }));
   };
@@ -65,7 +63,7 @@ export function SearchForm({
     // 基本的な検証
     const hasSearchCriteria = 
       formData.query.trim() || 
-      formData.subjectId || 
+      formData.userId || 
       formData.uploaderName.trim();
 
     if (!hasSearchCriteria) {
@@ -83,7 +81,7 @@ export function SearchForm({
   const handleClear = () => {
     setFormData({
       query: '',
-      subjectId: '',
+      userId: '',
       uploaderName: '',
       searchType: 'general',
       dateFrom: '',
@@ -125,14 +123,14 @@ export function SearchForm({
             </button>
             <button
               type="button"
-              onClick={() => handleSearchTypeChange('subject')}
+              onClick={() => handleSearchTypeChange('user')}
               className={`px-3 py-2 text-sm rounded-md border transition-colors ${
-                formData.searchType === 'subject'
+                formData.searchType === 'user'
                   ? 'bg-blue-500 text-white border-blue-500'
                   : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
               }`}
             >
-              個人ID検索
+              ユーザーID検索
             </button>
             <button
               type="button"
@@ -167,25 +165,20 @@ export function SearchForm({
             </div>
           )}
 
-          {/* 個人ID検索 */}
-          {formData.searchType === 'subject' && (
+          {/* ユーザーID検索 */}
+          {formData.searchType === 'user' && (
             <div>
-              <label htmlFor="subjectId" className="block text-sm font-medium text-gray-700 mb-1">
-                個人ID選択
+              <label htmlFor="userId" className="block text-sm font-medium text-gray-700 mb-1">
+                ユーザーID
               </label>
-              <select
-                id="subjectId"
-                value={formData.subjectId}
-                onChange={(e) => handleInputChange('subjectId', e.target.value)}
+              <input
+                type="text"
+                id="userId"
+                value={formData.userId}
+                onChange={(e) => handleInputChange('userId', e.target.value)}
+                placeholder="ユーザーIDを入力してください"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">個人IDを選択してください</option>
-                {availableSubjects.map(subject => (
-                  <option key={subject.id} value={subject.id}>
-                    {subject.name}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
           )}
 

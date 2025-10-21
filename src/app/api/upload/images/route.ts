@@ -3,7 +3,7 @@ import { promises as fs } from 'fs';
 import { miroClient } from '@/utils/miroClient';
 import { ErrorHandler, logError } from '@/utils/errorHandler';
 import { saveTempFile, deleteTempFiles, validateFileInfo, TempFileInfo, FileUploadError, formatBytes } from '@/utils/fileUpload';
-import { createSubjectBasedLayout } from '@/utils/miroGrouping';
+import { createUserBasedLayout } from '@/utils/miroGrouping';
 import { UploadResponse } from '@/types';
 import { generateCorsHeaders } from '@/utils/securityConfig';
 import { prisma } from '@/lib/prisma';
@@ -22,8 +22,8 @@ interface UploadRequestBody {
   boardId: string;
   problemId: string;
   metadata: {
-    subjectId: string;
-    subjectName: string;
+    userId: string;
+    userDisplayName?: string;
     uploaderName?: string;
     sessionId?: string;
   }[];
@@ -104,6 +104,10 @@ export async function POST(request: NextRequest) {
         ...metadata[i],
         sessionId: metadata[i].sessionId ?? userSession.id,
       };
+      if (typeof meta.userId !== 'string' || meta.userId.trim().length === 0) {
+        skippedItems.push({ fileName: image.name, reason: 'ユーザーIDが指定されていません。' });
+        continue;
+      }
       try {
         const base64Data = image.data.replace(/^data:image\/[a-z]+;base64,/, '');
         const buffer = Buffer.from(base64Data, 'base64');
@@ -138,8 +142,8 @@ export async function POST(request: NextRequest) {
       imageId: string;
       stickyNoteId: string;
       groupId: string;
-      subjectId: string;
-      subjectName: string;
+      userId: string;
+      userDisplayName?: string;
       fileName: string;
       imageHeight: number;
       imageWidth: number;
@@ -167,9 +171,13 @@ export async function POST(request: NextRequest) {
 
     const stickyNotes = [];
     for (const imageData of uploadedImages) {
-      const subjectName = imageData.metadata.subjectName;
+      const userLabel =
+        imageData.metadata.userDisplayName && imageData.metadata.userDisplayName !== imageData.metadata.userId
+          ? imageData.metadata.userDisplayName
+          : null;
       const stickyNoteContent = [
-        `個人ID: ${subjectName}`,
+        `ユーザーID: ${imageData.metadata.userId}`,
+        userLabel ? `ユーザー名: ${userLabel}` : '',
         imageData.metadata.uploaderName ? `アップロード者: ${imageData.metadata.uploaderName}` : '',
         `アップロード日時: ${new Date().toLocaleString('ja-JP')}`,
         `ファイル名: ${imageData.tempFile.originalName}`,
@@ -177,7 +185,7 @@ export async function POST(request: NextRequest) {
       ].filter(Boolean).join('\n');
 
       const stickyNote = await miroClient.createStickyNote(boardId, stickyNoteContent, basePosition, {
-        fillColor: getSubjectColor(imageData.metadata.subjectId),
+        fillColor: getUserColor(imageData.metadata.userId),
         textAlign: 'left',
       });
       stickyNotes.push({ stickyNote, imageData });
@@ -191,8 +199,8 @@ export async function POST(request: NextRequest) {
       
       uploadedItems.push({
         imageId, stickyNoteId: stickyId, groupId: group.id,
-        subjectId: noteData.imageData.metadata.subjectId,
-        subjectName: noteData.imageData.metadata.subjectName,
+        userId: noteData.imageData.metadata.userId,
+        userDisplayName: noteData.imageData.metadata.userDisplayName,
         fileName: noteData.imageData.tempFile.originalName,
         imageHeight: noteData.imageData.imageHeight,
         imageWidth: noteData.imageData.image.geometry.width,
@@ -203,7 +211,7 @@ export async function POST(request: NextRequest) {
 
     // 3. レイアウト適用
     if (uploadedItems.length > 0) {
-      await createSubjectBasedLayout(boardId, uploadedItems, basePosition);
+      await createUserBasedLayout(boardId, uploadedItems, basePosition);
     }
 
     // 4. データベースに保存
@@ -230,32 +238,12 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      const subjectIds = Array.from(
-        new Set(uploadedItems.map(item => item.subjectId).filter(Boolean))
-      );
-
       const transactions: Prisma.PrismaPromise<unknown>[] = [];
-
-      if (subjectIds.length > 0) {
-        transactions.push(
-          prisma.subject.updateMany({
-            where: {
-              id: {
-                in: subjectIds,
-              },
-            },
-            data: {
-              lastUsedAt: new Date(),
-            },
-          })
-        );
-      }
-
       transactions.push(
         prisma.uploadedItem.createMany({
           data: uploadedItems.map(item => ({
             sessionId: sessionRecord.id,
-            subjectId: item.subjectId || null,
+            userId: item.userId || null,
             miroImageId: item.imageId,
             miroStickyId: item.stickyNoteId,
             miroGroupId: item.groupId,
@@ -386,7 +374,7 @@ function normalizeStickyFillColor(input?: string): string {
 /**
  * 個人IDから付箋の色を取得（Miro API v2対応の定義済み色名）
  */
-function getSubjectColor(subjectId: string): string {
+function getUserColor(userId: string): string {
   // 使用する色のサブセット（視認性の良い色のみ）
   const colors = [
     'light_yellow',    // 薄い黄色
@@ -405,8 +393,8 @@ function getSubjectColor(subjectId: string): string {
   
   // 個人IDのハッシュから色を決定
   let hash = 0;
-  for (let i = 0; i < subjectId.length; i++) {
-    hash = subjectId.charCodeAt(i) + ((hash << 5) - hash);
+  for (let i = 0; i < userId.length; i++) {
+    hash = userId.charCodeAt(i) + ((hash << 5) - hash);
   }
   
   const selectedColor = colors[Math.abs(hash) % colors.length];

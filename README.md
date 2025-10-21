@@ -79,7 +79,7 @@
   API Routeで送られてきたBase64画像を一時ファイルに保存し、Miroへ転送。`fileValidation.ts` で簡易的なサイズ・形式チェックを実施し、完了後にDBへ記録。
 
 - **PostgreSQL + Prisma**  
-  ローカルPostgreSQLに接続し、Prismaでスキーマを管理。`subjects` / `upload_sessions` / `uploaded_items` テーブルを通じて個人IDやアップロード履歴を永続化し、検索にも活用。
+  ローカルPostgreSQLに接続し、Prismaでスキーマを管理。`users` / `upload_sessions` / `uploaded_items` テーブルを通じてユーザー別のアップロード履歴を永続化し、検索にも活用。
 
 - **ミドルウェア / セキュリティ対策**  
   `middleware.ts` でCORSやレート制限、セキュリティヘッダーを付与。`utils/config.ts` で環境変数の厳格なバリデーションを行う。
@@ -95,7 +95,6 @@ miro-app/
 │   ├── app/                 # Next.js App Router
 │   │   ├── api/            # API Routes
 │   │   │   ├── boards/     # ボード関連API
-│   │   │   ├── subjects/   # 個人ID管理API（PostgreSQL + Prisma）
 │   │   │   ├── upload/     # アップロードAPI（アップロード結果をDBに保存）
 │   │   │   └── search/     # 検索API（Miro APIとDBを組み合わせてメタデータを返却）
 │   │   ├── board/          # ボード表示ページ
@@ -103,7 +102,6 @@ miro-app/
 │   │   └── upload/         # アップロードページ
 │   ├── components/         # Reactコンポーネント
 │   │   ├── ImageCapture.tsx      # 画像キャプチャ
-│   │   ├── MetadataForm.tsx      # メタデータ入力
 │   │   ├── BoardSelector.tsx     # ボード選択
 │   │   ├── UploadProgress.tsx    # アップロード進捗
 │   │   ├── SearchForm.tsx        # 検索フォーム
@@ -224,11 +222,12 @@ bun dev
 
 ```mermaid
 erDiagram
-  Subject {
+  User {
     String id PK
-    String name
+    String user_id
+    String display_name
     Date created_at
-    Date last_used_at
+    Date last_login_at
   }
 
   UploadSession {
@@ -242,7 +241,7 @@ erDiagram
   UploadedItem {
     String id PK
     String session_id FK
-    String subject_id FK
+    String user_id FK
     String miro_image_id
     String miro_sticky_id
     String miro_group_id
@@ -257,11 +256,11 @@ erDiagram
     Date   updated_at
   }
 
-  Subject ||--o{ UploadedItem : "uploads"
+  User ||--o{ UploadedItem : "uploads"
   UploadSession ||--o{ UploadedItem : "items"
 ```
 
-- **subjects**: 個人IDを管理。`last_used_at` を更新することで頻出順ソートに利用。
+- **users**: 管理者アカウント情報を保持。ユーザーIDや表示名を検索結果に反映。
 - **upload_sessions**: 1回のアップロード処理を表すレコード。MiroボードID・送信者名を保持。
 - **uploaded_items**: アップロードされた各画像／付箋を保存。MiroアイテムIDやファイル情報を検索時に利用。
 
@@ -289,7 +288,8 @@ Request: {
   images: File[];
   boardId: string;
   metadata: Array<{
-    subjectId: string;
+    userId: string;
+    userDisplayName?: string;
     uploaderName?: string;
     sessionId: string;
   }>;
@@ -312,8 +312,8 @@ GET/POST /api/search
 Parameters: {
   boardId: string;
   query?: string;
-  searchType?: 'general' | 'subject' | 'uploader';
-  subjectId?: string;
+  searchType?: 'general' | 'user' | 'uploader';
+  userId?: string;
   uploaderName?: string;
   dateFrom?: string;
   dateTo?: string;
@@ -328,8 +328,8 @@ Response（一部）: {
       id: string;
       type: 'image' | 'sticky_note' | 'group';
       metadata?: {
-        subjectId?: string;
-        subjectName?: string;
+        userId?: string;
+        userDisplayName?: string;
         uploaderName?: string;
         uploadedAt?: string;
         fileName?: string;

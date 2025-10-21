@@ -7,7 +7,6 @@ import { SearchForm, SearchFormData } from '@/components/SearchForm';
 import { SearchResults } from '@/components/SearchResults';
 import { BoardSelector } from '@/components/BoardSelector';
 import { SearchResult, SearchResultItem, getSearchStats } from '@/utils/searchService.types';
-import { fetchSubjects as fetchSubjectsFromApi } from '@/utils/subjectStorage';
 
 interface AuthStatus {
   isLoggedIn: boolean;
@@ -31,7 +30,6 @@ function SearchPageContent() {
   const [searchResults, setSearchResults] = useState<SearchResult | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [availableSubjects, setAvailableSubjects] = useState<Array<{ id: string; name: string }>>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [restrictedCount, setRestrictedCount] = useState(0);
@@ -55,19 +53,6 @@ function SearchPageContent() {
     fetchAuthStatus();
   }, []);
 
-  // 個人ID一覧の取得
-  const fetchSubjects = async () => {
-    try {
-      const subjects = await fetchSubjectsFromApi();
-      setAvailableSubjects(subjects.map(subject => ({
-        id: subject.id,
-        name: subject.name
-      })));
-    } catch (error) {
-      console.error('Failed to fetch subjects:', error);
-    }
-  };
-
   const performSearch = useCallback(async (searchData: SearchFormData, boardId?: string) => {
     const targetBoardId = boardId || selectedBoard?.id;
     
@@ -78,7 +63,7 @@ function SearchPageContent() {
 
     setIsSearching(true);
     setError(null);
-    setSearchQuery(searchData.query || searchData.subjectId || searchData.uploaderName || '');
+    setSearchQuery(searchData.query || searchData.userId || searchData.uploaderName || '');
 
     try {
       // 検索パラメータの構築
@@ -88,14 +73,7 @@ function SearchPageContent() {
       });
 
       if (searchData.query) params.append('query', searchData.query);
-      if (searchData.subjectId) {
-        params.append('subjectId', searchData.subjectId);
-        // 表示名を解決して subjectName も併送（既存ボード互換）
-        const found = availableSubjects.find(s => s.id === searchData.subjectId);
-        if (found?.name) {
-          params.append('subjectName', found.name);
-        }
-      }
+      if (searchData.userId) params.append('userId', searchData.userId);
       if (searchData.uploaderName) params.append('uploaderName', searchData.uploaderName);
       if (searchData.dateFrom) params.append('dateFrom', searchData.dateFrom);
       if (searchData.dateTo) params.append('dateTo', searchData.dateTo);
@@ -125,7 +103,7 @@ function SearchPageContent() {
     } finally {
       setIsSearching(false);
     }
-  }, [selectedBoard, availableSubjects]);
+  }, [selectedBoard]);
 
   // URLパラメータから初期検索条件を取得
   useEffect(() => {
@@ -136,7 +114,7 @@ function SearchPageContent() {
       // URLパラメータから検索実行
       performSearch({
         query: initialQuery,
-        subjectId: '',
+        userId: '',
         uploaderName: '',
         searchType: 'general',
         dateFrom: '',
@@ -146,11 +124,6 @@ function SearchPageContent() {
       setSearchQuery(initialQuery);
     }
   }, [searchParams, performSearch]);
-
-  // 個人ID一覧の取得
-  useEffect(() => {
-    fetchSubjects();
-  }, []);
 
   const handleSearch = (searchData: SearchFormData) => {
     performSearch(searchData);
@@ -236,7 +209,6 @@ function SearchPageContent() {
               onSearch={handleSearch}
               onClear={handleClearSearch}
               isLoading={isSearching}
-              availableSubjects={availableSubjects}
             />
 
             {/* エラー表示 */}
@@ -272,7 +244,7 @@ function SearchPageContent() {
                         <div>画像: {stats.totalImages}件</div>
                         <div>付箋: {stats.totalStickyNotes}件</div>
                         <div>グループ: {stats.totalGroups}件</div>
-                        <div>個人ID: {stats.subjectCounts.size}種類</div>
+                        <div>ユーザー: {stats.userCounts.size}名</div>
                       </>
                     );
                   })()}

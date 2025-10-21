@@ -19,14 +19,13 @@
 
 | テーブル名 | 用途 | 主なリレーション |
 |-----------|------|------------------|
-| `users` | 認証ユーザー情報 | → user_sessions |
+| `users` | 認証ユーザー情報 | → user_sessions, upload_sessions, uploaded_items |
 | `user_sessions` | セッション管理 | → users, problems, uploads |
-| `subjects` | 被写体（個人ID）管理 | → uploaded_items |
 | `problems` | 問題情報 | → insights, progress, uploads |
 | `problem_progress` | 問題進捗状況 | → problems, user_sessions |
 | `insights` | 気づき投稿 | → problems, user_sessions |
 | `upload_sessions` | アップロードセッション | → problems, user_sessions, items |
-| `uploaded_items` | アップロード画像情報 | → sessions, subjects, problems |
+| `uploaded_items` | アップロード画像情報 | → sessions, users, problems |
 
 ### インデックス戦略
 
@@ -35,7 +34,7 @@
 CREATE INDEX ON users (user_id);
 CREATE INDEX ON user_sessions (user_id);
 CREATE INDEX ON problems (order_index);
-CREATE INDEX ON uploaded_items (subject_id);
+CREATE INDEX ON uploaded_items (user_id);
 CREATE INDEX ON uploaded_items (problem_id);
 ```
 

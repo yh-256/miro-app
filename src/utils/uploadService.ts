@@ -8,8 +8,8 @@ import { UploadResponse } from '@/types';
 
 export interface ImageUploadData {
   file: File;
-  subjectId: string;
-  subjectName: string;
+  userId: string;
+  userDisplayName?: string;
   uploaderName?: string;
 }
 
@@ -80,8 +80,8 @@ export async function uploadImagesToMiro(
       boardId,
       problemId,
       metadata: images.map(image => ({
-        subjectId: image.subjectId,
-        subjectName: image.subjectName,
+        userId: image.userId,
+        userDisplayName: image.userDisplayName ?? image.uploaderName,
         uploaderName: image.uploaderName,
         sessionId,
       })),
@@ -153,9 +153,9 @@ export function canUpload(
     return { canUpload: false, reason: 'ボードが選択されていません。' };
   }
 
-  const missingSubjects = images.filter(img => !img.subjectId);
-  if (missingSubjects.length > 0) {
-    return { canUpload: false, reason: '個人IDが未選択の画像があります。' };
+  const missingUsers = images.filter(img => !img.userId);
+  if (missingUsers.length > 0) {
+    return { canUpload: false, reason: 'ユーザーIDを特定できない画像があります。' };
   }
 
   return { canUpload: true };

@@ -2,7 +2,6 @@ import 'server-only';
 
 import { miroClient, type MiroItem, type MiroImageItem, type MiroStickyNote, type IMiroClient } from './miroClient';
 import { logError } from './errorHandler';
-import { extractPersonalIdFromContent } from './subjectStorage';
 import { findNearbyItems as findNearbyByType } from './proximity';
 import { toPlainText } from './text';
 
@@ -49,53 +48,48 @@ export async function searchBoardItems(
 }
 
 /**
- * 個人ID別の検索
+ * ユーザーID別の検索
  */
-export async function searchBySubjectId(
+export async function searchByUserId(
   boardId: string,
-  subjectId: string,
-  client: IMiroClient = miroClient,
-  subjectName?: string
+  userId: string,
+  client: IMiroClient = miroClient
 ): Promise<SearchResult> {
   try {
-    // 付箋から個人IDを含むアイテムを検索
-    const stickyNotes = await client.searchItems(boardId, subjectId, 'sticky_note');
-    
-    // 各付箋に関連する画像とグループを取得
-    const relatedItems = [];
-    
+    const stickyNotes = await client.searchItems(boardId, userId, 'sticky_note');
+
+    const relatedItems: MiroItem[] = [];
+
     for (const note of stickyNotes) {
-      // 付箋の内容から個人IDを確認（後方互換性付き）
       if (note.type === 'sticky_note' && note.data?.content) {
-        const extractedId = extractPersonalIdFromContent(note.data.content);
-        if (extractedId === subjectId || (subjectName && extractedId === subjectName)) {
-          // 付箋を結果に追加
-          relatedItems.push(note);
-          
-          // 同じ位置にある画像を検索
-          const nearbyImages = await findNearbyByType(client, boardId, note.position, 'image', 300);
-          relatedItems.push(...nearbyImages);
-          
-          // グループ情報を取得
-          if (note.parentGroup) {
-            const groupInfo = await getGroupInfo(boardId, note.parentGroup.id, client);
-            if (groupInfo && groupInfo.type && typeof groupInfo.id === 'string') {
-              relatedItems.push(groupInfo as unknown as MiroItem);
-            }
+        const text = toPlainText(note.data.content);
+        if (!text.includes(`ユーザーID: ${userId}`)) {
+          continue;
+        }
+
+        relatedItems.push(note);
+
+        const nearbyImages = await findNearbyByType(client, boardId, note.position, 'image', 300);
+        relatedItems.push(...nearbyImages);
+
+        if (note.parentGroup) {
+          const groupInfo = await getGroupInfo(boardId, note.parentGroup.id, client);
+          if (groupInfo && groupInfo.type && typeof groupInfo.id === 'string') {
+            relatedItems.push(groupInfo as unknown as MiroItem);
           }
         }
       }
     }
-    
+
     const processedResults = await processSearchResults(relatedItems, boardId, client);
-    
+
     return {
       items: processedResults,
       totalCount: processedResults.length,
       hasMore: false,
     };
   } catch (error) {
-    logError(error as Error, 'searchBySubjectId');
+    logError(error as Error, 'searchByUserId');
     throw error;
   }
 }
@@ -162,16 +156,14 @@ async function filterItemsByCriteria(
     });
   }
   
-  // 個人IDフィルター
-  if (criteria.subjectId || criteria.subjectName) {
+  // ユーザーIDフィルター
+  if (criteria.userId) {
     filteredItems = filteredItems.filter(item => {
       if (item.type === 'sticky_note') {
         const stickyNote = item as MiroStickyNote;
         if (stickyNote.data?.content) {
-          const extractedId = extractPersonalIdFromContent(stickyNote.data.content);
-          if (criteria.subjectName && extractedId === criteria.subjectName) return true;
-          if (criteria.subjectId && extractedId === criteria.subjectId) return true;
-          return false;
+          const text = toPlainText(stickyNote.data.content);
+          return text.includes(`ユーザーID: ${criteria.userId}`);
         }
       }
       return false;
@@ -277,10 +269,22 @@ function extractMetadataFromStickyNote(content: string): SearchResultItem['metad
   const metadata: SearchResultItem['metadata'] = {};
   const text = toPlainText(content);
   
-  // 個人ID名の抽出（後方互換性付き）
-  const personalId = extractPersonalIdFromContent(text);
-  if (personalId) {
-    metadata.subjectName = personalId;
+  const userIdMatch = text.match(/ユーザーID:\s*(.+)/);
+  if (userIdMatch) {
+    metadata.userId = userIdMatch[1].trim();
+  }
+
+  const userNameMatch = text.match(/ユーザー名:\s*(.+)/);
+  if (userNameMatch) {
+    metadata.userDisplayName = userNameMatch[1].trim();
+  }
+
+  // 後方互換: 旧フォーマットの「個人ID」をユーザー表示名として扱う
+  if (!metadata.userDisplayName) {
+    const legacyIdMatch = text.match(/個人ID:\s*(.+)/);
+    if (legacyIdMatch) {
+      metadata.userDisplayName = legacyIdMatch[1].trim();
+    }
   }
   
   // アップロード者名の抽出

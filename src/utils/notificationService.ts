@@ -233,17 +233,6 @@ export const MiroNotifications = {
   },
 
   /**
-   * 個人ID作成成功
-   */
-  subjectCreated: (subjectName: string) => {
-    showSuccessNotification(
-      '個人IDを作成しました',
-      `「${subjectName}」を個人IDリストに追加しました。`,
-      4000
-    );
-  },
-
-  /**
    * ボード選択成功
    */
   boardSelected: (boardName: string) => {

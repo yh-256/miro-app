@@ -324,11 +324,11 @@ function SearchResultCard({
             </Link>
           </div>
         )}
-        {item.metadata?.subjectId && (
-          <div>ID: {item.metadata.subjectId}</div>
+        {item.metadata?.userId && (
+          <div>ユーザーID: {highlightText(item.metadata.userId, searchQuery)}</div>
         )}
-        {item.metadata?.subjectName && (
-          <div>個人ID: {highlightText(item.metadata.subjectName, searchQuery)}</div>
+        {item.metadata?.userDisplayName && (
+          <div>ユーザー名: {highlightText(item.metadata.userDisplayName, searchQuery)}</div>
         )}
         {item.metadata?.uploaderName && (
           <div>送信者: {highlightText(item.metadata.uploaderName, searchQuery)}</div>
@@ -427,11 +427,11 @@ function SearchResultListItem({
               </Link>
             </span>
           )}
-          {item.metadata?.subjectId && (
-            <span>ID: {item.metadata.subjectId}</span>
+          {item.metadata?.userId && (
+            <span>ユーザーID: {highlightText(item.metadata.userId, searchQuery)}</span>
           )}
-          {item.metadata?.subjectName && (
-            <span>個人ID: {highlightText(item.metadata.subjectName, searchQuery)}</span>
+          {item.metadata?.userDisplayName && (
+            <span>ユーザー名: {highlightText(item.metadata.userDisplayName, searchQuery)}</span>
           )}
           {item.metadata?.uploaderName && (
             <span>送信者: {highlightText(item.metadata.uploaderName, searchQuery)}</span>

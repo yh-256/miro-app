@@ -4,28 +4,6 @@ import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-async function seedSubjects() {
-  const subjects = [
-    { id: 'subject-alpha', name: 'Aチーム' },
-    { id: 'subject-bravo', name: 'Bチーム' },
-    { id: 'subject-charlie', name: 'Cチーム' },
-  ];
-
-  for (const subject of subjects) {
-    await prisma.subject.upsert({
-      where: { id: subject.id },
-      update: {
-        name: subject.name,
-        lastUsedAt: new Date(),
-      },
-      create: {
-        ...subject,
-        lastUsedAt: new Date(),
-      },
-    });
-  }
-}
-
 async function seedProblems() {
   // const defaultBoardId =
   //   process.env.MOCK_MIRO_BOARD_ID ?? 'mock-miro-board-id-1';
@@ -114,8 +92,6 @@ async function seedAdminUser() {
 }
 
 async function main() {
-  console.info('Seeding subjects...');
-  await seedSubjects();
   console.info('Seeding problems...');
   await seedProblems();
   console.info('Seeding admin user...');

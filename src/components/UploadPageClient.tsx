@@ -5,12 +5,11 @@ import { useRouter } from 'next/navigation';
 import { Layout } from '@/components/Layout';
 import { ResponsiveContainer, FlexContainer } from '@/components/ResponsiveContainer';
 import { ImageCapture } from '@/components/ImageCapture';
-import { MetadataForm } from '@/components/MetadataForm';
 import { BoardSelector } from '@/components/BoardSelector';
 import { UploadProgress, UPLOAD_STEPS } from '@/components/UploadProgress';
 import { ProblemUploadSection } from '@/components/ProblemUploadSection';
 import { ProgressStep, ProblemDetailResponse } from '@/types';
-import { fetchSubjects as fetchSubjectsFromApi } from '@/utils/subjectStorage';
+import { uploadImagesToMiro, generateSessionId } from '@/utils/uploadService';
 
 interface AuthStatus {
   isLoggedIn: boolean;
@@ -26,13 +25,7 @@ interface Board {
   thumbnailUrl?: string;
 }
 
-interface ImageMetadata {
-  file: File;
-  subjectId: string;
-  uploaderName?: string;
-}
-
-type UploadStep = 'capture' | 'metadata' | 'board' | 'upload';
+type UploadStep = 'capture' | 'board' | 'upload';
 
 interface UploadPageClientProps {
   problemIdFromQuery: string | null;
@@ -103,7 +96,6 @@ export function UploadPageClient({ problemIdFromQuery }: UploadPageClientProps) 
 
   const [currentStep, setCurrentStep] = useState<UploadStep>('capture');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [metadata, setMetadata] = useState<ImageMetadata[]>([]);
   const [selectedBoard, setSelectedBoard] = useState<Board | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSteps, setUploadSteps] = useState<ProgressStep[]>([
@@ -114,73 +106,74 @@ export function UploadPageClient({ problemIdFromQuery }: UploadPageClientProps) 
     { ...UPLOAD_STEPS.CLEANUP },
   ]);
   const [skippedFiles, setSkippedFiles] = useState<Array<{ fileName: string; reason: string }>>([]);
+  const [sessionId, setSessionId] = useState(() => generateSessionId());
 
-  const canProceedToMetadata = selectedFiles.length > 0;
-  const canProceedToBoard = metadata.length > 0 && metadata.every(m => m.subjectId);
-  const canUpload = selectedBoard && canProceedToBoard;
+  const currentUserId = authStatus.isLoggedIn ? authStatus.userId ?? null : null;
+  const currentUserDisplayName = authStatus.isLoggedIn
+    ? authStatus.displayName ?? authStatus.userId ?? undefined
+    : undefined;
+
+  const canProceedFromCapture = selectedFiles.length > 0 && !!currentUserId;
+  const canUpload = Boolean(selectedBoard) && canProceedFromCapture;
 
   const handleNext = () => {
-    if (currentStep === 'capture' && canProceedToMetadata) {
-      setCurrentStep('metadata');
-    } else if (currentStep === 'metadata' && canProceedToBoard) {
+    if (currentStep === 'capture') {
+      if (!canProceedFromCapture) {
+        if (!currentUserId) {
+          alert('アップロードを行うにはログインが必要です。');
+        } else if (selectedFiles.length === 0) {
+          alert('アップロードする画像を選択してください。');
+        }
+        return;
+      }
       setCurrentStep('board');
-    } else if (currentStep === 'board' && canUpload) {
+      return;
+    }
+
+    if (currentStep === 'board') {
+      if (!selectedBoard) {
+        alert('送信先のボードを選択してください。');
+        return;
+      }
       setCurrentStep('upload');
       handleUpload();
     }
   };
 
   const handleBack = () => {
-    if (currentStep === 'metadata') {
+    if (currentStep === 'board') {
       setCurrentStep('capture');
-    } else if (currentStep === 'board') {
-      setCurrentStep('metadata');
     } else if (currentStep === 'upload') {
       setCurrentStep('board');
     }
   };
 
   const handleUpload = async () => {
-    if (!selectedBoard || !canProceedToBoard) return;
+    if (!selectedBoard || !currentUserId || selectedFiles.length === 0) {
+      return;
+    }
 
     setIsUploading(true);
 
+    setUploadSteps([
+      { ...UPLOAD_STEPS.VALIDATING, status: 'in_progress' as const },
+      { ...UPLOAD_STEPS.UPLOADING_IMAGES },
+      { ...UPLOAD_STEPS.CREATING_NOTES },
+      { ...UPLOAD_STEPS.GROUPING },
+      { ...UPLOAD_STEPS.CLEANUP },
+    ]);
+
     try {
-      const { uploadImagesToMiro, generateSessionId } = await import('@/utils/uploadService');
-      const sessionId = generateSessionId();
-
-      setUploadSteps([
-        { ...UPLOAD_STEPS.VALIDATING, status: 'in_progress' as const },
-        { ...UPLOAD_STEPS.UPLOADING_IMAGES },
-        { ...UPLOAD_STEPS.CREATING_NOTES },
-        { ...UPLOAD_STEPS.GROUPING },
-        { ...UPLOAD_STEPS.CLEANUP },
-      ]);
-
-      const subjects = await fetchSubjectsFromApi();
-      const subjectMap = new Map(subjects.map(s => [s.id, s.name]));
-
-      console.log('[DEBUG] Available subjects:', subjects);
-      console.log('[DEBUG] Subject map:', Object.fromEntries(subjectMap));
-      console.log(
-        '[DEBUG] Metadata to process:',
-        metadata.map(m => ({ subjectId: m.subjectId, fileName: m.file.name }))
-      );
-
-      const uploadData = metadata.map(m => {
-        const subjectName = subjectMap.get(m.subjectId) || m.subjectId;
-        console.log(`[DEBUG] Resolving subject ID ${m.subjectId} to name: ${subjectName}`);
-        return {
-          file: m.file,
-          subjectId: m.subjectId,
-          subjectName,
-          uploaderName: m.uploaderName,
-        };
-      });
+      const uploadData = selectedFiles.map((file) => ({
+        file,
+        userId: currentUserId,
+        userDisplayName: currentUserDisplayName,
+        uploaderName: currentUserDisplayName,
+      }));
 
       const updateProgress = (step: string, progress: number, message?: string) => {
-        setUploadSteps(prev =>
-          prev.map(stepItem => {
+        setUploadSteps((prev) =>
+          prev.map((stepItem) => {
             switch (step) {
               case 'validating':
                 if (stepItem.id === 'validating') {
@@ -227,8 +220,8 @@ export function UploadPageClient({ problemIdFromQuery }: UploadPageClientProps) 
         onProgress: updateProgress,
       });
 
-      setUploadSteps(prev =>
-        prev.map(step => {
+      setUploadSteps((prev) =>
+        prev.map((step) => {
           switch (step.id) {
             case 'creating_notes':
               return {
@@ -258,8 +251,6 @@ export function UploadPageClient({ problemIdFromQuery }: UploadPageClientProps) 
         })
       );
 
-      console.log('Upload completed:', result);
-
       if (result.skippedItems && result.skippedItems.length > 0) {
         setSkippedFiles(result.skippedItems);
       }
@@ -267,8 +258,8 @@ export function UploadPageClient({ problemIdFromQuery }: UploadPageClientProps) 
       console.error('Upload failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'アップロードに失敗しました';
 
-      setUploadSteps(prev =>
-        prev.map(step =>
+      setUploadSteps((prev) =>
+        prev.map((step) =>
           step.status === 'in_progress'
             ? ({ ...step, status: 'error' as const, message: errorMessage } as ProgressStep)
             : step
@@ -280,9 +271,16 @@ export function UploadPageClient({ problemIdFromQuery }: UploadPageClientProps) 
   const handleUploadComplete = () => {
     setIsUploading(false);
     setSelectedFiles([]);
-    setMetadata([]);
     setSelectedBoard(null);
     setSkippedFiles([]);
+    setUploadSteps([
+      { ...UPLOAD_STEPS.VALIDATING },
+      { ...UPLOAD_STEPS.UPLOADING_IMAGES },
+      { ...UPLOAD_STEPS.CREATING_NOTES },
+      { ...UPLOAD_STEPS.GROUPING },
+      { ...UPLOAD_STEPS.CLEANUP },
+    ]);
+    setSessionId(generateSessionId());
     setCurrentStep('capture');
   };
 
@@ -290,8 +288,6 @@ export function UploadPageClient({ problemIdFromQuery }: UploadPageClientProps) 
     switch (currentStep) {
       case 'capture':
         return <ImageCapture onImagesChange={setSelectedFiles} maxFiles={10} />;
-      case 'metadata':
-        return <MetadataForm imageFiles={selectedFiles} onMetadataChange={setMetadata} />;
       case 'board':
         return <BoardSelector selectedBoardId={selectedBoard?.id} onBoardSelect={setSelectedBoard} />;
       case 'upload':
@@ -312,9 +308,8 @@ export function UploadPageClient({ problemIdFromQuery }: UploadPageClientProps) 
   const renderStepIndicator = () => {
     const steps = [
       { key: 'capture', label: '画像選択', number: 1 },
-      { key: 'metadata', label: 'メタデータ', number: 2 },
-      { key: 'board', label: 'ボード選択', number: 3 },
-      { key: 'upload', label: 'アップロード', number: 4 },
+      { key: 'board', label: 'ボード選択', number: 2 },
+      { key: 'upload', label: 'アップロード', number: 3 },
     ];
 
     return (
@@ -439,8 +434,7 @@ export function UploadPageClient({ problemIdFromQuery }: UploadPageClientProps) 
               onClick={handleNext}
               type="button"
               disabled={
-                (currentStep === 'capture' && !canProceedToMetadata) ||
-                (currentStep === 'metadata' && !canProceedToBoard) ||
+                (currentStep === 'capture' && !canProceedFromCapture) ||
                 (currentStep === 'board' && !canUpload) ||
                 currentStep === 'upload'
               }

@@ -10,15 +10,16 @@ export interface UploadedItem {
   imageId: string;
   stickyNoteId: string;
   groupId: string;
-  subjectId: string;
+  userId: string;
+  userDisplayName?: string;
   position: { x: number; y: number };
   fileName: string;
   imageHeight: number; // 画像の実際の高さを追加
 }
 
-export interface SubjectGroup {
-  subjectId: string;
-  subjectName: string;
+export interface UserGroup {
+  userId: string;
+  userDisplayName?: string;
   items: UploadedItem[];
   bounds: {
     x: number;
@@ -45,87 +46,88 @@ const LAYOUT_CONFIG = {
   ITEMS_PER_ROW: 3,           // 1行あたりのアイテム数
   
   // グループ間隔設定
-  SUBJECT_GROUP_SPACING: 600, // 個人IDグループ間の間隔
+  USER_GROUP_SPACING: 600, // ユーザーグループ間の間隔
 };
 
 /**
- * 個人ID別に画像をグループ化してレイアウト
+ * ユーザー別に画像をグループ化してレイアウト
  */
-export async function createSubjectBasedLayout(
+export async function createUserBasedLayout(
   boardId: string,
   uploadItems: Array<{
     imageId: string;
     stickyNoteId: string;
     groupId: string;
-    subjectId: string;
-    subjectName: string;
+    userId: string;
+    userDisplayName?: string;
     fileName: string;
     imageHeight: number; // 画像の高さを受け取る
   }>,
   basePosition: { x: number; y: number } = { x: 0, y: 0 },
   client: IMiroClient = miroClient
-): Promise<SubjectGroup[]> {
+): Promise<UserGroup[]> {
   try {
-    // 個人ID別にアイテムをグループ化
-    const subjectGroups = new Map<string, SubjectGroup>();
+    // ユーザー別にアイテムをグループ化
+    const userGroups = new Map<string, UserGroup>();
     
     uploadItems.forEach(item => {
-      if (!subjectGroups.has(item.subjectId)) {
-        subjectGroups.set(item.subjectId, {
-          subjectId: item.subjectId,
-          subjectName: item.subjectName,
+      if (!userGroups.has(item.userId)) {
+        userGroups.set(item.userId, {
+          userId: item.userId,
+          userDisplayName: item.userDisplayName,
           items: [],
           bounds: { x: 0, y: 0, width: 0, height: 0 },
         });
       }
       
-      const group = subjectGroups.get(item.subjectId)!;
+      const group = userGroups.get(item.userId)!;
       group.items.push({
         imageId: item.imageId,
         stickyNoteId: item.stickyNoteId,
         groupId: item.groupId,
-        subjectId: item.subjectId,
+        userId: item.userId,
+        userDisplayName: item.userDisplayName,
         position: { x: 0, y: 0 }, // 後で計算
         fileName: item.fileName,
         imageHeight: item.imageHeight, // 画像の高さを格納
       });
     });
 
-    // 各個人IDグループのレイアウトを計算
-    const subjectGroupsArray = Array.from(subjectGroups.values());
-    let currentSubjectX = basePosition.x;
+    // 各ユーザーグループのレイアウトを計算
+    const userGroupsArray = Array.from(userGroups.values());
+    let currentUserX = basePosition.x;
     
-    for (let groupIndex = 0; groupIndex < subjectGroupsArray.length; groupIndex++) {
-      const subjectGroup = subjectGroupsArray[groupIndex];
+    for (let groupIndex = 0; groupIndex < userGroupsArray.length; groupIndex++) {
+      const userGroup = userGroupsArray[groupIndex];
       const groupBaseY = basePosition.y;
       
       // グループ内でのアイテム配置
-      await layoutItemsInGroup(boardId, subjectGroup, {
-        x: currentSubjectX,
+      await layoutItemsInGroup(boardId, userGroup, {
+        x: currentUserX,
         y: groupBaseY,
       }, client);
       
-      // 次の個人IDグループの位置を計算
-      currentSubjectX += subjectGroup.bounds.width + LAYOUT_CONFIG.SUBJECT_GROUP_SPACING;
+      // 次のユーザーグループの位置を計算
+      currentUserX += userGroup.bounds.width + LAYOUT_CONFIG.USER_GROUP_SPACING;
     }
 
-    return subjectGroupsArray;
+    return userGroupsArray;
   } catch (error) {
-    logError(error as Error, 'createSubjectBasedLayout');
+    logError(error as Error, 'createUserBasedLayout');
     throw error;
   }
 }
 
 /**
- * 1つの個人IDグループ内でアイテムをレイアウト
+ * 1つのユーザーグループ内でアイテムをレイアウト
  */
 async function layoutItemsInGroup(
   boardId: string,
-  subjectGroup: SubjectGroup,
+  userGroup: UserGroup,
   basePosition: { x: number; y: number },
   client: IMiroClient
 ): Promise<void> {
-  const items = subjectGroup.items;
+  const items = userGroup.items;
   let maxWidth = 0;
   let totalHeight = 0;
   
@@ -181,7 +183,7 @@ async function layoutItemsInGroup(
   }
   
   // グループのバウンディング情報を更新
-  subjectGroup.bounds = {
+  userGroup.bounds = {
     x: basePosition.x,
     y: basePosition.y,
     width: maxWidth,
@@ -192,16 +194,16 @@ async function layoutItemsInGroup(
 
 
 /**
- * 同一個人IDの既存アイテムを検索
+ * 同一ユーザーの既存アイテムを検索
  */
-export async function findExistingSubjectItems(
+export async function findExistingUserItems(
   boardId: string,
-  subjectId: string,
+  userId: string,
   client: IMiroClient = miroClient
 ): Promise<{ images: MiroImageItem[]; stickyNotes: MiroStickyNote[] }> {
   try {
-    // 付箋を検索（メタデータから個人IDを抽出）
-    const allItems = await client.searchItems(boardId, subjectId, 'sticky_note');
+    // 付箋を検索（メタデータからユーザーIDを抽出）
+    const allItems = await client.searchItems(boardId, userId, 'sticky_note');
     const stickyNotes = allItems.filter((item): item is MiroStickyNote => item.type === 'sticky_note');
     
     // 画像アイテムを取得（付箋の近くにある画像を探す）
@@ -214,7 +216,7 @@ export async function findExistingSubjectItems(
     
     return { images, stickyNotes };
   } catch (error) {
-    logError(error as Error, 'findExistingSubjectItems');
+    logError(error as Error, 'findExistingUserItems');
     return { images: [], stickyNotes: [] };
   }
 }
@@ -227,19 +229,19 @@ export async function findExistingSubjectItems(
 /**
  * レイアウト統計情報を取得
  */
-export function getLayoutStats(subjectGroups: SubjectGroup[]): {
-  totalSubjects: number;
+export function getLayoutStats(userGroups: UserGroup[]): {
+  totalUsers: number;
   totalItems: number;
   layoutBounds: { x: number; y: number; width: number; height: number };
 } {
-  const totalItems = subjectGroups.reduce((sum, group) => sum + group.items.length, 0);
+  const totalItems = userGroups.reduce((sum, group) => sum + group.items.length, 0);
   
   let minX = Infinity;
   let minY = Infinity;
   let maxX = -Infinity;
   let maxY = -Infinity;
   
-  subjectGroups.forEach(group => {
+  userGroups.forEach(group => {
     minX = Math.min(minX, group.bounds.x);
     minY = Math.min(minY, group.bounds.y);
     maxX = Math.max(maxX, group.bounds.x + group.bounds.width);
@@ -247,7 +249,7 @@ export function getLayoutStats(subjectGroups: SubjectGroup[]): {
   });
   
   return {
-    totalSubjects: subjectGroups.length,
+    totalUsers: userGroups.length,
     totalItems,
     layoutBounds: {
       x: minX === Infinity ? 0 : minX,

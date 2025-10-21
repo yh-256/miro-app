@@ -75,7 +75,6 @@ export function useNotifications() {
       uploadSuccess: MiroNotifications.uploadSuccess,
       boardLoadSuccess: MiroNotifications.boardLoadSuccess,
       searchSuccess: MiroNotifications.searchSuccess,
-      subjectCreated: MiroNotifications.subjectCreated,
       boardSelected: MiroNotifications.boardSelected,
       dataSaved: MiroNotifications.dataSaved,
     },

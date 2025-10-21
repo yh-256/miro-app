@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { 
-  searchBoardItems, 
-  searchBySubjectId, 
+import {
+  searchBoardItems,
+  searchByUserId,
   searchByUploaderName,
   SearchCriteria,
-  SearchResult
+  SearchResult,
 } from '@/utils/searchService';
 import { ErrorHandler, logError } from '@/utils/errorHandler';
 import { prisma } from '@/lib/prisma';
@@ -15,14 +15,13 @@ import { getAccessibleProblemIds } from '@/utils/problemProgress';
 interface SearchRequestQuery {
   boardId: string;
   query?: string;
-  subjectId?: string;
-  subjectName?: string;
+  userId?: string;
   uploaderName?: string;
   dateFrom?: string;
   dateTo?: string;
   itemTypes?: string;
   limit?: string;
-  searchType?: 'general' | 'subject' | 'uploader';
+  searchType?: 'general' | 'user' | 'uploader';
 }
 
 /**
@@ -36,15 +35,13 @@ export async function GET(request: NextRequest) {
     const params: SearchRequestQuery = {
       boardId: searchParams.get('boardId') || '',
       query: searchParams.get('query') || undefined,
-      subjectId: searchParams.get('subjectId') || undefined,
-      // 互換性のために subjectName をオプション受け取り
-      subjectName: searchParams.get('subjectName') || undefined,
+      userId: searchParams.get('userId') || undefined,
       uploaderName: searchParams.get('uploaderName') || undefined,
       dateFrom: searchParams.get('dateFrom') || undefined,
       dateTo: searchParams.get('dateTo') || undefined,
       itemTypes: searchParams.get('itemTypes') || '',
       limit: searchParams.get('limit') || '50',
-      searchType: (searchParams.get('searchType') as 'general' | 'subject' | 'uploader') || 'general',
+      searchType: (searchParams.get('searchType') as 'general' | 'user' | 'uploader') || 'general',
     };
 
     // 基本バリデーション
@@ -63,7 +60,7 @@ export async function GET(request: NextRequest) {
     // 検索条件が何も指定されていない場合（ただし日付・タイプ指定がある場合はOK）
     const hasDate = !!(params.dateFrom || params.dateTo);
     const hasTypes = !!(params.itemTypes && params.itemTypes.trim().length > 0);
-    if (!params.query && !params.subjectId && !params.uploaderName && !hasDate && !hasTypes) {
+    if (!params.query && !params.userId && !params.uploaderName && !hasDate && !hasTypes) {
       return NextResponse.json(
         {
           error: 'NO_SEARCH_CRITERIA',
@@ -85,7 +82,7 @@ export async function GET(request: NextRequest) {
       searchCriteria: {
         boardId: params.boardId,
         query: params.query,
-        subjectId: params.subjectId,
+        userId: params.userId,
         uploaderName: params.uploaderName,
         searchType: params.searchType,
       },
@@ -99,20 +96,19 @@ export async function GET(request: NextRequest) {
 
     // 検索タイプに応じた検索実行
     switch (params.searchType) {
-      case 'subject':
-        if (!params.subjectId) {
+      case 'user':
+        if (!params.userId) {
           return NextResponse.json(
             {
-              error: 'MISSING_SUBJECT_ID',
-              message: '個人IDが指定されていません。',
+              error: 'MISSING_USER_ID',
+              message: 'ユーザーIDが指定されていません。',
               success: false,
               results: { items: [], totalCount: 0, hasMore: false }
             },
             { status: 400 }
           );
         }
-        // 互換性：subjectName があれば併用
-        searchResults = await searchBySubjectId(params.boardId, params.subjectId, undefined, params.subjectName);
+        searchResults = await searchByUserId(params.boardId, params.userId);
         break;
 
       case 'uploader':
@@ -135,8 +131,7 @@ export async function GET(request: NextRequest) {
         // 包括的検索条件の構築
         const criteria: SearchCriteria = {
           query: params.query,
-          subjectId: params.subjectId,
-          subjectName: params.subjectName,
+          userId: params.userId,
           uploaderName: params.uploaderName,
         };
 
@@ -180,7 +175,7 @@ export async function GET(request: NextRequest) {
       searchCriteria: {
         boardId: params.boardId,
         query: params.query,
-        subjectId: params.subjectId,
+        userId: params.userId,
         uploaderName: params.uploaderName,
         searchType: params.searchType,
       },
@@ -331,7 +326,7 @@ async function enrichSearchResultsWithDatabase(
         : {}),
     },
     include: {
-      subject: true,
+      user: true,
       session: true,
     },
   });
@@ -383,8 +378,8 @@ async function enrichSearchResultsWithDatabase(
 
     const mergedMetadata = {
       ...(resultItem.metadata ?? {}),
-      subjectId: dbRecord.subjectId ?? resultItem.metadata?.subjectId,
-      subjectName: dbRecord.subject?.name ?? resultItem.metadata?.subjectName,
+      userId: dbRecord.userId ?? resultItem.metadata?.userId,
+      userDisplayName: dbRecord.user?.displayName ?? resultItem.metadata?.userDisplayName,
       uploaderName: dbRecord.session?.uploaderName ?? resultItem.metadata?.uploaderName,
       uploadedAt: dbRecord.session?.createdAt ?? resultItem.metadata?.uploadedAt,
       fileName: dbRecord.fileName ?? resultItem.metadata?.fileName,
