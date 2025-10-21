@@ -213,10 +213,7 @@ export async function POST(request: NextRequest) {
       const stickyNoteContent = [
         `ユーザーID: ${imageMetadata.userId}`,
         userLabel ? `ユーザー名: ${userLabel}` : '',
-        imageMetadata.uploaderName ? `アップロード者: ${imageMetadata.uploaderName}` : '',
-        `アップロード日時: ${new Date().toLocaleString('ja-JP')}`,
-        `ファイル名: ${tempFile.originalName}`,
-        `セッションID: ${imageMetadata.sessionId}`,
+        `問い番号: ${problemId}`,
       ].filter(Boolean).join('\n');
 
       const stickyNote = await miroClient.createStickyNote(
