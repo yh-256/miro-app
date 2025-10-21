@@ -29,6 +29,13 @@ interface ImageMetadata {
 
 type UploadStep = 'capture' | 'metadata' | 'board' | 'upload';
 
+interface AuthStatus {
+  isLoggedIn: boolean;
+  userId?: string;
+  displayName?: string;
+  role?: 'ADMIN' | 'USER';
+}
+
 interface ProblemUploadSectionProps {
   problemId: string;
   defaultBoardId?: string;
@@ -74,14 +81,70 @@ export function ProblemUploadSection({
   const [skippedFiles, setSkippedFiles] = useState<
     Array<{ fileName: string; reason: string }>
   >([]);
+  const [authStatus, setAuthStatus] = useState<AuthStatus>({ isLoggedIn: false });
+  const [authLoading, setAuthLoading] = useState(true);
 
   const boardStepEnabled = !lockBoardSelection;
+  const autoMetadataSubjectId =
+    !authLoading && authStatus.isLoggedIn && authStatus.userId
+      ? authStatus.userId
+      : null;
+  const autoUploaderName =
+    !authLoading && authStatus.isLoggedIn
+      ? authStatus.displayName || authStatus.userId
+      : undefined;
+  const metadataStepEnabled = !autoMetadataSubjectId;
+
+  useEffect(() => {
+    const fetchAuthStatus = async () => {
+      try {
+        const response = await fetch('/api/auth/session', { cache: 'no-store' });
+        if (!response.ok) {
+          throw new Error('failed');
+        }
+        const data = await response.json();
+        setAuthStatus({
+          isLoggedIn: data.isLoggedIn ?? false,
+          userId: data.user?.userId,
+          displayName: data.user?.displayName,
+          role: data.user?.role,
+        });
+      } catch (error) {
+        console.error('Failed to fetch auth status for upload flow:', error);
+        setAuthStatus({ isLoggedIn: false });
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+
+    fetchAuthStatus();
+  }, []);
 
   useEffect(() => {
     if (selectedFiles.length === 0) {
       setMetadata([]);
+      return;
     }
-  }, [selectedFiles]);
+
+    if (autoMetadataSubjectId) {
+      setMetadata(
+        selectedFiles.map((file) => ({
+          file,
+          subjectId: autoMetadataSubjectId,
+          uploaderName: autoUploaderName,
+        }))
+      );
+      return;
+    }
+
+    setMetadata(
+      selectedFiles.map((file) => ({
+        file,
+        subjectId: '',
+        uploaderName: undefined,
+      }))
+    );
+  }, [selectedFiles, autoMetadataSubjectId, autoUploaderName]);
 
   useEffect(() => {
     if (lockBoardSelection) {
@@ -102,18 +165,30 @@ export function ProblemUploadSection({
     defaultBoardDescription,
   ]);
 
-  const canProceedToMetadata = selectedFiles.length > 0;
-  const canProceedToBoard =
-    metadata.length > 0 && metadata.every((item) => item.subjectId);
-  const canUpload = Boolean(selectedBoard) && canProceedToBoard;
+  useEffect(() => {
+    if (!metadataStepEnabled && currentStep === 'metadata') {
+      setCurrentStep('capture');
+    }
+  }, [metadataStepEnabled, currentStep]);
+
+  const metadataReady =
+    metadata.length === selectedFiles.length &&
+    metadata.every((item) => item.subjectId);
+  const canProceedFromCapture =
+    selectedFiles.length > 0 && (metadataStepEnabled ? true : metadataReady);
+  const canProceedFromMetadata = metadataReady;
+  const canUpload = Boolean(selectedBoard) && metadataReady;
 
   const stepper = useMemo<
     Array<{ key: UploadStep; label: string; number: number }>
   >(() => {
     const steps: Array<{ key: UploadStep; label: string }> = [
       { key: 'capture', label: '画像選択' },
-      { key: 'metadata', label: 'メタデータ' },
     ];
+
+    if (metadataStepEnabled) {
+      steps.push({ key: 'metadata', label: 'メタデータ' });
+    }
 
     if (boardStepEnabled) {
       steps.push({ key: 'board', label: 'ボード選択' });
@@ -125,18 +200,27 @@ export function ProblemUploadSection({
       ...step,
       number: index + 1,
     }));
-  }, [boardStepEnabled]);
+  }, [boardStepEnabled, metadataStepEnabled]);
 
   const goToNext = () => {
     if (currentStep === 'capture') {
-      if (canProceedToMetadata) {
+      if (!canProceedFromCapture) {
+        return;
+      }
+
+      if (metadataStepEnabled) {
         setCurrentStep('metadata');
+      } else if (boardStepEnabled) {
+        setCurrentStep('board');
+      } else if (selectedBoard) {
+        setCurrentStep('upload');
+        handleUpload();
       }
       return;
     }
 
     if (currentStep === 'metadata') {
-      if (!canProceedToBoard) {
+      if (!metadataStepEnabled || !canProceedFromMetadata) {
         return;
       }
 
@@ -161,14 +245,20 @@ export function ProblemUploadSection({
     if (currentStep === 'metadata') {
       setCurrentStep('capture');
     } else if (currentStep === 'board') {
-      setCurrentStep('metadata');
+      setCurrentStep(metadataStepEnabled ? 'metadata' : 'capture');
     } else if (currentStep === 'upload') {
-      setCurrentStep(boardStepEnabled ? 'board' : 'metadata');
+      if (boardStepEnabled) {
+        setCurrentStep('board');
+      } else if (metadataStepEnabled) {
+        setCurrentStep('metadata');
+      } else {
+        setCurrentStep('capture');
+      }
     }
   };
 
   const handleUpload = async () => {
-    if (!selectedBoard || !canProceedToBoard) {
+    if (!selectedBoard || !metadataReady) {
       return;
     }
 
@@ -329,9 +419,12 @@ export function ProblemUploadSection({
     setCurrentStep('capture');
   };
 
-  const isUploadTriggerStep = boardStepEnabled
-    ? currentStep === 'board'
-    : currentStep === 'metadata';
+  const uploadTriggerStep = boardStepEnabled
+    ? 'board'
+    : metadataStepEnabled
+    ? 'metadata'
+    : 'capture';
+  const isUploadTriggerStep = currentStep === uploadTriggerStep;
   const nextButtonLabel = isUploadTriggerStep ? 'アップロード開始' : '次へ →';
 
   if (!isUploadUnlocked) {
@@ -385,6 +478,12 @@ export function ProblemUploadSection({
       {!isBoardUnlocked && (
         <div className="mb-6 rounded-md border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm text-yellow-800">
           画像のアップロードが完了すると、対応するMiroボードを閲覧できるようになります。
+        </div>
+      )}
+
+      {autoMetadataSubjectId && (
+        <div className="mb-6 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
+          ログイン中のため、画像メタデータの入力は省略されます。アップロード時にはユーザーID「{autoMetadataSubjectId}」を自動付与します。
         </div>
       )}
 
@@ -482,9 +581,8 @@ export function ProblemUploadSection({
           onClick={goToNext}
           type="button"
           disabled={
-            (currentStep === 'capture' && !canProceedToMetadata) ||
-            (currentStep === 'metadata' &&
-              (boardStepEnabled ? !canProceedToBoard : !canUpload)) ||
+            (currentStep === 'capture' && !canProceedFromCapture) ||
+            (currentStep === 'metadata' && !canProceedFromMetadata) ||
             (currentStep === 'board' && !canUpload) ||
             currentStep === 'upload'
           }
