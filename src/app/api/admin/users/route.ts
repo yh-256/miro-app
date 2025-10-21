@@ -1,4 +1,5 @@
 /**
+ * GET /api/admin/users - ユーザー一覧取得（管理者専用）
  * POST /api/admin/users - ユーザー作成（管理者専用）
  */
 
@@ -28,6 +29,96 @@ interface CreateUserResponse {
   message?: string;
 }
 
+interface UserListResponse {
+  success: boolean;
+  users?: Array<{
+    id: string;
+    userId: string;
+    displayName: string | null;
+    role: string;
+    isActive: boolean;
+    createdAt: string;
+    lastLoginAt: string | null;
+  }>;
+  error?: string;
+  message?: string;
+}
+
+/**
+ * GET /api/admin/users - ユーザー一覧取得
+ */
+export async function GET() {
+  try {
+    // 管理者権限チェック
+    await requireAdmin();
+
+    // 全ユーザー取得
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        userId: true,
+        displayName: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        lastLoginAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return NextResponse.json({
+      success: true,
+      users: users.map((user: {
+        id: string;
+        userId: string;
+        displayName: string | null;
+        role: string;
+        isActive: boolean;
+        createdAt: Date;
+        lastLoginAt: Date | null;
+      }) => ({
+        id: user.id,
+        userId: user.userId,
+        displayName: user.displayName,
+        role: user.role,
+        isActive: user.isActive,
+        createdAt: user.createdAt.toISOString(),
+        lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
+      })),
+    } as UserListResponse);
+  } catch (error) {
+    // リダイレクトエラー（未認証）
+    if (error instanceof Error && error.message.includes('NEXT_REDIRECT')) {
+      throw error;
+    }
+
+    // 管理者権限エラー
+    if (error instanceof Error && error.message === '管理者権限が必要です') {
+      return NextResponse.json(
+        { 
+          success: false,
+          error: 'FORBIDDEN', 
+          message: error.message 
+        } as UserListResponse,
+        { status: 403 }
+      );
+    }
+
+    logError(error as Error, 'GET /api/admin/users');
+    return NextResponse.json(
+      { 
+        success: false,
+        error: 'FETCH_USERS_FAILED', 
+        message: 'ユーザー一覧の取得に失敗しました。' 
+      } as UserListResponse,
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * POST /api/admin/users - ユーザー作成
+ */
 export async function POST(request: NextRequest) {
   try {
     // 管理者権限チェック

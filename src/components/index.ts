@@ -11,3 +11,7 @@ export * from './SearchResults';
 export * from './Toast';
 export * from './HomeButton';
 export * from './ProblemUploadSection';
+
+// デフォルトエクスポートのコンポーネント
+export { default as LoginForm } from './LoginForm';
+export { default as AdminUsersClient } from './AdminUsersClient';

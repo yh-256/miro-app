@@ -1,5 +1,6 @@
 // /* eslint-disable no-console */
 import { PrismaClient } from '@prisma/client'; 
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -82,11 +83,43 @@ async function seedProblems() {
   }
 }
 
+async function seedAdminUser() {
+  const adminUserId = 'admin';
+  const adminPin = '1234'; // 初回デフォルトPIN（後で変更推奨）
+  const pinHash = await bcrypt.hash(adminPin, 10);
+
+  const existingAdmin = await prisma.user.findUnique({
+    where: { userId: adminUserId },
+  });
+
+  if (existingAdmin) {
+    console.info('Admin user already exists, skipping creation.');
+    return;
+  }
+
+  await prisma.user.create({
+    data: {
+      userId: adminUserId,
+      pinHash: pinHash,
+      displayName: '管理者',
+      role: 'ADMIN',
+      isActive: true,
+    },
+  });
+
+  console.info('✅ Admin user created successfully!');
+  console.info('   UserID: admin');
+  console.info('   PIN: 1234');
+  console.info('   ⚠️  Please change the default PIN after first login!');
+}
+
 async function main() {
   console.info('Seeding subjects...');
   await seedSubjects();
   console.info('Seeding problems...');
   await seedProblems();
+  console.info('Seeding admin user...');
+  await seedAdminUser();
   console.info('Seed completed.');
 }
 
