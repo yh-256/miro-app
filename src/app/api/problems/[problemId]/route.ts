@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { ensureAuthenticatedSession } from '@/lib/session';
 import { ProblemDetailResponse } from '@/types';
 import { ErrorHandler, logError } from '@/utils/errorHandler';
