@@ -258,7 +258,7 @@ function getSecurityHeaders(): Record<string, string> {
     'X-Permitted-Cross-Domain-Policies': 'none',
 
     // Permissions-Policy
-    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+    'Permissions-Policy': 'microphone=(), geolocation=()',
     
     // Strict-Transport-Security (HTTPS環境のみ)
     ...(isProduction && {
