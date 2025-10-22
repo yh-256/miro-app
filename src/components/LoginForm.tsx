@@ -115,12 +115,6 @@ export default function LoginForm() {
             </button>
           </form>
 
-          {/* ヘルプテキスト */}
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
-              初期管理者アカウント: <span className="font-mono">admin</span> / <span className="font-mono">1234</span>
-            </p>
-          </div>
         </div>
       </div>
     </div>
