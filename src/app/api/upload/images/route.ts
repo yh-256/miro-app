@@ -227,7 +227,6 @@ export async function POST(request: NextRequest) {
         {
           geometry: {
             width: TARGET_STICKY_SIZE,
-            height: TARGET_STICKY_SIZE,
           },
         }
       );
@@ -235,7 +234,6 @@ export async function POST(request: NextRequest) {
       await miroClient.patchItem(boardId, stickyNote.id, {
         geometry: {
           width: TARGET_STICKY_SIZE,
-          height: TARGET_STICKY_SIZE,
         },
         position: {
           x: basePosition.x,

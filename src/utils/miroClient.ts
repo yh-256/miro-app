@@ -249,7 +249,7 @@ export class MiroApiClient implements IMiroClient {
       fillColor?: string;
       textAlign?: 'left' | 'center' | 'right';
     } = {},
-    options: { geometry?: { width: number; height: number } } = {}
+    options: { geometry?: { width?: number; height?: number } } = {}
   ): Promise<MiroStickyNote> {
     try {
       // コンテンツを簡易HTMLに変換（改行を<br/>に）
@@ -275,8 +275,8 @@ export class MiroApiClient implements IMiroClient {
         ...(options.geometry
           ? {
               geometry: {
-                width: options.geometry.width,
-                height: options.geometry.height,
+                ...(typeof options.geometry.width === 'number' ? { width: options.geometry.width } : {}),
+                ...(typeof options.geometry.height === 'number' ? { height: options.geometry.height } : {}),
               },
             }
           : {}),

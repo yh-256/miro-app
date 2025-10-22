@@ -170,7 +170,6 @@ async function layoutItemsInGroup(
         },
         geometry: {
           width: stickyWidth,
-          height: stickyHeight,
         },
       });
 
