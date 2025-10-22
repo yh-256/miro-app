@@ -35,17 +35,11 @@ export async function GET() {
       return NextResponse.json(emptyResponse);
     }
 
-    let canUnlockNext = true;
-
-    const allSummaries = problems.map((problem) => {
+    const summaries = problems.map((problem) => {
       const progress = problem.progress[0];
       const baseStatus = progress?.status ?? null;
-      const status = deriveStatus(baseStatus, canUnlockNext);
+      const status = deriveStatus(baseStatus);
       const snapshot = toSnapshot(status, progress);
-
-      if (!COMPLETED_STATUSES.has(status)) {
-        canUnlockNext = false;
-      }
 
       return {
         id: problem.id,
@@ -56,8 +50,6 @@ export async function GET() {
         ...snapshot,
       };
     });
-
-    const summaries = allSummaries.filter((summary) => summary.status !== 'LOCKED');
 
     let activeProblemId: string | undefined;
     for (const summary of summaries) {

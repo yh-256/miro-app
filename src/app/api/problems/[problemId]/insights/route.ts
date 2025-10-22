@@ -8,7 +8,6 @@ import {
   toSnapshot,
   maxStatus,
 } from '@/utils/problemProgress';
-import { isStatusAtLeast } from '@/constants/problemStatus';
 import { mapInsightToSummary } from '@/utils/insight';
 
 function validatePayload(body: unknown): InsightPayload {
@@ -52,16 +51,6 @@ export async function GET(
       return NextResponse.json(
         { error: 'PROBLEM_NOT_FOUND', message: '指定された問題が見つかりません。' },
         { status: 404 }
-      );
-    }
-
-    if (!isStatusAtLeast(context.status, 'INSIGHT_WRITTEN')) {
-      return NextResponse.json(
-        {
-          error: 'INSIGHT_ACCESS_FORBIDDEN',
-          message: '気づきを閲覧するには先に投稿を完了してください。',
-        },
-        { status: 403 }
       );
     }
 
@@ -123,16 +112,6 @@ export async function POST(
       return NextResponse.json(
         { error: 'PROBLEM_NOT_FOUND', message: '指定された問題が見つかりません。' },
         { status: 404 }
-      );
-    }
-
-    if (!context.allPreviousCompleted && context.status === 'LOCKED') {
-      return NextResponse.json(
-        {
-          error: 'INSIGHT_SUBMIT_FORBIDDEN',
-          message: '先行する問題の気づきを完了してください。',
-        },
-        { status: 403 }
       );
     }
 

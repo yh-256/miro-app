@@ -109,7 +109,7 @@ export default function ProblemsPage() {
                 問題ステップ一覧
               </h1>
               <p className="text-sm text-gray-600 mt-1">
-                気づきの投稿状況と進行度を確認できます。順番に問題へ取り組み、条件を満たすとボード閲覧や画像アップロードが解禁されます。
+                登録済みの問題を一覧から確認し、お好きな順番で取り組むことができます。進捗に応じてボード閲覧や画像アップロードの状態が更新されます。
               </p>
             </div>
             <div className="flex gap-2">
