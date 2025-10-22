@@ -149,6 +149,17 @@ export interface InsightListResponse {
   insights: InsightSummary[];
 }
 
+export interface UserSummary {
+  id: string;
+  userId: string;
+  displayName?: string;
+  isActive?: boolean;
+}
+
+export interface UserListResponse {
+  users: UserSummary[];
+}
+
 // エラー型
 export class UserFriendlyError extends Error {
   constructor(message: string) {
