@@ -18,12 +18,6 @@ export async function GET(
     }
 
     const { ironSession } = await ensureAuthenticatedSession();
-    if (!ironSession.isLoggedIn || !ironSession.userId) {
-      return NextResponse.json(
-        { error: 'UNAUTHORIZED', message: 'ログインが必要です。' },
-        { status: 401 }
-      );
-    }
 
     const context = await loadProblemAccessContext(problemId, ironSession.userId);
 

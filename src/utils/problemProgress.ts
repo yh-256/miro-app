@@ -79,14 +79,14 @@ export interface ProblemAccessContext {
 
 export async function loadProblemAccessContext(
   problemId: string,
-  userId: string
+  userId?: string | null
 ): Promise<ProblemAccessContext | null> {
   const problem = (await prisma.problem.findUnique({
     where: { id: problemId },
     include: {
       progress: {
-        where: { userId },
-        take: 1,
+        ...(userId ? { where: { userId } } : {}),
+        take: userId ? 1 : 0,
       },
     },
   })) as ProblemWithProgress | null;
@@ -95,7 +95,7 @@ export async function loadProblemAccessContext(
     return null;
   }
 
-  const progress = problem.progress[0] ?? null;
+  const progress = userId ? problem.progress[0] ?? null : null;
   const status = deriveStatus(progress?.status ?? null);
 
   return {

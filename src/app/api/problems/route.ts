@@ -9,20 +9,15 @@ import { COMPLETED_STATUSES } from '@/constants/problemStatus';
 export async function GET() {
   try {
     const { ironSession } = await ensureAuthenticatedSession();
-    if (!ironSession.isLoggedIn || !ironSession.userId) {
-      return NextResponse.json(
-        { error: 'UNAUTHORIZED', message: 'ログインが必要です。' },
-        { status: 401 }
-      );
-    }
+    const userId = ironSession.userId ?? null;
 
     const problems = await prisma.problem.findMany({
       where: { isActive: true },
       orderBy: { orderIndex: 'asc' },
       include: {
         progress: {
-          where: { userId: ironSession.userId },
-          take: 1,
+          ...(userId ? { where: { userId } } : {}),
+          take: userId ? 1 : 0,
         },
       },
     });

@@ -11,7 +11,6 @@ import { prisma } from '@/lib/prisma';
 import { ProblemStatus, type Prisma } from '@prisma/client';
 import { ensureAuthenticatedSession } from '@/lib/session';
 import { loadProblemAccessContext, maxStatus } from '@/utils/problemProgress';
-import { isStatusAtLeast } from '@/constants/problemStatus';
 
 
 interface UploadRequestBody {
@@ -23,7 +22,7 @@ interface UploadRequestBody {
   boardId: string;
   problemId: string;
   metadata: {
-    userId?: string;
+    userId?: string; // DB上のUser.id
     userLoginId?: string;
     userDisplayName?: string;
     uploaderName?: string;
@@ -80,13 +79,7 @@ export async function POST(request: NextRequest) {
   try {
     const body: UploadRequestBody = await request.json();
     const { images, boardId, metadata, problemId } = body;
-    const { ironSession, userSession } = await ensureAuthenticatedSession();
-    if (!ironSession.isLoggedIn || !ironSession.userId) {
-      return NextResponse.json(
-        { error: 'UNAUTHORIZED', message: 'ログインが必要です。' },
-        { status: 401 }
-      );
-    }
+    const { userSession } = await ensureAuthenticatedSession();
 
     if (
       !boardId ||
@@ -102,21 +95,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, uploadedItems: [], skippedItems: [] });
     }
 
-    const context = await loadProblemAccessContext(problemId, ironSession.userId);
-    if (!context) {
+    const baseMetadata = metadata[0];
+    const targetUserId = baseMetadata?.userId;
+
+    if (!targetUserId || typeof targetUserId !== 'string') {
       return NextResponse.json(
-        { error: 'PROBLEM_NOT_FOUND', message: '指定された問題が見つかりません。' },
+        {
+          error: 'INVALID_USER_SELECTION',
+          message: 'アップロードに使用するユーザーIDが指定されていません。',
+        },
+        { status: 400 }
+      );
+    }
+
+    const uploadUserRecord = await prisma.user.findUnique({
+      where: { id: targetUserId },
+    });
+
+    if (!uploadUserRecord || uploadUserRecord.isActive === false) {
+      return NextResponse.json(
+        {
+          error: 'USER_NOT_FOUND',
+          message: '指定されたユーザーが見つからないか、利用できません。',
+        },
         { status: 404 }
       );
     }
 
-    if (!isStatusAtLeast(context.status, ProblemStatus.INSIGHT_WRITTEN)) {
+    const context = await loadProblemAccessContext(problemId, targetUserId);
+    if (!context) {
       return NextResponse.json(
-        {
-          error: 'UPLOAD_FORBIDDEN',
-          message: '気づきを投稿した後に画像をアップロードしてください。',
-        },
-        { status: 403 }
+        { error: 'PROBLEM_NOT_FOUND', message: '指定された問題が見つかりません。' },
+        { status: 404 }
       );
     }
 
@@ -139,14 +149,17 @@ export async function POST(request: NextRequest) {
       const image = images[i];
       const meta = {
         ...metadata[i],
-        userId: ironSession.userId!,
+        userId: targetUserId,
         userLoginId:
-          metadata[i].userLoginId ?? ironSession.loginId ?? metadata[i].userId,
+          metadata[i].userLoginId ?? uploadUserRecord.userId,
         userDisplayName:
           metadata[i].userDisplayName ??
-          ironSession.displayName ??
-          ironSession.loginId ??
-          undefined,
+          uploadUserRecord.displayName ??
+          uploadUserRecord.userId,
+        uploaderName:
+          metadata[i].uploaderName ??
+          uploadUserRecord.displayName ??
+          uploadUserRecord.userId,
         sessionId: metadata[i].sessionId ?? userSession.id,
       };
       try {
@@ -214,11 +227,10 @@ export async function POST(request: NextRequest) {
 
       const loginIdForSticky =
         imageMetadata.userLoginId ??
-        ironSession.loginId ??
-        imageMetadata.userId ??
+        uploadUserRecord.userId ??
         '不明なユーザー';
 
-      const userDbId = imageMetadata.userId ?? ironSession.userId!;
+      const userDbId = imageMetadata.userId ?? targetUserId;
 
       const userLabel =
         imageMetadata.userDisplayName && imageMetadata.userDisplayName !== loginIdForSticky
@@ -306,7 +318,7 @@ export async function POST(request: NextRequest) {
       const now = new Date();
       const sessionIdentifier =
         validFilesInfo[0]?.metadata.sessionId ?? userSession.id;
-      const uploaderName = metadata.find(m => m.uploaderName)?.uploaderName ?? null;
+      const uploaderName = validFilesInfo[0]?.metadata.uploaderName ?? null;
 
       const sessionRecord = await prisma.uploadSession.upsert({
         where: { sessionId: sessionIdentifier },
@@ -357,7 +369,7 @@ export async function POST(request: NextRequest) {
           where: {
             problemId_userId: {
               problemId,
-              userId: ironSession.userId,
+              userId: targetUserId,
             },
           },
           update: {
@@ -369,7 +381,7 @@ export async function POST(request: NextRequest) {
           },
           create: {
             problemId,
-            userId: ironSession.userId,
+            userId: targetUserId,
             userSessionId: userSession.id,
             status: targetStatus,
             insightSubmittedAt: currentProgress?.insightSubmittedAt ?? now,

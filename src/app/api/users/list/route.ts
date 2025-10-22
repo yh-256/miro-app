@@ -1,19 +1,10 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { ensureAuthenticatedSession } from '@/lib/session';
 import { UserListResponse } from '@/types';
 import { ErrorHandler, logError } from '@/utils/errorHandler';
 
 export async function GET() {
   try {
-    const { ironSession } = await ensureAuthenticatedSession();
-    if (!ironSession.isLoggedIn || !ironSession.userId) {
-      return NextResponse.json(
-        { error: 'UNAUTHORIZED', message: 'ログインが必要です。' },
-        { status: 401 }
-      );
-    }
-
     const users = await prisma.user.findMany({
       where: { isActive: true },
       orderBy: { userId: 'asc' },
