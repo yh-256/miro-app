@@ -9,7 +9,6 @@ import { BoardEmbed } from '@/components/BoardEmbed';
 import { ProblemUploadSection } from '@/components/ProblemUploadSection';
 import {
   ProblemDetailResponse,
-  InsightSummary,
   ProblemProgressUpdatePayload,
 } from '@/types';
 import { PROBLEM_STATUS_LABEL, isStatusAtLeast } from '@/constants/problemStatus';
@@ -27,7 +26,6 @@ export default function ProblemDetailPage() {
   const router = useRouter();
 
   const [detail, setDetail] = useState<ProblemDetailResponse | null>(null);
-  const [insights, setInsights] = useState<InsightSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [progressUpdating, setProgressUpdating] = useState(false);
@@ -49,7 +47,6 @@ export default function ProblemDetailPage() {
       }
       const payload = (await resp.json()) as ProblemDetailResponse;
       setDetail(payload);
-      setInsights(payload.relatedInsights ?? []);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : '問題詳細の取得に失敗しました。'
@@ -193,49 +190,6 @@ export default function ProblemDetailPage() {
                   {detail.problem.contentBody}
                 </div>
               )}
-            </section>
-
-            <section className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900">
-                  気づきの記録
-                </h2>
-                <span className="text-sm text-gray-500">
-                  投稿済み: {insights.length}件
-                </span>
-              </div>
-
-              <div className="space-y-3">
-                {insights.length === 0 ? (
-                  <p className="text-sm text-gray-500">
-                    まだ投稿された気づきはありません。
-                  </p>
-                ) : (
-                  insights.map((insight) => (
-                    <div
-                      key={insight.id}
-                      className="border border-gray-200 rounded-lg p-4 bg-gray-50"
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                        <div className="text-sm text-gray-700">
-                          投稿者: {insight.author?.displayName ?? '匿名'}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {formatTimestamp(insight.createdAt)}
-                          {!insight.isPublic && (
-                            <span className="ml-2 px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">
-                              非公開
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <p className="mt-3 text-sm text-gray-800 whitespace-pre-wrap">
-                        {insight.content}
-                      </p>
-                    </div>
-                  ))
-                )}
-              </div>
             </section>
 
             <ProblemUploadSection

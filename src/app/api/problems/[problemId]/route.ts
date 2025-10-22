@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { ensureAuthenticatedSession } from '@/lib/session';
-import { ProblemDetailResponse, InsightSummary } from '@/types';
+import { ProblemDetailResponse } from '@/types';
 import { ErrorHandler, logError } from '@/utils/errorHandler';
 import { loadProblemAccessContext } from '@/utils/problemProgress';
-import { mapInsightToSummary } from '@/utils/insight';
 
 export async function GET(
   _request: NextRequest,
@@ -58,28 +57,8 @@ export async function GET(
       ...snapshot,
     };
 
-    let relatedInsights: InsightSummary[] | undefined;
-    if (isBoardUnlocked) {
-      const insightRecords = await prisma.insight.findMany({
-        where: {
-          problemId,
-          OR: [
-            { isPublic: true },
-            { userId: ironSession.userId },
-          ],
-        },
-        orderBy: { createdAt: 'asc' },
-        include: {
-          user: true,
-        },
-      });
-
-      relatedInsights = insightRecords.map(mapInsightToSummary);
-    }
-
     const response: ProblemDetailResponse = {
       problem: detail,
-      relatedInsights,
     };
 
     return NextResponse.json(response);

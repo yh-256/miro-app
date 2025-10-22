@@ -118,7 +118,6 @@ export interface ProblemListResponse {
 
 export interface ProblemDetailResponse {
   problem: ProblemDetail;
-  relatedInsights?: InsightSummary[];
 }
 
 export interface ProblemProgressUpdatePayload {
