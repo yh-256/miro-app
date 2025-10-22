@@ -33,6 +33,7 @@ export const BoardEmbed = forwardRef<BoardEmbedRef, BoardEmbedProps>(({
   const [embedUrl, setEmbedUrl] = useState<string>('');
   const [refreshKey, setRefreshKey] = useState<number>(Date.now());
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [isStorageAvailable, setIsStorageAvailable] = useState(true);
   const deviceInfo = useDeviceDetection();
 
   const generateEmbedUrl = useCallback(() => {
@@ -60,6 +61,19 @@ export const BoardEmbed = forwardRef<BoardEmbedRef, BoardEmbedProps>(({
       generateEmbedUrl();
     }
   }, [boardId, generateEmbedUrl]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    try {
+      const testKey = '__miro_embed_storage_probe__';
+      window.localStorage.setItem(testKey, '1');
+      window.localStorage.removeItem(testKey);
+      setIsStorageAvailable(true);
+    } catch (_error) {
+      setIsStorageAvailable(false);
+    }
+  }, []);
 
   const handleIframeLoad = () => {
     setIsLoading(false);
@@ -196,7 +210,7 @@ export const BoardEmbed = forwardRef<BoardEmbedRef, BoardEmbedProps>(({
       </div>
 
       {/* 埋め込み表示 */}
-      {(viewMode === 'embed' || viewMode === 'both') && embedUrl && (
+      {(viewMode === 'embed' || viewMode === 'both') && embedUrl && isStorageAvailable && (
         <div className="relative">
           {isLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-10">
@@ -214,6 +228,8 @@ export const BoardEmbed = forwardRef<BoardEmbedRef, BoardEmbedProps>(({
             height={height}
             style={{ border: 0 }}
             allowFullScreen
+            allow="fullscreen clipboard-write"
+            referrerPolicy="origin-when-cross-origin"
             onLoad={handleIframeLoad}
             onError={handleIframeError}
             className={`
@@ -222,6 +238,15 @@ export const BoardEmbed = forwardRef<BoardEmbedRef, BoardEmbedProps>(({
             `}
             title={`Miro Board - ${boardName || boardId}`}
           />
+        </div>
+      )}
+      {(viewMode === 'embed' || viewMode === 'both') && !isStorageAvailable && (
+        <div className="border border-yellow-200 rounded-lg bg-yellow-50 p-4 text-sm text-yellow-800 space-y-2">
+          <p className="font-medium">ブラウザの設定によりボードを埋め込み表示できません。</p>
+          <p>
+            サードパーティ Cookie / ローカルストレージの制限を解除するか、
+            下の「新しいタブで開く」ボタンから直接Miroを開いてください。
+          </p>
         </div>
       )}
 

@@ -223,18 +223,22 @@ function getClientId(request: NextRequest): string {
  * セキュリティヘッダーの生成
  */
 function getSecurityHeaders(): Record<string, string> {
-  const isDevelopment = process.env.NODE_ENV === 'development';
   const isProduction = process.env.NODE_ENV === 'production';
+  const cspDirectives = [
+    "default-src 'self'",
+    "frame-src https://miro.com https://*.miro.com",
+    "connect-src 'self' https://api.miro.com https://miro.com https://*.miro.com https://eventhub.eu01.miro.com https://o*.ingest.sentry.io https://www.googletagmanager.com",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://miro.com https://*.miro.com https://www.googletagmanager.com",
+    "img-src 'self' data: blob: https://miro.com https://*.miro.com",
+    "style-src 'self' 'unsafe-inline'",
+    "font-src 'self' data:",
+    "worker-src 'self' blob:"
+  ];
 
   return {
     // Content Security Policy
-    'Content-Security-Policy': isDevelopment
-      ? "default-src 'self' 'unsafe-eval' 'unsafe-inline' data: blob:; connect-src 'self' https://api.miro.com https://miro.com; frame-src 'self' https://miro.com; img-src 'self' data: blob: https:; font-src 'self' data:;"
-      : "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://api.miro.com; frame-src 'self' https://miro.com; img-src 'self' data: blob: https:; object-src 'none'; base-uri 'self'; font-src 'self' data:;",
-    
-    // X-Frame-Options
-    'X-Frame-Options': 'DENY',
-    
+    'Content-Security-Policy': cspDirectives.join('; '),
+
     // X-Content-Type-Options
     'X-Content-Type-Options': 'nosniff',
     
@@ -252,6 +256,9 @@ function getSecurityHeaders(): Record<string, string> {
     
     // X-Permitted-Cross-Domain-Policies
     'X-Permitted-Cross-Domain-Policies': 'none',
+
+    // Permissions-Policy
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
     
     // Strict-Transport-Security (HTTPS環境のみ)
     ...(isProduction && {

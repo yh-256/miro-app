@@ -17,10 +17,6 @@ const nextConfig: NextConfig = {
             value: 'on'
           },
           {
-            key: 'X-Frame-Options',
-            value: 'DENY'
-          },
-          {
             key: 'X-Content-Type-Options',
             value: 'nosniff'
           },
@@ -35,6 +31,19 @@ const nextConfig: NextConfig = {
           {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=()'
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "frame-src https://miro.com https://*.miro.com",
+              "connect-src 'self' https://api.miro.com https://miro.com https://*.miro.com https://eventhub.eu01.miro.com https://o*.ingest.sentry.io https://www.googletagmanager.com",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://miro.com https://*.miro.com https://www.googletagmanager.com",
+              "img-src 'self' data: blob: https://miro.com https://*.miro.com",
+              "style-src 'self' 'unsafe-inline'",
+              "font-src 'self' data:",
+              "worker-src 'self' blob:"
+            ].join('; ')
           },
           // 本番環境のみHSTSを有効化
           ...(isProduction ? [
@@ -70,4 +79,3 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
-
