@@ -14,11 +14,6 @@ import {
 } from '@/types';
 import { PROBLEM_STATUS_LABEL, isStatusAtLeast } from '@/constants/problemStatus';
 
-interface InsightFormState {
-  content: string;
-  isPublic: boolean;
-}
-
 function formatTimestamp(timestamp?: string) {
   if (!timestamp) return undefined;
   const date = new Date(timestamp);
@@ -35,11 +30,6 @@ export default function ProblemDetailPage() {
   const [insights, setInsights] = useState<InsightSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [insightForm, setInsightForm] = useState<InsightFormState>({
-    content: '',
-    isPublic: true,
-  });
-  const [submittingInsight, setSubmittingInsight] = useState(false);
   const [progressUpdating, setProgressUpdating] = useState(false);
   const [uploadKey, setUploadKey] = useState(0);
 
@@ -79,54 +69,8 @@ export default function ProblemDetailPage() {
     ? PROBLEM_STATUS_LABEL[detail.problem.status] ?? detail.problem.status
     : '';
 
-  const canPostInsight = detail
-    ? [
-        'AVAILABLE',
-        'INSIGHT_WRITTEN',
-        'UPLOAD_COMPLETED',
-        'BOARD_VIEWED',
-        'COMPLETED',
-      ].includes(detail.problem.status)
-    : false;
-
   const uploadUnlocked = detail?.problem.isUploadUnlocked ?? false;
   const boardUnlocked = detail?.problem.isBoardUnlocked ?? false;
-
-  const handleInsightSubmit = async () => {
-    if (!insightForm.content.trim()) {
-      return;
-    }
-
-    setSubmittingInsight(true);
-    try {
-      const resp = await fetch(`/api/problems/${problemId}/insights`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content: insightForm.content.trim(),
-          isPublic: insightForm.isPublic,
-        }),
-      });
-
-      if (!resp.ok) {
-        const payload = await resp.json().catch(() => ({}));
-        throw new Error(payload.message || '気づきの投稿に失敗しました。');
-      }
-
-      const payload = await resp.json();
-      if (payload.insight) {
-        setInsights((prev) => [...prev, payload.insight as InsightSummary]);
-      }
-      setInsightForm({ content: '', isPublic: true });
-      await fetchDetail();
-    } catch (err) {
-      alert(
-        err instanceof Error ? err.message : '気づきの投稿に失敗しました。'
-      );
-    } finally {
-      setSubmittingInsight(false);
-    }
-  };
 
   const updateProgress = async (update: ProblemProgressUpdatePayload) => {
     setProgressUpdating(true);
@@ -261,88 +205,36 @@ export default function ProblemDetailPage() {
                 </span>
               </div>
 
-              <div className="space-y-4">
-                <div className="border border-gray-200 rounded-lg p-4 space-y-3">
-                  <textarea
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    rows={4}
-                    placeholder="気づきを入力してください..."
-                    value={insightForm.content}
-                    onChange={(event) =>
-                      setInsightForm((prev) => ({
-                        ...prev,
-                        content: event.target.value,
-                      }))
-                    }
-                    disabled={!canPostInsight || submittingInsight}
-                  />
-                  <div className="flex items-center justify-between text-sm text-gray-600">
-                    <label className="inline-flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        checked={insightForm.isPublic}
-                        onChange={(event) =>
-                          setInsightForm((prev) => ({
-                            ...prev,
-                            isPublic: event.target.checked,
-                          }))
-                        }
-                        disabled={submittingInsight}
-                      />
-                      公開気づきとして共有
-                    </label>
-                    <button
-                    onClick={handleInsightSubmit}
-                    type="button"
-                    disabled={
-                      submittingInsight ||
-                      !canPostInsight ||
-                      !insightForm.content.trim()
-                    }
-                      className="btn-primary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              <div className="space-y-3">
+                {insights.length === 0 ? (
+                  <p className="text-sm text-gray-500">
+                    まだ投稿された気づきはありません。
+                  </p>
+                ) : (
+                  insights.map((insight) => (
+                    <div
+                      key={insight.id}
+                      className="border border-gray-200 rounded-lg p-4 bg-gray-50"
                     >
-                      {submittingInsight ? '送信中...' : '気づきを投稿'}
-                    </button>
-                  </div>
-                  {!canPostInsight && (
-                    <p className="text-xs text-gray-500">
-                      この問題の気づきはまだ投稿できません。前のステップを完了してください。
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-3">
-                  {insights.length === 0 ? (
-                    <p className="text-sm text-gray-500">
-                      まだ投稿された気づきはありません。
-                    </p>
-                  ) : (
-                    insights.map((insight) => (
-                      <div
-                        key={insight.id}
-                        className="border border-gray-200 rounded-lg p-4 bg-gray-50"
-                      >
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                          <div className="text-sm text-gray-700">
-                            投稿者: {insight.author?.displayName ?? '匿名'}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {formatTimestamp(insight.createdAt)}
-                            {!insight.isPublic && (
-                              <span className="ml-2 px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">
-                                非公開
-                              </span>
-                            )}
-                          </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div className="text-sm text-gray-700">
+                          投稿者: {insight.author?.displayName ?? '匿名'}
                         </div>
-                        <p className="mt-3 text-sm text-gray-800 whitespace-pre-wrap">
-                          {insight.content}
-                        </p>
+                        <div className="text-xs text-gray-500">
+                          {formatTimestamp(insight.createdAt)}
+                          {!insight.isPublic && (
+                            <span className="ml-2 px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">
+                              非公開
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    ))
-                  )}
-                </div>
+                      <p className="mt-3 text-sm text-gray-800 whitespace-pre-wrap">
+                        {insight.content}
+                      </p>
+                    </div>
+                  ))
+                )}
               </div>
             </section>
 
