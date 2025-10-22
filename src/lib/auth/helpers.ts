@@ -13,7 +13,8 @@ import { IronSessionData } from './session.types';
 export async function getAuthSession(): Promise<IronSessionData> {
   const session = await getSession();
   return {
-    userId: session.userId,
+    userId: session.loginUserId ?? session.userId,
+    userDbId: session.userId,
     displayName: session.displayName,
     role: session.role,
     isLoggedIn: session.isLoggedIn ?? false,

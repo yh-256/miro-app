@@ -11,6 +11,7 @@ import { SearchResult, SearchResultItem, getSearchStats } from '@/utils/searchSe
 interface AuthStatus {
   isLoggedIn: boolean;
   userId?: string;
+  userDbId?: string;
   displayName?: string;
   role?: 'ADMIN' | 'USER';
 }
@@ -42,7 +43,13 @@ function SearchPageContent() {
       try {
         const response = await fetch('/api/auth/session');
         const data = await response.json();
-        setAuthStatus(data);
+        setAuthStatus({
+          isLoggedIn: data.isLoggedIn ?? false,
+          userId: data.user?.userId,
+          userDbId: data.user?.dbId,
+          displayName: data.user?.displayName,
+          role: data.user?.role,
+        });
       } catch (error) {
         console.error('Failed to fetch auth status:', error);
       } finally {

@@ -8,7 +8,8 @@ import { UploadResponse } from '@/types';
 
 export interface ImageUploadData {
   file: File;
-  userId: string;
+  userId?: string; // ログイン時に入力したユーザーID
+  userDbId?: string; // サーバー上のUser.id（任意）
   userDisplayName?: string;
   uploaderName?: string;
 }
@@ -80,7 +81,8 @@ export async function uploadImagesToMiro(
       boardId,
       problemId,
       metadata: images.map(image => ({
-        userId: image.userId,
+        userId: image.userDbId,
+        userLoginId: image.userId,
         userDisplayName: image.userDisplayName ?? image.uploaderName,
         uploaderName: image.uploaderName,
         sessionId,

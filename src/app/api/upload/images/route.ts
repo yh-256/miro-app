@@ -23,7 +23,8 @@ interface UploadRequestBody {
   boardId: string;
   problemId: string;
   metadata: {
-    userId: string;
+    userId?: string;
+    userLoginId?: string;
     userDisplayName?: string;
     uploaderName?: string;
     sessionId?: string;
@@ -138,8 +139,14 @@ export async function POST(request: NextRequest) {
       const image = images[i];
       const meta = {
         ...metadata[i],
-        userId: ironSession.userId,
-        userDisplayName: metadata[i].userDisplayName ?? ironSession.displayName ?? undefined,
+        userId: ironSession.userId!,
+        userLoginId:
+          metadata[i].userLoginId ?? ironSession.loginId ?? metadata[i].userId,
+        userDisplayName:
+          metadata[i].userDisplayName ??
+          ironSession.displayName ??
+          ironSession.loginId ??
+          undefined,
         sessionId: metadata[i].sessionId ?? userSession.id,
       };
       try {
@@ -205,13 +212,21 @@ export async function POST(request: NextRequest) {
 
       const file = new File([arrayBuffer], tempFile.originalName, { type: tempFile.mimetype });
 
+      const loginIdForSticky =
+        imageMetadata.userLoginId ??
+        ironSession.loginId ??
+        imageMetadata.userId ??
+        '不明なユーザー';
+
+      const userDbId = imageMetadata.userId ?? ironSession.userId!;
+
       const userLabel =
-        imageMetadata.userDisplayName && imageMetadata.userDisplayName !== imageMetadata.userId
+        imageMetadata.userDisplayName && imageMetadata.userDisplayName !== loginIdForSticky
           ? imageMetadata.userDisplayName
           : null;
 
       const stickyNoteContent = [
-        `ユーザーID: ${imageMetadata.userId}`,
+        `ユーザーID: ${loginIdForSticky}`,
         userLabel ? `ユーザー名: ${userLabel}` : '',
         `問い番号: ${problemId}`,
       ].filter(Boolean).join('\n');
@@ -221,7 +236,7 @@ export async function POST(request: NextRequest) {
         stickyNoteContent,
         basePosition,
         {
-          fillColor: getUserColor(imageMetadata.userId),
+          fillColor: getUserColor(userDbId),
           textAlign: 'left',
         },
         {
@@ -269,7 +284,7 @@ export async function POST(request: NextRequest) {
         imageId: uploadedImage.id,
         stickyNoteId: stickyNote.id,
         groupId: group.id,
-        userId: imageMetadata.userId,
+        userId: userDbId,
         userDisplayName: imageMetadata.userDisplayName,
         fileName: tempFile.originalName,
         imageHeight: TARGET_IMAGE_SIZE,

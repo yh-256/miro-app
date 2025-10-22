@@ -19,7 +19,8 @@ interface Board {
 
 interface ImageMetadata {
   file: File;
-  userId: string;
+  userId?: string; // ログインID
+  userDbId?: string;
   userDisplayName?: string;
   uploaderName?: string;
 }
@@ -28,7 +29,8 @@ type UploadStep = 'capture' | 'board' | 'upload';
 
 interface AuthStatus {
   isLoggedIn: boolean;
-  userId?: string;
+  userId?: string; // ログインID
+  userDbId?: string; // 内部ID
   displayName?: string;
   role?: 'ADMIN' | 'USER';
 }
@@ -81,8 +83,10 @@ export function ProblemUploadSection({
   const [authLoading, setAuthLoading] = useState(true);
 
   const boardStepEnabled = !lockBoardSelection;
-  const currentUserId =
+  const currentUserLoginId =
     !authLoading && authStatus.isLoggedIn ? authStatus.userId ?? null : null;
+  const currentUserDbId =
+    !authLoading && authStatus.isLoggedIn ? authStatus.userDbId ?? null : null;
   const currentUserDisplayName =
     !authLoading && authStatus.isLoggedIn
       ? authStatus.displayName ?? authStatus.userId ?? undefined
@@ -99,6 +103,7 @@ export function ProblemUploadSection({
         setAuthStatus({
           isLoggedIn: data.isLoggedIn ?? false,
           userId: data.user?.userId,
+          userDbId: data.user?.dbId,
           displayName: data.user?.displayName,
           role: data.user?.role,
         });
@@ -133,7 +138,7 @@ export function ProblemUploadSection({
   ]);
 
   const canProceedFromCapture =
-    selectedFiles.length > 0 && Boolean(currentUserId);
+    selectedFiles.length > 0 && Boolean(currentUserLoginId);
   const canUpload = Boolean(selectedBoard) && canProceedFromCapture;
 
   const stepper = useMemo<
@@ -158,7 +163,7 @@ export function ProblemUploadSection({
   const goToNext = () => {
     if (currentStep === 'capture') {
       if (!canProceedFromCapture) {
-        if (!currentUserId) {
+        if (!currentUserLoginId) {
           alert('アップロードを行うにはログインが必要です。');
         }
         if (selectedFiles.length === 0) {
@@ -199,7 +204,7 @@ export function ProblemUploadSection({
   };
 
   const handleUpload = async () => {
-    if (!selectedBoard || !currentUserId || selectedFiles.length === 0) {
+    if (!selectedBoard || !authStatus.isLoggedIn || selectedFiles.length === 0) {
       return;
     }
 
@@ -208,7 +213,8 @@ export function ProblemUploadSection({
     try {
       const uploadData = selectedFiles.map<ImageMetadata>((file) => ({
         file,
-        userId: currentUserId,
+        userId: currentUserLoginId ?? undefined,
+        userDbId: currentUserDbId ?? undefined,
         userDisplayName: currentUserDisplayName,
         uploaderName: currentUserDisplayName,
       }));
@@ -411,15 +417,15 @@ export function ProblemUploadSection({
         </div>
       )}
 
-      {!authLoading && !currentUserId && (
+      {!authLoading && !currentUserLoginId && (
         <div className="mb-6 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           アップロードを行うには、先に管理者アカウントでログインしてください。
         </div>
       )}
 
-      {!authLoading && currentUserId && (
+      {!authLoading && currentUserLoginId && (
         <div className="mb-6 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
-          このアップロードはユーザーID「{currentUserId}」として記録されます。
+          このアップロードはユーザーID「{currentUserLoginId}」として記録されます。
         </div>
       )}
 

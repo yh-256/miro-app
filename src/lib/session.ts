@@ -11,6 +11,7 @@ export interface SessionInfo {
 export interface AuthenticatedSessionInfo {
   ironSession: {
     userId?: string;
+    loginId?: string;
     displayName?: string;
     role?: 'ADMIN' | 'USER';
     isLoggedIn: boolean;
@@ -96,38 +97,46 @@ export async function ensureAuthenticatedSession(): Promise<AuthenticatedSession
   
   // 匿名セッションを確保
   const { sessionId } = await ensureSession();
-  const userSession = await ensureUserSessionRecord(sessionId);
-  
-  // ログイン中で、まだUserSessionと紐づいていない場合
+  let userSession = await ensureUserSessionRecord(sessionId);
+
   if (ironSession.isLoggedIn && ironSession.userId && !userSession.userId) {
-    const updatedSession = await prisma.userSession.update({
+    userSession = await prisma.userSession.update({
       where: { id: userSession.id },
-      data: { 
+      data: {
         userId: ironSession.userId,
         displayName: ironSession.displayName,
       },
     });
-    
-    return {
-      ironSession: {
-        userId: ironSession.userId,
-        displayName: ironSession.displayName,
-        role: ironSession.role,
-        isLoggedIn: ironSession.isLoggedIn,
-      },
-      userSession: {
-        id: updatedSession.id,
-        sessionToken: updatedSession.sessionToken,
-        userId: updatedSession.userId,
-        displayName: updatedSession.displayName,
-      },
-    };
   }
-  
+
+  let loginId = ironSession.loginUserId;
+
+  if (ironSession.isLoggedIn && ironSession.userId && !loginId) {
+    const userRecord = await prisma.user.findUnique({
+      where: { id: ironSession.userId },
+      select: { userId: true, displayName: true },
+    });
+
+    if (userRecord) {
+      loginId = userRecord.userId;
+      if (!ironSession.displayName) {
+        ironSession.displayName = userRecord.displayName ?? userRecord.userId;
+      }
+      ironSession.loginUserId = userRecord.userId;
+      await ironSession.save();
+    }
+  }
+
+  const displayName =
+    ironSession.displayName ??
+    userSession.displayName ??
+    loginId;
+
   return {
     ironSession: {
       userId: ironSession.userId,
-      displayName: ironSession.displayName,
+      loginId,
+      displayName,
       role: ironSession.role,
       isLoggedIn: ironSession.isLoggedIn ?? false,
     },

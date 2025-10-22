@@ -14,6 +14,7 @@ import { uploadImagesToMiro, generateSessionId } from '@/utils/uploadService';
 interface AuthStatus {
   isLoggedIn: boolean;
   userId?: string;
+  userDbId?: string;
   displayName?: string;
   role?: 'ADMIN' | 'USER';
 }
@@ -45,7 +46,13 @@ export function UploadPageClient({ problemIdFromQuery }: UploadPageClientProps) 
       try {
         const response = await fetch('/api/auth/session');
         const data = await response.json();
-        setAuthStatus(data);
+        setAuthStatus({
+          isLoggedIn: data.isLoggedIn ?? false,
+          userId: data.user?.userId,
+          userDbId: data.user?.dbId,
+          displayName: data.user?.displayName,
+          role: data.user?.role,
+        });
       } catch (error) {
         console.error('Failed to fetch auth status:', error);
       } finally {
@@ -108,18 +115,19 @@ export function UploadPageClient({ problemIdFromQuery }: UploadPageClientProps) 
   const [skippedFiles, setSkippedFiles] = useState<Array<{ fileName: string; reason: string }>>([]);
   const [sessionId, setSessionId] = useState(() => generateSessionId());
 
-  const currentUserId = authStatus.isLoggedIn ? authStatus.userId ?? null : null;
+  const currentUserLoginId = authStatus.isLoggedIn ? authStatus.userId ?? null : null;
+  const currentUserDbId = authStatus.isLoggedIn ? authStatus.userDbId ?? null : null;
   const currentUserDisplayName = authStatus.isLoggedIn
     ? authStatus.displayName ?? authStatus.userId ?? undefined
     : undefined;
 
-  const canProceedFromCapture = selectedFiles.length > 0 && !!currentUserId;
+  const canProceedFromCapture = selectedFiles.length > 0 && !!currentUserLoginId;
   const canUpload = Boolean(selectedBoard) && canProceedFromCapture;
 
   const handleNext = () => {
     if (currentStep === 'capture') {
       if (!canProceedFromCapture) {
-        if (!currentUserId) {
+        if (!currentUserLoginId) {
           alert('アップロードを行うにはログインが必要です。');
         } else if (selectedFiles.length === 0) {
           alert('アップロードする画像を選択してください。');
@@ -149,7 +157,7 @@ export function UploadPageClient({ problemIdFromQuery }: UploadPageClientProps) 
   };
 
   const handleUpload = async () => {
-    if (!selectedBoard || !currentUserId || selectedFiles.length === 0) {
+    if (!selectedBoard || !authStatus.isLoggedIn || selectedFiles.length === 0) {
       return;
     }
 
@@ -166,7 +174,8 @@ export function UploadPageClient({ problemIdFromQuery }: UploadPageClientProps) 
     try {
       const uploadData = selectedFiles.map((file) => ({
         file,
-        userId: currentUserId,
+        userId: currentUserLoginId ?? undefined,
+        userDbId: currentUserDbId ?? undefined,
         userDisplayName: currentUserDisplayName,
         uploaderName: currentUserDisplayName,
       }));

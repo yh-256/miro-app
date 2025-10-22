@@ -75,7 +75,8 @@ export async function POST(request: NextRequest) {
     // iron-sessionに保存
     const session = await getSession();
     session.userId = user.id;
-    session.displayName = user.displayName ?? userId;
+    session.loginUserId = user.userId;
+    session.displayName = user.displayName ?? user.userId;
     session.role = user.role;
     session.isLoggedIn = true;
     await session.save();

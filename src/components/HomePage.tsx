@@ -8,6 +8,7 @@ import { useDeviceDetection } from '@/utils/deviceDetection';
 interface AuthStatus {
   isLoggedIn: boolean;
   userId?: string;
+  userDbId?: string;
   displayName?: string;
   role?: 'ADMIN' | 'USER';
 }
@@ -24,7 +25,13 @@ export function HomePage() {
       try {
         const response = await fetch('/api/auth/session');
         const data = await response.json();
-        setAuthStatus(data);
+        setAuthStatus({
+          isLoggedIn: data.isLoggedIn ?? false,
+          userId: data.user?.userId,
+          userDbId: data.user?.dbId,
+          displayName: data.user?.displayName,
+          role: data.user?.role,
+        });
       } catch (error) {
         console.error('Failed to fetch auth status:', error);
       } finally {

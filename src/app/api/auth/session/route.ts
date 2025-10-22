@@ -10,6 +10,7 @@ interface SessionResponse {
   isLoggedIn: boolean;
   user: {
     userId?: string;
+    dbId?: string;
     displayName?: string;
     role?: string;
   } | null;
@@ -24,6 +25,7 @@ export async function GET() {
       user: session.isLoggedIn
         ? {
             userId: session.userId,
+            dbId: session.userDbId,
             displayName: session.displayName,
             role: session.role,
           }
