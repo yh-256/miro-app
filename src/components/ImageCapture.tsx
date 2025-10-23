@@ -16,6 +16,7 @@ interface CameraState {
   isActive: boolean;
   stream: MediaStream | null;
   error: string | null;
+  facingMode: 'user' | 'environment';
 }
 
 interface FileWithPreview {
@@ -33,6 +34,7 @@ export function ImageCapture({
     isActive: false,
     stream: null,
     error: null,
+    facingMode: 'environment',
   });
   const [files, setFiles] = useState<FileWithPreview[]>([]);
   const [dragActive, setDragActive] = useState(false);
@@ -159,19 +161,20 @@ export function ImageCapture({
       const stream = await navigator.mediaDevices.getUserMedia(basicConstraints);
       
       console.log('Basic constraints retry successful, setting state');
-      setCamera({ isActive: true, stream, error: null });
+      setCamera({ isActive: true, stream, error: null, facingMode: 'environment' });
     } catch (retryError) {
       console.error('Retry with basic constraints failed:', retryError);
       setCamera({ 
         isActive: false, 
         stream: null, 
-        error: 'カメラの初期化に失敗しました。' 
+        error: 'カメラの初期化に失敗しました。',
+        facingMode: 'environment'
       });
     }
   }, []);
 
   // カメラを開始
-  const startCamera = useCallback(async () => {
+  const startCamera = useCallback(async (targetFacingMode?: 'user' | 'environment') => {
     try {
       setCamera(prev => ({ ...prev, error: null }));
       
@@ -180,12 +183,15 @@ export function ImageCapture({
         throw new Error('getUserMedia not supported');
       }
 
+      const facingMode = targetFacingMode || camera.facingMode;
+
       // カメラアクセス環境ログ（制約なし）
       console.log('Camera access attempt:', {
         protocol: typeof window !== 'undefined' ? window.location.protocol : 'unknown',
         hostname: typeof window !== 'undefined' ? window.location.hostname : 'unknown',
         userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
-        deviceType: deviceInfo?.type || 'unknown'
+        deviceType: deviceInfo?.type || 'unknown',
+        facingMode
       });
       
       // 段階的な制約で試行
@@ -194,7 +200,7 @@ export function ImageCapture({
         // 1. デバイス別の詳細制約
         {
           video: {
-            facingMode: deviceInfo?.type === 'mobile' ? 'environment' : 'user',
+            facingMode: deviceInfo?.type === 'mobile' ? facingMode : 'user',
             // width: { ideal: deviceInfo?.type === 'mobile' ? 1280 : 1920 },
             // height: { ideal: deviceInfo?.type === 'mobile' ? 720 : 1080 },
             width: { ideal: deviceInfo?.type === 'mobile' ? 720 : 720 },
@@ -205,7 +211,7 @@ export function ImageCapture({
         // 2. 基本的な制約
         {
           video: {
-            facingMode: deviceInfo?.type === 'mobile' ? 'environment' : 'user',
+            facingMode: deviceInfo?.type === 'mobile' ? facingMode : 'user',
           },
           audio: false,
         },
@@ -236,7 +242,7 @@ export function ImageCapture({
       
       // ストリームを状態に保存（useEffectでvideo設定を行う）
       console.log('Camera stream successfully obtained, setting state');
-      setCamera({ isActive: true, stream, error: null });
+      setCamera({ isActive: true, stream, error: null, facingMode });
     } catch (error) {
       console.error('Camera access failed:', error);
       let errorMessage = 'カメラにアクセスできませんでした。';
@@ -260,17 +266,26 @@ export function ImageCapture({
         }
       }
       
-      setCamera({ isActive: false, stream: null, error: errorMessage });
+      setCamera({ isActive: false, stream: null, error: errorMessage, facingMode: camera.facingMode });
     }
-  }, [deviceInfo, retryWithBasicConstraints]);
+  }, [deviceInfo, retryWithBasicConstraints, camera.facingMode]);
 
   // カメラを停止
   const stopCamera = useCallback(() => {
     if (camera.stream) {
       camera.stream.getTracks().forEach(track => track.stop());
     }
-    setCamera({ isActive: false, stream: null, error: null });
-  }, [camera.stream]);
+    setCamera({ isActive: false, stream: null, error: null, facingMode: camera.facingMode });
+  }, [camera.stream, camera.facingMode]);
+
+  // カメラを切り替え
+  const toggleCamera = useCallback(async () => {
+    if (camera.stream) {
+      camera.stream.getTracks().forEach(track => track.stop());
+    }
+    const newFacingMode = camera.facingMode === 'user' ? 'environment' : 'user';
+    await startCamera(newFacingMode);
+  }, [camera.stream, camera.facingMode, startCamera]);
 
 
   // ファイルを追加
@@ -456,7 +471,7 @@ export function ImageCapture({
           {!camera.isActive ? (
             <div className="text-center">
               <button
-                onClick={startCamera}
+                onClick={() => startCamera()}
                 type="button"
                 disabled={!!camera.error}
                 className="btn-primary"
@@ -532,6 +547,16 @@ export function ImageCapture({
                 >
                   📸 撮影
                 </button>
+                {deviceInfo?.type === 'mobile' && (
+                  <button
+                    onClick={toggleCamera}
+                    type="button"
+                    className="btn-secondary px-6 py-3 text-lg"
+                    title="カメラを切り替え"
+                  >
+                    🔄 {camera.facingMode === 'user' ? 'アウトカメラ' : 'インカメラ'}
+                  </button>
+                )}
                 <button
                   onClick={stopCamera}
                   type="button"
