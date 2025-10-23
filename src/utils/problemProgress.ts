@@ -95,7 +95,8 @@ export async function loadProblemAccessContext(
     return null;
   }
 
-  const progress = userId ? problem.progress[0] ?? null : null;
+  const isUserScoped = !!userId;
+  const progress = isUserScoped ? problem.progress[0] ?? null : null;
   const status = deriveStatus(progress?.status ?? null);
 
   return {
@@ -103,15 +104,25 @@ export async function loadProblemAccessContext(
     progress,
     status,
     snapshot: toSnapshot(status, progress ?? undefined),
-    isUploadUnlocked: isStatusAtLeast(status, 'AVAILABLE'),
+    isUploadUnlocked: isUserScoped ? isStatusAtLeast(status, 'AVAILABLE') : true,
     isBoardUnlocked:
-      BOARD_UNLOCKED_STATUSES.has(status) || !!progress?.boardUnlockedAt,
+      isUserScoped
+        ? BOARD_UNLOCKED_STATUSES.has(status) || !!progress?.boardUnlockedAt
+        : true,
   };
 }
 
 export async function getAccessibleProblemIds(
-  userId: string
+  userId?: string | null
 ): Promise<Set<string>> {
+  if (!userId) {
+    const problems = await prisma.problem.findMany({
+      where: { isActive: true },
+      select: { id: true },
+    });
+    return new Set(problems.map((problem) => problem.id));
+  }
+
   const rows = await prisma.problemProgress.findMany({
     where: {
       userId,
@@ -123,6 +134,14 @@ export async function getAccessibleProblemIds(
       problemId: true,
     },
   });
+
+  if (rows.length === 0) {
+    const fallbackProblems = await prisma.problem.findMany({
+      where: { isActive: true },
+      select: { id: true },
+    });
+    return new Set(fallbackProblems.map((problem) => problem.id));
+  }
 
   return new Set(rows.map((row) => row.problemId));
 }

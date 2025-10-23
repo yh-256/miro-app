@@ -1,21 +1,14 @@
 import { cookies } from 'next/headers';
 import crypto from 'crypto';
 import { prisma } from './prisma';
-import { getSession as getIronSession } from './auth/iron-session';
 
 export interface SessionInfo {
   sessionId: string;
   isNew: boolean;
 }
 
-export interface AuthenticatedSessionInfo {
-  ironSession: {
-    userId?: string;
-    loginId?: string;
-    displayName?: string;
-    role?: 'ADMIN' | 'USER';
-    isLoggedIn: boolean;
-  };
+export interface SessionContext {
+  sessionId: string;
   userSession: {
     id: string;
     sessionToken: string;
@@ -89,57 +82,14 @@ export async function ensureUserSessionRecord(sessionId: string) {
 }
 
 /**
- * 認証ユーザーとUserSessionを統合
- * iron-sessionで認証済みの場合、UserSession.userIdを更新
+ * 匿名セッションを確保し、対応するUserSessionレコードを返す
  */
-export async function ensureAuthenticatedSession(): Promise<AuthenticatedSessionInfo> {
-  const ironSession = await getIronSession();
-  
-  // 匿名セッションを確保
+export async function ensureSessionContext(): Promise<SessionContext> {
   const { sessionId } = await ensureSession();
-  let userSession = await ensureUserSessionRecord(sessionId);
-
-  if (ironSession.isLoggedIn && ironSession.userId && !userSession.userId) {
-    userSession = await prisma.userSession.update({
-      where: { id: userSession.id },
-      data: {
-        userId: ironSession.userId,
-        displayName: ironSession.displayName,
-      },
-    });
-  }
-
-  let loginId = ironSession.loginUserId;
-
-  if (ironSession.isLoggedIn && ironSession.userId && !loginId) {
-    const userRecord = await prisma.user.findUnique({
-      where: { id: ironSession.userId },
-      select: { userId: true, displayName: true },
-    });
-
-    if (userRecord) {
-      loginId = userRecord.userId;
-      if (!ironSession.displayName) {
-        ironSession.displayName = userRecord.displayName ?? userRecord.userId;
-      }
-      ironSession.loginUserId = userRecord.userId;
-      await ironSession.save();
-    }
-  }
-
-  const displayName =
-    ironSession.displayName ??
-    userSession.displayName ??
-    loginId;
+  const userSession = await ensureUserSessionRecord(sessionId);
 
   return {
-    ironSession: {
-      userId: ironSession.userId,
-      loginId,
-      displayName,
-      role: ironSession.role,
-      isLoggedIn: ironSession.isLoggedIn ?? false,
-    },
+    sessionId,
     userSession: {
       id: userSession.id,
       sessionToken: userSession.sessionToken,

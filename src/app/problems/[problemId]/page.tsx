@@ -1,17 +1,14 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { Layout } from '@/components/Layout';
 import { ResponsiveContainer } from '@/components/ResponsiveContainer';
 import { BoardEmbed } from '@/components/BoardEmbed';
 import { ProblemUploadSection } from '@/components/ProblemUploadSection';
-import {
-  ProblemDetailResponse,
-  ProblemProgressUpdatePayload,
-} from '@/types';
-import { PROBLEM_STATUS_LABEL, isStatusAtLeast } from '@/constants/problemStatus';
+import { ProblemDetailResponse } from '@/types';
+import { PROBLEM_STATUS_LABEL } from '@/constants/problemStatus';
 
 function formatTimestamp(timestamp?: string) {
   if (!timestamp) return undefined;
@@ -23,12 +20,9 @@ function formatTimestamp(timestamp?: string) {
 export default function ProblemDetailPage() {
   const params = useParams();
   const problemId = (params?.problemId as string) ?? '';
-  const router = useRouter();
-
   const [detail, setDetail] = useState<ProblemDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [progressUpdating, setProgressUpdating] = useState(false);
   const [uploadKey, setUploadKey] = useState(0);
 
   const fetchDetail = useCallback(async () => {
@@ -69,63 +63,10 @@ export default function ProblemDetailPage() {
   const uploadUnlocked = detail?.problem.isUploadUnlocked ?? false;
   const boardUnlocked = detail?.problem.isBoardUnlocked ?? false;
 
-  const updateProgress = async (update: ProblemProgressUpdatePayload) => {
-    setProgressUpdating(true);
-    try {
-      const resp = await fetch(`/api/problems/${problemId}/progress`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(update),
-      });
-
-      if (!resp.ok) {
-        const payload = await resp.json().catch(() => ({}));
-        throw new Error(
-          payload.message || '進捗の更新に失敗しました。'
-        );
-      }
-
-      if (update.completed) {
-        router.push('/problems');
-        return;
-      }
-
-      await fetchDetail();
-    } catch (err) {
-      alert(
-        err instanceof Error ? err.message : '進捗の更新に失敗しました。'
-      );
-    } finally {
-      setProgressUpdating(false);
-    }
-  };
-
   const refreshAfterUpload = () => {
     fetchDetail();
     setUploadKey((prev) => prev + 1);
   };
-
-  const statusTimeline = useMemo(() => {
-    if (!detail) return [];
-    return [
-      {
-        label: '気づき記入',
-        value: formatTimestamp(detail.problem.insightSubmittedAt),
-      },
-      {
-        label: 'アップロード完了',
-        value: formatTimestamp(detail.problem.boardUnlockedAt),
-      },
-      {
-        label: 'ボード閲覧済み',
-        value: formatTimestamp(detail.problem.boardViewedAt),
-      },
-      {
-        label: '完了',
-        value: formatTimestamp(detail.problem.completedAt),
-      },
-    ];
-  }, [detail]);
 
   return (
     <Layout title="問題詳細 - Miro Image Upload App">
@@ -229,43 +170,6 @@ export default function ProblemDetailPage() {
               )}
             </section>
 
-            <section className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 space-y-4">
-              <h2 className="text-lg font-semibold text-gray-900">
-                進捗状況
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-sm text-gray-600">
-                {statusTimeline.map((item) => (
-                  <div key={item.label}>
-                    <p className="font-medium text-gray-500 mb-1">{item.label}</p>
-                    <p>{item.value ?? '未実施'}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => updateProgress({ boardViewed: true })}
-                  disabled={
-                    progressUpdating ||
-                    !isStatusAtLeast(detail.problem.status, 'INSIGHT_WRITTEN')
-                  }
-                  className="btn-outline text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  ボード閲覧済みにする
-                </button>
-                <button
-                  type="button"
-                  onClick={() => updateProgress({ completed: true })}
-                  disabled={
-                    progressUpdating ||
-                    !isStatusAtLeast(detail.problem.status, 'BOARD_VIEWED')
-                  }
-                  className="btn-primary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  ステップ完了を報告
-                </button>
-              </div>
-            </section>
           </div>
         )}
       </ResponsiveContainer>

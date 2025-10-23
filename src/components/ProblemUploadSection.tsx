@@ -27,14 +27,6 @@ interface ImageMetadata {
 
 type UploadStep = 'capture' | 'user' | 'board' | 'upload';
 
-interface AuthStatus {
-  isLoggedIn: boolean;
-  userId?: string; // ログインID
-  userDbId?: string; // 内部ID
-  displayName?: string;
-  role?: 'ADMIN' | 'USER';
-}
-
 interface ProblemUploadSectionProps {
   problemId: string;
   defaultBoardId?: string;
@@ -79,7 +71,6 @@ export function ProblemUploadSection({
   const [skippedFiles, setSkippedFiles] = useState<
     Array<{ fileName: string; reason: string }>
   >([]);
-  const [authStatus, setAuthStatus] = useState<AuthStatus>({ isLoggedIn: false });
 
   const boardStepEnabled = !lockBoardSelection;
   const [userOptions, setUserOptions] = useState<UserSummary[]>([]);
@@ -90,30 +81,6 @@ export function ProblemUploadSection({
     () => (selectedUserId ? userOptions.find((user) => user.id === selectedUserId) ?? null : null),
     [selectedUserId, userOptions]
   );
-
-  useEffect(() => {
-    const fetchAuthStatus = async () => {
-      try {
-        const response = await fetch('/api/auth/session', { cache: 'no-store' });
-        if (!response.ok) {
-          throw new Error('failed');
-        }
-        const data = await response.json();
-        setAuthStatus({
-          isLoggedIn: data.isLoggedIn ?? false,
-          userId: data.user?.userId,
-          userDbId: data.user?.dbId,
-          displayName: data.user?.displayName,
-          role: data.user?.role,
-        });
-      } catch (error) {
-        console.error('Failed to fetch auth status for upload flow:', error);
-        setAuthStatus({ isLoggedIn: false });
-      }
-    };
-
-    fetchAuthStatus();
-  }, []);
 
   const loadUsers = useCallback(async () => {
     setUsersLoading(true);
@@ -175,13 +142,9 @@ export function ProblemUploadSection({
       if (prev && userOptions.some((user) => user.id === prev)) {
         return prev;
       }
-      const preferred = userOptions.find(
-        (user) =>
-          user.userId === (authStatus.userId ?? authStatus.userDbId ?? undefined)
-      );
-      return preferred?.id ?? userOptions[0].id;
+      return userOptions[0].id;
     });
-  }, [userOptions, usersLoading, authStatus.userId, authStatus.userDbId]);
+  }, [userOptions, usersLoading]);
 
   const canProceedFromCapture = selectedFiles.length > 0;
   const canUpload =

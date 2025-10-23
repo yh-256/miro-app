@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { ensureAuthenticatedSession } from '@/lib/session';
 import { ProblemListResponse } from '@/types';
 import { ErrorHandler, logError } from '@/utils/errorHandler';
 import { deriveStatus, toSnapshot } from '@/utils/problemProgress';
@@ -8,18 +7,9 @@ import { COMPLETED_STATUSES } from '@/constants/problemStatus';
 
 export async function GET() {
   try {
-    const { ironSession } = await ensureAuthenticatedSession();
-    const userId = ironSession.userId ?? null;
-
     const problems = await prisma.problem.findMany({
       where: { isActive: true },
       orderBy: { orderIndex: 'asc' },
-      include: {
-        progress: {
-          ...(userId ? { where: { userId } } : {}),
-          take: userId ? 1 : 0,
-        },
-      },
     });
 
     if (problems.length === 0) {
@@ -31,10 +21,9 @@ export async function GET() {
     }
 
     const summaries = problems.map((problem) => {
-      const progress = problem.progress[0];
-      const baseStatus = progress?.status ?? null;
+      const baseStatus = null;
       const status = deriveStatus(baseStatus);
-      const snapshot = toSnapshot(status, progress);
+      const snapshot = toSnapshot(status);
 
       return {
         id: problem.id,

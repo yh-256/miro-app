@@ -9,7 +9,7 @@ import { UploadResponse } from '@/types';
 import { generateCorsHeaders } from '@/utils/securityConfig';
 import { prisma } from '@/lib/prisma';
 import { ProblemStatus, type Prisma } from '@prisma/client';
-import { ensureAuthenticatedSession } from '@/lib/session';
+import { ensureSessionContext } from '@/lib/session';
 import { loadProblemAccessContext, maxStatus } from '@/utils/problemProgress';
 
 
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
   try {
     const body: UploadRequestBody = await request.json();
     const { images, boardId, metadata, problemId } = body;
-    const { userSession } = await ensureAuthenticatedSession();
+    const { userSession } = await ensureSessionContext();
 
     if (
       !boardId ||

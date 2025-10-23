@@ -9,7 +9,6 @@ import {
 import { ErrorHandler, logError } from '@/utils/errorHandler';
 import { prisma } from '@/lib/prisma';
 import type { Prisma } from '@prisma/client';
-import { ensureAuthenticatedSession } from '@/lib/session';
 import { getAccessibleProblemIds } from '@/utils/problemProgress';
 
 interface SearchRequestQuery {
@@ -73,14 +72,7 @@ export async function GET(request: NextRequest) {
     }
 
     const limit = parseInt(params.limit || '200') || 200;
-    const { ironSession } = await ensureAuthenticatedSession();
-    if (!ironSession.isLoggedIn || !ironSession.userId) {
-      return NextResponse.json(
-        { error: 'UNAUTHORIZED', message: 'ログインが必要です。', success: false, results: { items: [], totalCount: 0, hasMore: false } },
-        { status: 401 }
-      );
-    }
-    const accessibleProblemIds = await getAccessibleProblemIds(ironSession.userId);
+    const accessibleProblemIds = await getAccessibleProblemIds();
 
     const limitExceededResponse = {
       success: true,
@@ -248,19 +240,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 検索実行
-    const { ironSession: ironSession2 } = await ensureAuthenticatedSession();
-    if (!ironSession2.isLoggedIn || !ironSession2.userId) {
-      return NextResponse.json(
-        {
-          error: 'UNAUTHORIZED',
-          message: 'ログインが必要です。',
-          success: false,
-          results: { items: [], totalCount: 0, hasMore: false },
-        },
-        { status: 401 }
-      );
-    }
-    const accessibleProblemIds = await getAccessibleProblemIds(ironSession2.userId);
+    const accessibleProblemIds = await getAccessibleProblemIds();
 
     if (accessibleProblemIds.size === 0) {
       return NextResponse.json({

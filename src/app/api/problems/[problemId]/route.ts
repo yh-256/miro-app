@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ensureAuthenticatedSession } from '@/lib/session';
 import { ProblemDetailResponse } from '@/types';
 import { ErrorHandler, logError } from '@/utils/errorHandler';
 import { loadProblemAccessContext } from '@/utils/problemProgress';
@@ -17,9 +16,7 @@ export async function GET(
       );
     }
 
-    const { ironSession } = await ensureAuthenticatedSession();
-
-    const context = await loadProblemAccessContext(problemId, ironSession.userId);
+    const context = await loadProblemAccessContext(problemId, null);
 
     if (!context) {
       return NextResponse.json(
