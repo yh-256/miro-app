@@ -103,29 +103,13 @@ export default function ProblemsPage() {
     <Layout title="問題一覧 - Miro Image Upload App">
       <ResponsiveContainer maxWidth="2xl" padding="lg">
         <div className="space-y-8">
-          <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                問題ステップ一覧
-              </h1>
-              <p className="text-sm text-gray-600 mt-1">
-                登録済みの問題を一覧から確認し、お好きな順番で取り組むことができます。進捗に応じてボード閲覧や画像アップロードの状態が更新されます。
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Link
-                href="/search"
-                className="btn-outline text-sm px-4 py-2"
-              >
-                ボード検索へ
-              </Link>
-              <Link
-                href="/upload"
-                className="btn-primary text-sm px-4 py-2"
-              >
-                通常アップロード
-              </Link>
-            </div>
+          <header>
+            <h1 className="text-2xl font-bold text-gray-900">
+              問題ステップ一覧
+            </h1>
+            <p className="text-sm text-gray-600 mt-1">
+              登録済みの問題を一覧から確認し、お好きな順番で取り組むことができます。進捗に応じてボード閲覧や画像アップロードの状態が更新されます。
+            </p>
           </header>
 
           <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
