@@ -31,13 +31,29 @@ interface UploadRequestBody {
 }
 
 /**
- * ランダムな基準座標を生成
+ * 問題番号に基づいてボード上の配置エリアを決定
+ * ボード中心(0,0)を原点として4象限に分割
+ * 
+ * @param orderIndex - 問題の順序番号（1, 2, 3, 4, ...）
+ * @returns 配置の基準座標（ボード中心基準）
  */
-function generateRandomBasePosition(): { x: number; y: number } {
-  return {
-    x: (Math.random() - 0.5) * 3200, // -1600 ~ +1600
-    y: (Math.random() - 0.5) * 2400, // -1200 ~ +1200
-  };
+function generatePositionByProblem(orderIndex: number): { x: number; y: number } {
+  // 各象限のサイズ設定
+  const QUADRANT_WIDTH = 2000;   // 各象限の幅
+  const QUADRANT_HEIGHT = 1500;  // 各象限の高さ
+  
+  // 問題番号を1-4にマッピング（5問目以降は繰り返し）
+  const quadrantIndex = ((orderIndex - 1) % 4);
+  
+  // 各象限の中心座標（ボード中心(0,0)からのオフセット）
+  const quadrantCenters = [
+    { x:  QUADRANT_WIDTH / 2, y: -QUADRANT_HEIGHT / 2 },  // 第1象限（右上）
+    { x: -QUADRANT_WIDTH / 2, y: -QUADRANT_HEIGHT / 2 },  // 第2象限（左上）
+    { x: -QUADRANT_WIDTH / 2, y:  QUADRANT_HEIGHT / 2 },  // 第3象限（左下）
+    { x:  QUADRANT_WIDTH / 2, y:  QUADRANT_HEIGHT / 2 },  // 第4象限（右下）
+  ];
+  
+  return quadrantCenters[quadrantIndex];
 }
 
 async function resizeImageToSquare(
@@ -206,7 +222,8 @@ export async function POST(request: NextRequest) {
       fileSize: number;
       mimeType: string;
     }> = [];
-    const basePosition = generateRandomBasePosition();
+    const problemOrderIndex = context.problem.orderIndex;
+    const basePosition = generatePositionByProblem(problemOrderIndex);
     const TARGET_IMAGE_SIZE = MiroApiClient.DEFAULT_IMAGE_SIZE;
     const STICKY_SCALE = 1.5;
     const TARGET_STICKY_SIZE = Math.round(TARGET_IMAGE_SIZE * STICKY_SCALE);
