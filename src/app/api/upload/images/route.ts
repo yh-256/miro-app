@@ -309,7 +309,7 @@ export async function POST(request: NextRequest) {
 
       const userDbId = imageMetadata.userId ?? targetUserId;
 
-      const stickyNoteContent = `ユーザーID: ${loginIdForSticky}`;
+      const stickyNoteContent = `ユーザーID: ${loginIdForSticky}\n\n\n\n\n\n\n\n`;
 
       const stickyNote = await miroClient.createStickyNote(
         boardId,
