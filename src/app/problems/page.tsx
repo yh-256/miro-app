@@ -204,14 +204,9 @@ export default function ProblemsPage() {
                               </span>
                             )}
                           </div>
-                          <h2 className="text-xl font-semibold text-gray-900 mt-2">
-                            {problem.title}
+                          <h2 className="text-2xl font-bold text-gray-900 mt-2">
+                            ステップ #{problem.orderIndex}
                           </h2>
-                          {problem.description && (
-                            <p className="mt-1 text-sm text-gray-600">
-                              {problem.description}
-                            </p>
-                          )}
                         </div>
                         <Link
                           href={`/problems/${problem.id}`}

@@ -92,14 +92,9 @@ export default function ProblemDetailPage() {
                   <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
                     {statusLabel}
                   </span>
-                  <h1 className="text-2xl font-bold text-gray-900 mt-2">
-                    {detail.problem.title}
+                  <h1 className="text-3xl font-bold text-gray-900 mt-2">
+                    ステップ #{detail.problem.orderIndex}
                   </h1>
-                  {detail.problem.description && (
-                    <p className="mt-2 text-sm text-gray-600 whitespace-pre-wrap">
-                      {detail.problem.description}
-                    </p>
-                  )}
                 </div>
                 <div className="text-sm text-gray-500 space-y-1">
                   <div className="flex justify-end">
@@ -125,19 +120,13 @@ export default function ProblemDetailPage() {
                   <p>{formatTimestamp(detail.problem.updatedAt)}</p>
                 </div>
               </div>
-
-              {detail.problem.contentType === 'text' && detail.problem.contentBody && (
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-gray-700 whitespace-pre-wrap">
-                  {detail.problem.contentBody}
-                </div>
-              )}
             </section>
 
             <ProblemUploadSection
               key={uploadKey}
               problemId={problemId}
               defaultBoardId={detail.problem.miroBoardId}
-              defaultBoardName={detail.problem.title}
+              defaultBoardName={`ステップ #${detail.problem.orderIndex}`}
               isUploadUnlocked={uploadUnlocked}
               isBoardUnlocked={boardUnlocked}
               onUploadCompleted={refreshAfterUpload}
@@ -152,7 +141,7 @@ export default function ProblemDetailPage() {
                 <div className="space-y-4">
                   <BoardEmbed
                     boardId={detail.problem.miroBoardId}
-                    boardName={detail.problem.title}
+                    boardName={`ステップ #${detail.problem.orderIndex}`}
                     height={600}
                   />
                   <p className="text-xs text-gray-500">
