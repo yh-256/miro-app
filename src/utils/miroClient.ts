@@ -51,6 +51,18 @@ export interface MiroGroup extends MiroItemBase {
 export type MiroItem = MiroImageItem | MiroStickyNote | MiroGroup;
 
 /**
+ * グループのバウンディングボックス情報
+ */
+export interface BoundingBox {
+  x: number;        // 左端X座標
+  y: number;        // 上端Y座標
+  width: number;    // 幅
+  height: number;   // 高さ
+  right: number;    // 右端X座標 (x + width)
+  bottom: number;   // 下端Y座標 (y + height)
+}
+
+/**
  * Miroクライアントの抽象インターフェース（テスト容易化/DI用）
  */
 export interface IMiroClient {
@@ -83,6 +95,8 @@ export interface IMiroClient {
   ): Promise<void>;
   createGroup(boardId: string, payload: { data: { items: string[] } }): Promise<MiroGroup>;
   searchItems(boardId: string, query?: string, type?: string): Promise<MiroItem[]>;
+  getAllItems(boardId: string, type?: string, limit?: number): Promise<MiroItem[]>;
+  getGroupBoundingBox(boardId: string, groupId: string): Promise<BoundingBox | null>;
   refreshAccessToken(refreshToken?: string): Promise<string>;
 }
 
@@ -422,6 +436,114 @@ export class MiroApiClient implements IMiroClient {
     } catch (error) {
       logError(error as Error, 'MiroApiClient.searchItems');
       throw error;
+    }
+  }
+
+  /**
+   * ボード上の全アイテムを取得（ページネーション対応）
+   * limitを超える場合は自動的に複数回APIを呼び出す
+   */
+  async getAllItems(
+    boardId: string,
+    type?: string,
+    limit: number = 50
+  ): Promise<MiroItem[]> {
+    const allItems: MiroItem[] = [];
+    let cursor: string | undefined;
+    let hasMore = true;
+
+    try {
+      while (hasMore) {
+        let endpoint = `/boards/${boardId}/items?limit=${limit}`;
+        
+        if (type) {
+          endpoint += `&type=${type}`;
+        }
+        
+        if (cursor) {
+          endpoint += `&cursor=${cursor}`;
+        }
+
+        const response = await this.makeRequest<{ 
+          data: MiroItem[]; 
+          cursor?: string;
+        }>(endpoint);
+        
+        allItems.push(...(response.data || []));
+        
+        cursor = response.cursor;
+        hasMore = !!cursor;
+      }
+
+      return allItems;
+    } catch (error) {
+      logError(error as Error, 'MiroApiClient.getAllItems');
+      throw error;
+    }
+  }
+
+  /**
+   * グループアイテムとその子要素からバウンディングボックスを計算
+   */
+  async getGroupBoundingBox(
+    boardId: string,
+    groupId: string
+  ): Promise<BoundingBox | null> {
+    try {
+      const group = await this.makeRequest<MiroGroup>(`/boards/${boardId}/items/${groupId}`);
+      
+      if (!group || group.type !== 'group') {
+        return null;
+      }
+
+      if (!group.childrenIds || group.childrenIds.length === 0) {
+        return null;
+      }
+
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+
+      for (const childId of group.childrenIds) {
+        try {
+          const child = await this.makeRequest<MiroItem>(`/boards/${boardId}/items/${childId}`);
+          
+          const childWidth = ('geometry' in child && child.geometry) ? child.geometry.width : 100;
+          const childHeight = ('geometry' in child && child.geometry) ? child.geometry.height : 100;
+          
+          const left = child.position.x - childWidth / 2;
+          const right = child.position.x + childWidth / 2;
+          const top = child.position.y - childHeight / 2;
+          const bottom = child.position.y + childHeight / 2;
+
+          minX = Math.min(minX, left);
+          minY = Math.min(minY, top);
+          maxX = Math.max(maxX, right);
+          maxY = Math.max(maxY, bottom);
+        } catch (error) {
+          console.warn(`Failed to fetch child item ${childId}:`, error);
+        }
+      }
+
+      if (!isFinite(minX) || !isFinite(minY)) {
+        return null;
+      }
+
+      const width = maxX - minX;
+      const height = maxY - minY;
+
+      return {
+        x: minX,
+        y: minY,
+        width,
+        height,
+        right: maxX,
+        bottom: maxY,
+      };
+    } catch (error) {
+      logError(error as Error, 'MiroApiClient.getGroupBoundingBox');
+      return null;
     }
   }
 
