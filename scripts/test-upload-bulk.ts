@@ -16,8 +16,8 @@ const CONFIG = {
   DELAY_BETWEEN_BATCHES: 2000,      // バッチ間の待機時間（ミリ秒）
   DELAY_BETWEEN_PROBLEMS: 5000,     // 問題間の待機時間（ミリ秒）
   IMAGE_SIZE: 400,                  // 生成する画像のサイズ
-  TARGET_BOARD_ID: process.env.MIRO_BOARD_ID || '', // 対象ボードID
   API_ENDPOINT: 'http://localhost:3000/api/upload/images', // APIエンドポイント
+  TEST_PROBLEM_COUNT: 15,           // テストする問題数（最大15）
 };
 
 // カラーパレット（視認性の高い色）
@@ -126,11 +126,17 @@ async function uploadBatch(
  * 1つの問題に対してアップロード
  */
 async function uploadForProblem(
-  problem: { id: string; orderIndex: number; title: string },
-  user: { id: string; userId: string; displayName: string | null },
-  boardId: string
+  problem: { id: string; orderIndex: number; title: string; miroBoardId: string | null },
+  user: { id: string; userId: string; displayName: string | null }
 ): Promise<void> {
-  console.log(`\n[${ problem.orderIndex}/N] 問題: ステップ #${problem.orderIndex}`);
+  const boardId = problem.miroBoardId;
+  
+  if (!boardId) {
+    console.log(`\n[${problem.orderIndex}/${CONFIG.TEST_PROBLEM_COUNT}] ⚠️  問題 #${problem.orderIndex}: ボードIDが未設定のためスキップ`);
+    return;
+  }
+  
+  console.log(`\n[${problem.orderIndex}/${CONFIG.TEST_PROBLEM_COUNT}] 問題 #${problem.orderIndex}: ${problem.title}`);
   console.log(`  対象ボード: ${boardId}`);
   console.log(`  アップロードユーザー: ${user.displayName || user.userId}`);
   console.log(`  画像数: ${CONFIG.IMAGES_PER_PROBLEM}枚\n`);
@@ -185,24 +191,19 @@ async function uploadForProblem(
 async function main() {
   console.log('🚀 一括アップロードテスト開始\n');
   console.log('設定:');
+  console.log(`  - テスト問題数: ${CONFIG.TEST_PROBLEM_COUNT}問`);
   console.log(`  - 各問題の画像数: ${CONFIG.IMAGES_PER_PROBLEM}枚`);
   console.log(`  - バッチサイズ: ${CONFIG.BATCH_SIZE}枚`);
   console.log(`  - バッチ間待機: ${CONFIG.DELAY_BETWEEN_BATCHES}ms`);
-  console.log(`  - 問題間待機: ${CONFIG.DELAY_BETWEEN_PROBLEMS}ms`);
-  console.log(`  - 対象ボード: ${CONFIG.TARGET_BOARD_ID || '(未設定)'}\n`);
+  console.log(`  - 問題間待機: ${CONFIG.DELAY_BETWEEN_PROBLEMS}ms\n`);
 
   try {
-    // ボードIDチェック
-    if (!CONFIG.TARGET_BOARD_ID) {
-      throw new Error('環境変数 MIRO_BOARD_ID が設定されていません');
-    }
-
-    // 問題一覧を取得（最初の4問題）
+    // 問題一覧を取得
     console.log('📋 問題一覧を取得中...');
     const problems = await prisma.problem.findMany({
       where: { isActive: true },
       orderBy: { orderIndex: 'asc' },
-      take: 4,
+      take: CONFIG.TEST_PROBLEM_COUNT,
       select: {
         id: true,
         orderIndex: true,
@@ -216,6 +217,21 @@ async function main() {
     }
 
     console.log(`✓ ${problems.length}件の問題を取得\n`);
+    
+    // ボード共有状況を分析
+    const boardMap = new Map<string, number>();
+    problems.forEach(p => {
+      if (p.miroBoardId) {
+        boardMap.set(p.miroBoardId, (boardMap.get(p.miroBoardId) || 0) + 1);
+      }
+    });
+    
+    console.log('📊 ボード共有状況:');
+    boardMap.forEach((count, boardId) => {
+      const arrangement = count === 4 ? '4象限配置' : 'ランダム配置';
+      console.log(`  - ${boardId}: ${count}問題 → ${arrangement}`);
+    });
+    console.log();
 
     // ユーザーを取得（最初のアクティブユーザー）
     console.log('👤 ユーザーを取得中...');
@@ -237,7 +253,7 @@ async function main() {
     // 各問題に対してアップロード
     for (let i = 0; i < problems.length; i++) {
       const problem = problems[i];
-      await uploadForProblem(problem, user, CONFIG.TARGET_BOARD_ID);
+      await uploadForProblem(problem, user);
 
       // 問題間で待機（最後の問題以外）
       if (i < problems.length - 1) {
@@ -250,12 +266,35 @@ async function main() {
     console.log(`\n📊 統計:`);
     console.log(`  - 問題数: ${problems.length}`);
     console.log(`  - 総画像数: ${problems.length * CONFIG.IMAGES_PER_PROBLEM}枚`);
+    
     console.log(`\n🎯 期待される配置:`);
-    console.log(`  - 問題1 → 第1象限（右上）`);
-    console.log(`  - 問題2 → 第2象限（左上）`);
-    console.log(`  - 問題3 → 第3象限（左下）`);
-    console.log(`  - 問題4 → 第4象限（右下）`);
-    console.log(`\nMiroボードで確認してください: https://miro.com/app/board/${CONFIG.TARGET_BOARD_ID}`);
+    console.log(`\n【4象限配置】`);
+    boardMap.forEach((count, boardId) => {
+      if (count === 4) {
+        const problemsInBoard = problems.filter(p => p.miroBoardId === boardId);
+        console.log(`  ボード ${boardId}:`);
+        problemsInBoard.forEach((p, idx) => {
+          const quadrants = ['第1象限（右上）', '第2象限（左上）', '第3象限（左下）', '第4象限（右下）'];
+          console.log(`    - 問題${p.orderIndex} → ${quadrants[idx]}`);
+        });
+      }
+    });
+    
+    console.log(`\n【ランダム配置】`);
+    boardMap.forEach((count, boardId) => {
+      if (count !== 4) {
+        const problemsInBoard = problems.filter(p => p.miroBoardId === boardId);
+        problemsInBoard.forEach(p => {
+          console.log(`  - 問題${p.orderIndex} → ボード ${boardId} 上のランダム位置`);
+        });
+      }
+    });
+    
+    console.log(`\n🌐 Miroボードで確認:`);
+    const uniqueBoards = Array.from(new Set(problems.map(p => p.miroBoardId).filter(Boolean)));
+    uniqueBoards.forEach(boardId => {
+      console.log(`  https://miro.com/app/board/${boardId}`);
+    });
 
   } catch (error) {
     console.error('\n❌ エラーが発生しました:');

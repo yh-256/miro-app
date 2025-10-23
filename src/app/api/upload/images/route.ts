@@ -31,29 +31,69 @@ interface UploadRequestBody {
 }
 
 /**
- * 問題番号に基づいてボード上の配置エリアを決定
- * ボード中心(0,0)を原点として4象限に分割
+ * ボードIDに基づいてランダムな座標を生成（シード値使用）
  * 
- * @param orderIndex - 問題の順序番号（1, 2, 3, 4, ...）
+ * @param seed - ランダムシードとして使用する文字列（boardId等）
+ * @returns ボード上のランダム座標
+ */
+function generateRandomBasePosition(seed: string): { x: number; y: number } {
+  // シード値からハッシュを生成
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = seed.charCodeAt(i) + ((hash << 5) - hash);
+    hash = hash & hash; // 32ビット整数に変換
+  }
+  
+  // ハッシュから疑似乱数を生成
+  const random1 = Math.abs(Math.sin(hash) * 10000) % 1;
+  const random2 = Math.abs(Math.sin(hash + 1) * 10000) % 1;
+  
+  // ボード上の広い範囲にランダム配置
+  const BOARD_WIDTH = 8000;
+  const BOARD_HEIGHT = 6000;
+  
+  return {
+    x: Math.round((random1 - 0.5) * BOARD_WIDTH),
+    y: Math.round((random2 - 0.5) * BOARD_HEIGHT),
+  };
+}
+
+/**
+ * 問題とボード共有状況に基づいてボード上の配置座標を決定
+ * - 4問題が1ボード共有: 4象限に配置
+ * - それ以外: ランダム配置
+ * 
+ * @param boardId - Miroボード ID
+ * @param problemCount - このボードを共有している問題の総数
+ * @param problemIndex - この問題が何番目か（0始まり）
  * @returns 配置の基準座標（ボード中心基準）
  */
-function generatePositionByProblem(orderIndex: number): { x: number; y: number } {
-  // 各象限のサイズ設定
-  const QUADRANT_WIDTH = 2000;   // 各象限の幅
-  const QUADRANT_HEIGHT = 1500;  // 各象限の高さ
+function generatePositionByBoardSharing(
+  boardId: string,
+  problemCount: number,
+  problemIndex: number
+): { x: number; y: number } {
+  // 4問題が1ボードを共有している場合は4象限配置
+  if (problemCount === 4) {
+    // 各象限のサイズ設定
+    const QUADRANT_WIDTH = 4000;   // 各象限の幅
+    const QUADRANT_HEIGHT = 3000;  // 各象限の高さ
+    
+    // 各象限の中心座標（ボード中心(0,0)からのオフセット）
+    const quadrantCenters = [
+      { x:  QUADRANT_WIDTH / 2, y: -QUADRANT_HEIGHT / 2 },  // 第1象限（右上）
+      { x: -QUADRANT_WIDTH / 2, y: -QUADRANT_HEIGHT / 2 },  // 第2象限（左上）
+      { x: -QUADRANT_WIDTH / 2, y:  QUADRANT_HEIGHT / 2 },  // 第3象限（左下）
+      { x:  QUADRANT_WIDTH / 2, y:  QUADRANT_HEIGHT / 2 },  // 第4象限（右下）
+    ];
+    
+    return quadrantCenters[problemIndex];
+  }
   
-  // 問題番号を1-4にマッピング（5問目以降は繰り返し）
-  const quadrantIndex = ((orderIndex - 1) % 4);
-  
-  // 各象限の中心座標（ボード中心(0,0)からのオフセット）
-  const quadrantCenters = [
-    { x:  QUADRANT_WIDTH / 2, y: -QUADRANT_HEIGHT / 2 },  // 第1象限（右上）
-    { x: -QUADRANT_WIDTH / 2, y: -QUADRANT_HEIGHT / 2 },  // 第2象限（左上）
-    { x: -QUADRANT_WIDTH / 2, y:  QUADRANT_HEIGHT / 2 },  // 第3象限（左下）
-    { x:  QUADRANT_WIDTH / 2, y:  QUADRANT_HEIGHT / 2 },  // 第4象限（右下）
-  ];
-  
-  return quadrantCenters[quadrantIndex];
+  // それ以外の場合はランダム配置
+  // problemIndexを使って各問題に異なる座標を生成
+  const seed = `${boardId}-${problemIndex}`;
+  return generateRandomBasePosition(seed);
 }
 
 async function resizeImageToSquare(
@@ -207,7 +247,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, uploadedItems: [], skippedItems });
     }
 
-    // 2. Miroボードへのアップロード処理
+    // 2. ボード共有状況の確認と座標計算
+    const sharedProblems = await prisma.problem.findMany({
+      where: { 
+        miroBoardId: boardId,
+        isActive: true 
+      },
+      orderBy: { orderIndex: 'asc' }
+    });
+    
+    const problemCount = sharedProblems.length;
+    const problemIndex = sharedProblems.findIndex(p => p.id === problemId);
+    
+    if (problemIndex === -1) {
+      return NextResponse.json(
+        { error: 'PROBLEM_NOT_IN_BOARD', message: '指定された問題がこのボードに含まれていません。' },
+        { status: 400 }
+      );
+    }
+    
+    // 3. Miroボードへのアップロード処理
     const uploadedItems: Array<{
       imageId: string;
       stickyNoteId: string;
@@ -222,8 +281,9 @@ export async function POST(request: NextRequest) {
       fileSize: number;
       mimeType: string;
     }> = [];
-    const problemOrderIndex = context.problem.orderIndex;
-    const basePosition = generatePositionByProblem(problemOrderIndex);
+    
+    // ボード共有状況に基づいて配置座標を決定
+    const basePosition = generatePositionByBoardSharing(boardId, problemCount, problemIndex);
     const TARGET_IMAGE_SIZE = MiroApiClient.DEFAULT_IMAGE_SIZE;
     const STICKY_SCALE = 1.5;
     const TARGET_STICKY_SIZE = Math.round(TARGET_IMAGE_SIZE * STICKY_SCALE);
@@ -249,16 +309,7 @@ export async function POST(request: NextRequest) {
 
       const userDbId = imageMetadata.userId ?? targetUserId;
 
-      const userLabel =
-        imageMetadata.userDisplayName && imageMetadata.userDisplayName !== loginIdForSticky
-          ? imageMetadata.userDisplayName
-          : null;
-
-      const stickyNoteContent = [
-        `ユーザーID: ${loginIdForSticky}`,
-        userLabel ? `ユーザー名: ${userLabel}` : '',
-        `問い番号: ${problemId}`,
-      ].filter(Boolean).join('\n');
+      const stickyNoteContent = `ユーザーID: ${loginIdForSticky}`;
 
       const stickyNote = await miroClient.createStickyNote(
         boardId,
@@ -325,12 +376,12 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 3. レイアウト適用
+    // 4. レイアウト適用
     if (uploadedItems.length > 0) {
       await createUserBasedLayout(boardId, uploadedItems, basePosition);
     }
 
-    // 4. データベースに保存
+    // 5. データベースに保存
     if (uploadedItems.length > 0) {
       const now = new Date();
       const sessionIdentifier =
@@ -410,7 +461,7 @@ export async function POST(request: NextRequest) {
       await prisma.$transaction(transactions);
     }
 
-    // 5. クリーンアップとレスポンス返却
+    // 6. クリーンアップとレスポンス返却
     await deleteTempFiles(tempFilesToCleanup);
 
     const response: UploadResponse = {
