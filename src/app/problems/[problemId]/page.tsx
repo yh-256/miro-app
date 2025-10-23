@@ -141,7 +141,7 @@ export default function ProblemDetailPage() {
                 <div className="space-y-4">
                   <BoardEmbed
                     boardId={detail.problem.miroBoardId}
-                    boardName={`ステップ #${detail.problem.orderIndex}`}
+                    boardName={`問い ${detail.problem.orderIndex}`}
                     height={600}
                   />
                   <p className="text-xs text-gray-500">
