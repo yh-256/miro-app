@@ -18,6 +18,7 @@
     "prisma:seed": "prisma db seed",
     "prisma:check-migrations": "ts-node prisma/scripts/check-migrations.ts",
     "prisma:backup": "bash prisma/scripts/backup.sh",
+    "test:upload-bulk": "tsx scripts/test-upload-bulk.ts",
     "prisma:restore": "bash prisma/scripts/restore.sh",
     "generate:secrets": "node scripts/generate-secrets.js"
   },
@@ -52,6 +53,7 @@
     "jest-environment-jsdom": "^30.0.5",
     "prisma": "^5.17.0",
     "tailwindcss": "^4",
+    "tsx": "^4.20.6",
     "typescript": "^5"
   },
   "prisma": {
