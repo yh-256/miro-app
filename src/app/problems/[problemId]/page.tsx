@@ -23,7 +23,6 @@ export default function ProblemDetailPage() {
   const [detail, setDetail] = useState<ProblemDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [uploadKey, setUploadKey] = useState(0);
 
   const fetchDetail = useCallback(async () => {
     setLoading(true);
@@ -65,7 +64,6 @@ export default function ProblemDetailPage() {
 
   const refreshAfterUpload = () => {
     fetchDetail();
-    setUploadKey((prev) => prev + 1);
   };
 
   return (
@@ -123,7 +121,6 @@ export default function ProblemDetailPage() {
             </section>
 
             <ProblemUploadSection
-              key={uploadKey}
               problemId={problemId}
               defaultBoardId={detail.problem.miroBoardId}
               defaultBoardName={`ステップ #${detail.problem.orderIndex}`}
