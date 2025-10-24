@@ -415,31 +415,16 @@ export function ProblemUploadSection({
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900">
-            画像アップロード
-          </h3>
-          <p className="text-sm text-gray-600 mt-1">
-            選択した問題に関連する画像をMiroボードへ送信します。
-          </p>
-        </div>
-        <span className="text-xs font-medium text-blue-600 px-2 py-1 bg-blue-50 rounded">
-          セッションID: {sessionId}
-        </span>
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold text-gray-900">
+          画像アップロード
+        </h3>
+        <p className="text-sm text-gray-600 mt-1">
+          選択した問題に関連する画像をMiroボードへ送信します。
+        </p>
       </div>
 
-      {lockBoardSelection && selectedBoard && (
-        <div className="mb-6 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800">
-          このアップロードは「{selectedBoard.name}」ボードに固定されています。
-        </div>
-      )}
 
-      {lockBoardSelection && !selectedBoard && (
-        <div className="mb-6 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          この問題には紐付いたボードが設定されていません。管理者に確認してください。
-        </div>
-      )}
 
       {!isBoardUnlocked && (
         <div className="mb-6 rounded-md border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm text-yellow-800">
@@ -465,17 +450,11 @@ export function ProblemUploadSection({
               再読み込み
             </button>
           </div>
-        ) : selectedUser ? (
-          <div className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
-            このアップロードはユーザーID「{selectedUser.userId}
-            {selectedUser.displayName ? `(${selectedUser.displayName})` : ''}
-            」として記録されます。
-          </div>
-        ) : (
+        ) : !selectedUser ? (
           <div className="rounded-md border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm text-yellow-800">
             アップロードに使用するユーザーIDを選択してください。
           </div>
-        )}
+        ) : null}
       </div>
 
       <div className="flex items-center justify-between mb-6">
