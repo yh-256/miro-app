@@ -23,7 +23,8 @@ const QUADRANT_CONFIG = {
   QUADRANT_HEIGHT: 18000,    // 6000 × 3
   GROUP_SPACING: 800,        // グループ間の最小スペース
   MARGIN: 400,               // 象限端からのマージン
-  ESTIMATED_GROUP_WIDTH: 2500,  // グループの推定幅（3列 × 720 + α）
+  ESTIMATED_GROUP_WIDTH: 600,   // 付箋の幅
+  ESTIMATED_GROUP_HEIGHT: 1000, // 画像+付箋の縦積み高さ
 };
 
 /**
@@ -133,8 +134,8 @@ export function findAvailablePositionInQuadrant(
       if (bbox) {
         maxBottomY = Math.max(maxBottomY, bbox.bottom);
       } else {
-        // 推定の高さ（約3行分）
-        const estimatedHeight = 2500;
+        // 推定の高さ
+        const estimatedHeight = QUADRANT_CONFIG.ESTIMATED_GROUP_HEIGHT;
         maxBottomY = Math.max(maxBottomY, item.position.y + estimatedHeight / 2);
       }
     }
@@ -195,8 +196,8 @@ export async function calculateQuadrantPosition(
 const RANDOM_PLACEMENT_CONFIG = {
   BOARD_WIDTH: 48000,        // 16000 × 3 (= QUADRANT_WIDTH × 2)
   BOARD_HEIGHT: 36000,       // 12000 × 3 (= QUADRANT_HEIGHT × 2)
-  ESTIMATED_GROUP_WIDTH: 2500,
-  ESTIMATED_GROUP_HEIGHT: 2500,
+  ESTIMATED_GROUP_WIDTH: 600,   // 付箋の幅
+  ESTIMATED_GROUP_HEIGHT: 1000, // 画像+付箋の縦積み高さ
   MIN_SPACING: 800,
   MAX_RETRY_ATTEMPTS: 10,  // 最大試行回数
 };
@@ -300,12 +301,14 @@ function generateRandomBasePosition(
  * @param boardId - Miroボード ID
  * @param seed - ランダムシード（boardId + problemIndex等）
  * @param client - Miro APIクライアント
+ * @param alreadyUploadedPositions - 同じリクエスト内で既にアップロードした画像の座標リスト
  * @returns 配置座標
  */
 export async function calculateRandomPositionWithCollisionAvoidance(
   boardId: string,
   seed: string,
-  client: IMiroClient = miroClient
+  client: IMiroClient = miroClient,
+  alreadyUploadedPositions: Array<{ x: number; y: number }> = []
 ): Promise<{ x: number; y: number }> {
   try {
     const config = RANDOM_PLACEMENT_CONFIG;
@@ -321,7 +324,19 @@ export async function calculateRandomPositionWithCollisionAvoidance(
       groupsWithBBox.push({ item: group, bbox });
     }
     
-    console.log(`Board ${boardId}: Found ${allGroups.length} existing groups`);
+    // 同じリクエスト内で既にアップロードした座標も追加（衝突回避用）
+    for (const pos of alreadyUploadedPositions) {
+      groupsWithBBox.push({
+        item: {
+          id: 'temp-upload',
+          type: 'group',
+          position: pos,
+        } as MiroItem,
+        bbox: null, // 推定サイズで判定
+      });
+    }
+    
+    console.log(`Board ${boardId}: Found ${allGroups.length} existing groups + ${alreadyUploadedPositions.length} pending uploads`);
     
     // 衝突しない位置が見つかるまでリトライ
     for (let attempt = 0; attempt < config.MAX_RETRY_ATTEMPTS; attempt++) {

@@ -45,13 +45,15 @@ interface UploadRequestBody {
  * @param problemCount - このボードを共有している問題の総数
  * @param problemIndex - この問題が何番目か（0始まり）
  * @param imageIndex - この画像が何枚目か（0始まり、シード値の一意性確保）
+ * @param alreadyUploadedPositions - 同じリクエスト内で既にアップロードした画像の座標リスト
  * @returns 配置座標（ボード中心基準）
  */
 async function generatePositionForImage(
   boardId: string,
   problemCount: number,
   problemIndex: number,
-  imageIndex: number
+  imageIndex: number,
+  alreadyUploadedPositions: Array<{ x: number; y: number }> = []
 ): Promise<{ x: number; y: number }> {
   // 4問題が1ボードを共有している場合は4象限配置（既存グループの右端を自動検出）
   if (problemCount === 4) {
@@ -59,8 +61,14 @@ async function generatePositionForImage(
   }
   
   // それ以外の場合はランダム配置（画像ごとに異なるシード値で衝突回避）
+  // 既にアップロード済みの画像座標も衝突チェックに含める
   const seed = `${boardId}-${problemIndex}-image-${imageIndex}`;
-  return await calculateRandomPositionWithCollisionAvoidance(boardId, seed);
+  return await calculateRandomPositionWithCollisionAvoidance(
+    boardId, 
+    seed, 
+    miroClient,
+    alreadyUploadedPositions
+  );
 }
 
 async function resizeImageToSquare(
@@ -253,12 +261,22 @@ export async function POST(request: NextRequest) {
     const STICKY_SCALE = 1.5;
     const TARGET_STICKY_SIZE = Math.round(TARGET_IMAGE_SIZE * STICKY_SCALE);
 
+    // 既にアップロードした画像の座標を記録（同一リクエスト内の衝突回避用）
+    const uploadedPositions: Array<{ x: number; y: number }> = [];
+
     // 各画像ごとに個別の座標を決定してアップロード
     for (let i = 0; i < validFilesInfo.length; i++) {
       const { tempFile, metadata: imageMetadata } = validFilesInfo[i];
       
       // 画像ごとに配置座標を決定（衝突回避・象限考慮）
-      const position = await generatePositionForImage(boardId, problemCount, problemIndex, i);
+      // 既にアップロード済みの画像座標も考慮
+      const position = await generatePositionForImage(
+        boardId, 
+        problemCount, 
+        problemIndex, 
+        i,
+        uploadedPositions
+      );
       const originalBuffer = await fs.readFile(tempFile.path);
       const resizedBuffer = await resizeImageToSquare(originalBuffer, TARGET_IMAGE_SIZE, tempFile.mimetype);
 
@@ -344,6 +362,9 @@ export async function POST(request: NextRequest) {
         fileSize: tempFile.size,
         mimeType: tempFile.mimetype,
       });
+      
+      // アップロード完了した画像の座標を記録（次の画像の衝突回避用）
+      uploadedPositions.push(position);
     }
 
     // 4. データベースに保存
