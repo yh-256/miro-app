@@ -39,13 +39,6 @@ const STATUS_STYLES: Record<
   },
 };
 
-function formatDate(timestamp?: string) {
-  if (!timestamp) return undefined;
-  const date = new Date(timestamp);
-  if (Number.isNaN(date.getTime())) return undefined;
-  return date.toLocaleString('ja-JP');
-}
-
 export default function ProblemsPage() {
   const [data, setData] = useState<ProblemListResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -182,11 +175,6 @@ export default function ProblemsPage() {
                             <span className="text-xs text-gray-500">
                               ステップ #{problem.orderIndex}
                             </span>
-                            {isActive && (
-                              <span className="text-xs font-semibold text-blue-600">
-                                現在の進行中ステップ
-                              </span>
-                            )}
                           </div>
                           <h2 className="text-2xl font-bold text-gray-900 mt-2">
                             ステップ #{problem.orderIndex}
@@ -198,31 +186,6 @@ export default function ProblemsPage() {
                         >
                           詳細を開く
                         </Link>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm text-gray-600">
-                        <div>
-                          <p className="font-medium text-gray-500 mb-1">
-                            気づき記入
-                          </p>
-                          <p>
-                            {formatDate(problem.insightSubmittedAt) ?? '未実施'}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-500 mb-1">
-                            ボード解禁
-                          </p>
-                          <p>
-                            {formatDate(problem.boardUnlockedAt) ?? '未解禁'}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-500 mb-1">
-                            最終更新
-                          </p>
-                          <p>{formatDate(problem.completedAt) ?? '未完了'}</p>
-                        </div>
                       </div>
                     </div>
                   </div>
