@@ -176,9 +176,11 @@ export default function ProblemsPage() {
                               ステップ #{problem.orderIndex}
                             </span>
                           </div>
-                          <h2 className="text-2xl font-bold text-gray-900 mt-2">
-                            ステップ #{problem.orderIndex}
-                          </h2>
+                          {problem.title && (
+                            <h2 className="text-2xl font-bold text-gray-900 mt-2">
+                              {problem.title}
+                            </h2>
+                          )}
                         </div>
                         <Link
                           href={`/problems/${problem.id}`}
