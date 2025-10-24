@@ -393,6 +393,8 @@ export function ImageCapture({
             type: 'image/jpeg',
           });
           addFiles([file]);
+          // 写真撮影後にカメラを停止
+          stopCamera();
         } else {
           console.error('Failed to create blob from canvas');
           alert('写真の保存に失敗しました。');
@@ -402,7 +404,7 @@ export function ImageCapture({
       console.error('Photo capture failed:', captureError);
       alert('写真の撮影に失敗しました。');
     }
-  }, [addFiles]);
+  }, [addFiles, stopCamera]);
 
   // ファイル選択
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
