@@ -19,8 +19,8 @@ export interface QuadrantBounds {
  * 象限レイアウト設定
  */
 const QUADRANT_CONFIG = {
-  QUADRANT_WIDTH: 8000,
-  QUADRANT_HEIGHT: 6000,
+  QUADRANT_WIDTH: 24000,     // 8000 × 3
+  QUADRANT_HEIGHT: 18000,    // 6000 × 3
   GROUP_SPACING: 800,        // グループ間の最小スペース
   MARGIN: 400,               // 象限端からのマージン
   ESTIMATED_GROUP_WIDTH: 2500,  // グループの推定幅（3列 × 720 + α）
@@ -193,8 +193,8 @@ export async function calculateQuadrantPosition(
  * ランダム配置設定
  */
 const RANDOM_PLACEMENT_CONFIG = {
-  BOARD_WIDTH: 16000,
-  BOARD_HEIGHT: 12000,
+  BOARD_WIDTH: 48000,        // 16000 × 3 (= QUADRANT_WIDTH × 2)
+  BOARD_HEIGHT: 36000,       // 12000 × 3 (= QUADRANT_HEIGHT × 2)
   ESTIMATED_GROUP_WIDTH: 2500,
   ESTIMATED_GROUP_HEIGHT: 2500,
   MIN_SPACING: 800,
