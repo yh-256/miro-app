@@ -93,73 +93,85 @@ export async function getExistingGroupsInQuadrant(
 }
 
 /**
- * 象限内で空いている位置を見つける（右端配置方式）
+ * 2点間の距離を計算
+ */
+function getDistance(pos1: { x: number; y: number }, pos2: { x: number; y: number }): number {
+  return Math.sqrt(Math.pow(pos2.x - pos1.x, 2) + Math.pow(pos2.y - pos1.y, 2));
+}
+
+/**
+ * グリッドベースで象限内の候補位置を生成
+ * 左上から右下へ、行ごとに候補を生成
+ */
+function generateGridCandidates(
+  bounds: QuadrantBounds,
+  groupSize: { width: number; height: number },
+  spacing: number,
+  margin: number
+): Array<{ x: number; y: number }> {
+  const candidates: Array<{ x: number; y: number }> = [];
+  
+  // グリッドのステップサイズ
+  const stepX = groupSize.width + spacing;
+  const stepY = groupSize.height + spacing;
+  
+  // 配置可能な範囲
+  const startX = bounds.minX + margin + groupSize.width / 2;
+  const endX = bounds.maxX - margin - groupSize.width / 2;
+  const startY = bounds.minY + margin + groupSize.height / 2;
+  const endY = bounds.maxY - margin - groupSize.height / 2;
+  
+  // グリッド候補を生成（左上→右下）
+  for (let y = startY; y <= endY; y += stepY) {
+    for (let x = startX; x <= endX; x += stepX) {
+      candidates.push({ x, y });
+    }
+  }
+  
+  return candidates;
+}
+
+/**
+ * 象限内で空いている位置を見つける（衝突回避グリッド配置）
+ * 既存グループのBBoxを考慮して、確実に重ならない位置を探索
  */
 export function findAvailablePositionInQuadrant(
   bounds: QuadrantBounds,
   existingGroups: Array<{ item: MiroItem; bbox: BoundingBox | null }>,
   randomOffset: number = 0
 ): { x: number; y: number } {
-  const { GROUP_SPACING, MARGIN, ESTIMATED_GROUP_WIDTH } = QUADRANT_CONFIG;
+  const { GROUP_SPACING, MARGIN, ESTIMATED_GROUP_WIDTH, ESTIMATED_GROUP_HEIGHT } = QUADRANT_CONFIG;
+  const newGroupSize = { width: ESTIMATED_GROUP_WIDTH, height: ESTIMATED_GROUP_HEIGHT };
 
-  // 既存グループがない場合は象限の左端から開始
-  // ただし、ランダムオフセットを加えて、複数回のアップロードで位置がずれるようにする
-  if (existingGroups.length === 0) {
-    const baseX = bounds.minX + MARGIN + ESTIMATED_GROUP_WIDTH / 2;
-    const offsetX = randomOffset * (GROUP_SPACING + ESTIMATED_GROUP_WIDTH); // 横方向のオフセット
-    return {
-      x: baseX + offsetX,
-      y: bounds.centerY,
-    };
-  }
+  // 初期候補位置（左上から開始、オフセット適用）
+  const initialX = bounds.minX + MARGIN + ESTIMATED_GROUP_WIDTH / 2;
+  const initialY = bounds.minY + MARGIN + ESTIMATED_GROUP_HEIGHT / 2;
+  const preferredPosition = { 
+    x: initialX + randomOffset * (GROUP_SPACING + ESTIMATED_GROUP_WIDTH), 
+    y: initialY 
+  };
 
-  // 既存グループの最も右端を見つける
-  let maxRightX = bounds.minX + MARGIN;
+  // グリッド候補を生成
+  const candidates = generateGridCandidates(bounds, newGroupSize, GROUP_SPACING, MARGIN);
   
-  for (const { item, bbox } of existingGroups) {
-    if (bbox) {
-      // バウンディングボックスがある場合はそれを使用
-      maxRightX = Math.max(maxRightX, bbox.right);
-    } else {
-      // バウンディングボックスがない場合は推定サイズを使用
-      maxRightX = Math.max(maxRightX, item.position.x + ESTIMATED_GROUP_WIDTH / 2);
+  // 初期位置を最優先候補として追加
+  const allCandidates = [preferredPosition, ...candidates];
+  
+  // 初期位置からの距離でソート（最短移動を優先）
+  allCandidates.sort((a, b) => 
+    getDistance(preferredPosition, a) - getDistance(preferredPosition, b)
+  );
+  
+  // 衝突しない最初の候補を返す
+  for (const candidate of allCandidates) {
+    if (!hasCollision(candidate, newGroupSize, existingGroups, GROUP_SPACING)) {
+      return candidate;
     }
   }
-
-  // 新しい配置位置（最も右端 + スペーシング + 新グループの半分幅）
-  const newX = maxRightX + GROUP_SPACING + ESTIMATED_GROUP_WIDTH / 2;
-
-  // 象限を超える場合は2行目に配置
-  if (newX + ESTIMATED_GROUP_WIDTH / 2 > bounds.maxX - MARGIN) {
-    // 最も下の行を見つける
-    let maxBottomY = bounds.minY + MARGIN;
-    
-    for (const { item, bbox } of existingGroups) {
-      if (bbox) {
-        maxBottomY = Math.max(maxBottomY, bbox.bottom);
-      } else {
-        // 推定の高さ
-        const estimatedHeight = QUADRANT_CONFIG.ESTIMATED_GROUP_HEIGHT;
-        maxBottomY = Math.max(maxBottomY, item.position.y + estimatedHeight / 2);
-      }
-    }
-
-    const ROW_SPACING = 1000;
-    const newY = maxBottomY + ROW_SPACING;
-
-    // 2行目も象限を超える場合は中央に配置（警告）
-    if (newY > bounds.maxY - MARGIN) {
-      console.warn('Quadrant is full, placing at center');
-      return { x: bounds.centerX, y: bounds.centerY };
-    }
-
-    return {
-      x: bounds.minX + MARGIN + ESTIMATED_GROUP_WIDTH / 2,
-      y: newY,
-    };
-  }
-
-  return { x: newX, y: bounds.centerY };
+  
+  // すべての候補が衝突する場合は中央に配置（警告）
+  console.warn('Quadrant is full, all grid positions occupied. Placing at center.');
+  return { x: bounds.centerX, y: bounds.centerY };
 }
 
 /**
@@ -327,6 +339,41 @@ function generateRandomBasePosition(
 }
 
 /**
+ * ボード全体でグリッドベースの候補位置を生成
+ */
+function generateBoardGridCandidates(
+  boardWidth: number,
+  boardHeight: number,
+  groupSize: { width: number; height: number },
+  spacing: number,
+  initialPosition: { x: number; y: number }
+): Array<{ x: number; y: number }> {
+  const candidates: Array<{ x: number; y: number }> = [];
+  
+  const stepX = groupSize.width + spacing;
+  const stepY = groupSize.height + spacing;
+  
+  const startX = -boardWidth / 2 + groupSize.width / 2;
+  const endX = boardWidth / 2 - groupSize.width / 2;
+  const startY = -boardHeight / 2 + groupSize.height / 2;
+  const endY = boardHeight / 2 - groupSize.height / 2;
+  
+  // グリッド候補を生成
+  for (let y = startY; y <= endY; y += stepY) {
+    for (let x = startX; x <= endX; x += stepX) {
+      candidates.push({ x, y });
+    }
+  }
+  
+  // 初期位置からの距離でソート
+  candidates.sort((a, b) => 
+    getDistance(initialPosition, a) - getDistance(initialPosition, b)
+  );
+  
+  return candidates;
+}
+
+/**
  * ボード全体からランダムな位置を見つける（衝突回避付き）
  * 
  * @param boardId - Miroボード ID
@@ -369,26 +416,47 @@ export async function calculateRandomPositionWithCollisionAvoidance(
     
     console.log(`Board ${boardId}: Found ${allGroups.length} existing groups + ${alreadyUploadedPositions.length} pending uploads`);
     
-    // 衝突しない位置が見つかるまでリトライ
+    const groupSize = { width: config.ESTIMATED_GROUP_WIDTH, height: config.ESTIMATED_GROUP_HEIGHT };
+    
+    // 初期位置（シードベース）を生成
+    const initialPosition = generateRandomBasePosition(seed, config.BOARD_WIDTH, config.BOARD_HEIGHT);
+    
+    // 初期位置が衝突しないかチェック
+    if (!hasCollision(initialPosition, groupSize, groupsWithBBox, config.MIN_SPACING)) {
+      console.log(`Board ${boardId}: Initial position (${initialPosition.x}, ${initialPosition.y}) is collision-free`);
+      return initialPosition;
+    }
+    
+    // グリッドベースで候補を生成（初期位置から近い順）
+    console.log(`Board ${boardId}: Initial position has collision, searching grid...`);
+    const candidates = generateBoardGridCandidates(
+      config.BOARD_WIDTH,
+      config.BOARD_HEIGHT,
+      groupSize,
+      config.MIN_SPACING,
+      initialPosition
+    );
+    
+    // 最初の100候補まで探索（パフォーマンス考慮）
+    const searchLimit = Math.min(100, candidates.length);
+    for (let i = 0; i < searchLimit; i++) {
+      const candidate = candidates[i];
+      if (!hasCollision(candidate, groupSize, groupsWithBBox, config.MIN_SPACING)) {
+        console.log(`Board ${boardId}: Found collision-free position at (${candidate.x}, ${candidate.y}) after ${i + 1} grid checks`);
+        return candidate;
+      }
+    }
+    
+    // グリッド探索でも見つからない場合は、ランダムリトライ
+    console.log(`Board ${boardId}: Grid search failed, falling back to random attempts...`);
     for (let attempt = 0; attempt < config.MAX_RETRY_ATTEMPTS; attempt++) {
-      // シード値にattemptを加えて異なる座標を生成
       const attemptSeed = `${seed}-attempt-${attempt}`;
       const candidatePosition = generateRandomBasePosition(attemptSeed, config.BOARD_WIDTH, config.BOARD_HEIGHT);
       
-      // 衝突チェック
-      const collision = hasCollision(
-        candidatePosition,
-        { width: config.ESTIMATED_GROUP_WIDTH, height: config.ESTIMATED_GROUP_HEIGHT },
-        groupsWithBBox,
-        config.MIN_SPACING
-      );
-      
-      if (!collision) {
-        console.log(`Board ${boardId}: Found collision-free position at (${candidatePosition.x}, ${candidatePosition.y}) after ${attempt + 1} attempt(s)`);
+      if (!hasCollision(candidatePosition, groupSize, groupsWithBBox, config.MIN_SPACING)) {
+        console.log(`Board ${boardId}: Found collision-free position at (${candidatePosition.x}, ${candidatePosition.y}) after ${attempt + 1} random attempt(s)`);
         return candidatePosition;
       }
-      
-      console.log(`Board ${boardId}: Attempt ${attempt + 1} - collision detected, retrying...`);
     }
     
     // 最大試行回数に達した場合は最後の候補を使用（警告）
