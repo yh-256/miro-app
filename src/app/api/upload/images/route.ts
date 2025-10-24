@@ -53,7 +53,8 @@ async function generatePositionForImage(
   problemCount: number,
   problemIndex: number,
   imageIndex: number,
-  alreadyUploadedPositions: Array<{ x: number; y: number }> = []
+  alreadyUploadedPositions: Array<{ x: number; y: number }> = [],
+  uploadTimestamp: number = Date.now()
 ): Promise<{ x: number; y: number }> {
   // 4問題が1ボードを共有している場合は4象限配置（既存グループの右端を自動検出）
   if (problemCount === 4) {
@@ -62,7 +63,8 @@ async function generatePositionForImage(
   
   // それ以外の場合はランダム配置（画像ごとに異なるシード値で衝突回避）
   // 既にアップロード済みの画像座標も衝突チェックに含める
-  const seed = `${boardId}-${problemIndex}-image-${imageIndex}`;
+  // タイムスタンプを含めることで、別のアップロードリクエストでは異なる座標を生成
+  const seed = `${boardId}-${problemIndex}-${uploadTimestamp}-image-${imageIndex}`;
   return await calculateRandomPositionWithCollisionAvoidance(
     boardId, 
     seed, 
@@ -261,6 +263,9 @@ export async function POST(request: NextRequest) {
     const STICKY_SCALE = 1.5;
     const TARGET_STICKY_SIZE = Math.round(TARGET_IMAGE_SIZE * STICKY_SCALE);
 
+    // このアップロードリクエストのタイムスタンプ（シード値の一意性確保）
+    const uploadTimestamp = Date.now();
+
     // 既にアップロードした画像の座標を記録（同一リクエスト内の衝突回避用）
     const uploadedPositions: Array<{ x: number; y: number }> = [];
 
@@ -275,7 +280,8 @@ export async function POST(request: NextRequest) {
         problemCount, 
         problemIndex, 
         i,
-        uploadedPositions
+        uploadedPositions,
+        uploadTimestamp
       );
       const originalBuffer = await fs.readFile(tempFile.path);
       const resizedBuffer = await resizeImageToSquare(originalBuffer, TARGET_IMAGE_SIZE, tempFile.mimetype);
