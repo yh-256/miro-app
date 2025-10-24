@@ -4,7 +4,6 @@ import sharp from 'sharp';
 import { miroClient, MiroApiClient } from '@/utils/miroClient';
 import { ErrorHandler, logError } from '@/utils/errorHandler';
 import { saveTempFile, deleteTempFiles, validateFileInfo, TempFileInfo, FileUploadError, formatBytes } from '@/utils/fileUpload';
-import { createUserBasedLayout } from '@/utils/miroGrouping';
 import { calculateQuadrantPosition, calculateRandomPositionWithCollisionAvoidance } from '@/utils/quadrantLayout';
 import { UploadResponse } from '@/types';
 import { generateCorsHeaders } from '@/utils/securityConfig';
@@ -38,27 +37,29 @@ interface UploadRequestBody {
  * @returns ボード上のランダム座標
  */
 /**
- * 問題とボード共有状況に基づいてボード上の配置座標を決定
- * - 4問題が1ボード共有: 4象限に配置（既存グループを考慮）
- * - それ以外: ランダム配置（衝突回避付き）
+ * 個別の画像配置座標を決定
+ * - 4問題が1ボード共有: 4象限に配置（既存グループを考慮して右端に順次配置）
+ * - それ以外: ランダム配置（衝突回避付き、画像ごとに異なる座標）
  * 
  * @param boardId - Miroボード ID
  * @param problemCount - このボードを共有している問題の総数
  * @param problemIndex - この問題が何番目か（0始まり）
- * @returns 配置の基準座標（ボード中心基準）
+ * @param imageIndex - この画像が何枚目か（0始まり、シード値の一意性確保）
+ * @returns 配置座標（ボード中心基準）
  */
-async function generatePositionByBoardSharing(
+async function generatePositionForImage(
   boardId: string,
   problemCount: number,
-  problemIndex: number
+  problemIndex: number,
+  imageIndex: number
 ): Promise<{ x: number; y: number }> {
-  // 4問題が1ボードを共有している場合は4象限配置（空きスペース自動検出）
+  // 4問題が1ボードを共有している場合は4象限配置（既存グループの右端を自動検出）
   if (problemCount === 4) {
     return await calculateQuadrantPosition(boardId, problemIndex);
   }
   
-  // それ以外の場合はランダム配置（衝突回避付き）
-  const seed = `${boardId}-${problemIndex}`;
+  // それ以外の場合はランダム配置（画像ごとに異なるシード値で衝突回避）
+  const seed = `${boardId}-${problemIndex}-image-${imageIndex}`;
   return await calculateRandomPositionWithCollisionAvoidance(boardId, seed);
 }
 
@@ -248,13 +249,16 @@ export async function POST(request: NextRequest) {
       mimeType: string;
     }> = [];
     
-    // ボード共有状況に基づいて配置座標を決定
-    const basePosition = await generatePositionByBoardSharing(boardId, problemCount, problemIndex);
     const TARGET_IMAGE_SIZE = MiroApiClient.DEFAULT_IMAGE_SIZE;
     const STICKY_SCALE = 1.5;
     const TARGET_STICKY_SIZE = Math.round(TARGET_IMAGE_SIZE * STICKY_SCALE);
 
-    for (const { tempFile, metadata: imageMetadata } of validFilesInfo) {
+    // 各画像ごとに個別の座標を決定してアップロード
+    for (let i = 0; i < validFilesInfo.length; i++) {
+      const { tempFile, metadata: imageMetadata } = validFilesInfo[i];
+      
+      // 画像ごとに配置座標を決定（衝突回避・象限考慮）
+      const position = await generatePositionForImage(boardId, problemCount, problemIndex, i);
       const originalBuffer = await fs.readFile(tempFile.path);
       const resizedBuffer = await resizeImageToSquare(originalBuffer, TARGET_IMAGE_SIZE, tempFile.mimetype);
 
@@ -280,7 +284,7 @@ export async function POST(request: NextRequest) {
       const stickyNote = await miroClient.createStickyNote(
         boardId,
         stickyNoteContent,
-        basePosition,
+        position,
         {
           fillColor: getUserColor(userDbId),
           textAlign: 'left',
@@ -297,14 +301,14 @@ export async function POST(request: NextRequest) {
           width: TARGET_STICKY_SIZE,
         },
         position: {
-          x: basePosition.x,
-          y: basePosition.y,
+          x: position.x,
+          y: position.y,
           origin: 'center',
         },
       });
 
       const uploadedImage = await miroClient.uploadImage(boardId, file, {
-        position: basePosition,
+        position: position,
         geometry: {
           width: TARGET_IMAGE_SIZE,
           height: TARGET_IMAGE_SIZE,
@@ -317,8 +321,8 @@ export async function POST(request: NextRequest) {
           height: TARGET_IMAGE_SIZE,
         },
         position: {
-          x: basePosition.x,
-          y: basePosition.y,
+          x: position.x,
+          y: position.y,
           origin: 'center',
         },
       });
@@ -342,12 +346,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 4. レイアウト適用
-    if (uploadedItems.length > 0) {
-      await createUserBasedLayout(boardId, uploadedItems, basePosition);
-    }
-
-    // 5. データベースに保存
+    // 4. データベースに保存
     if (uploadedItems.length > 0) {
       const now = new Date();
       const sessionIdentifier =
