@@ -30,11 +30,12 @@ export function detectDeviceFromUserAgent(userAgent: string): DeviceType {
 
 /**
  * 画面サイズからデバイスタイプを判定
+ * 10.2インチiPad等もmobileとして扱うため、1024px未満をmobileに設定
  */
 export function detectDeviceFromScreenSize(width: number): DeviceType {
-  if (width < 768) {
+  if (width < 1024) {
     return 'mobile';
-  } else if (width < 1024) {
+  } else if (width < 1280) {
     return 'tablet';
   }
   return 'desktop';
@@ -135,16 +136,17 @@ export function useScreenSize() {
 
 /**
  * React Hook: レスポンシブブレークポイント判定
+ * 10.2インチiPad等もmobileとして扱うため、ブレークポイントを調整
  */
 export function useBreakpoint() {
   const { width } = useScreenSize();
   
   return {
-    isMobile: width < 768,
-    isTablet: width >= 768 && width < 1024,
-    isDesktop: width >= 1024,
+    isMobile: width < 1024,
+    isTablet: width >= 1024 && width < 1280,
+    isDesktop: width >= 1280,
     isSmall: width < 640,
-    isMedium: width >= 640 && width < 1024,
-    isLarge: width >= 1024,
+    isMedium: width >= 640 && width < 1280,
+    isLarge: width >= 1280,
   };
 }

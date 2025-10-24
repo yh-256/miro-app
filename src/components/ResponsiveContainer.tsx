@@ -62,9 +62,9 @@ export function ResponsiveContainer({
 interface GridContainerProps {
   children: ReactNode;
   columns?: {
-    mobile?: number;
-    tablet?: number;
-    desktop?: number;
+    mobile?: number;  // 1024px未満（スマホ・10.2インチタブレット含む）
+    tablet?: number;  // 1024px以上1280px未満
+    desktop?: number; // 1280px以上
   };
   gap?: 'sm' | 'md' | 'lg';
   className?: string;
