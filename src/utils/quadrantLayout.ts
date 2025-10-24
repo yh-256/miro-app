@@ -164,7 +164,8 @@ export function findAvailablePositionInQuadrant(
 export async function calculateQuadrantPosition(
   boardId: string,
   problemIndex: number,
-  client: IMiroClient = miroClient
+  client: IMiroClient = miroClient,
+  alreadyUploadedPositions: Array<{ x: number; y: number }> = []
 ): Promise<{ x: number; y: number }> {
   try {
     // 象限境界を取得
@@ -173,7 +174,24 @@ export async function calculateQuadrantPosition(
     // 既存グループを取得
     const existingGroups = await getExistingGroupsInQuadrant(boardId, bounds, client);
     
-    console.log(`Quadrant ${problemIndex + 1}: Found ${existingGroups.length} existing groups`);
+    // 同じリクエスト内で既にアップロードした座標も追加（衝突回避用）
+    for (const pos of alreadyUploadedPositions) {
+      // 同じ象限内の座標のみを考慮
+      if (pos.x >= bounds.minX && pos.x <= bounds.maxX && pos.y >= bounds.minY && pos.y <= bounds.maxY) {
+        existingGroups.push({
+          item: {
+            id: 'temp-upload',
+            type: 'group',
+            position: pos,
+          } as MiroItem,
+          bbox: null, // 推定サイズで判定
+        });
+      }
+    }
+    
+    console.log(`Quadrant ${problemIndex + 1}: Found ${existingGroups.length} existing groups (including ${alreadyUploadedPositions.filter(pos => 
+      pos.x >= bounds.minX && pos.x <= bounds.maxX && pos.y >= bounds.minY && pos.y <= bounds.maxY
+    ).length} pending uploads)`);
     
     // 空き位置を計算
     const position = findAvailablePositionInQuadrant(bounds, existingGroups);

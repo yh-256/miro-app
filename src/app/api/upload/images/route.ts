@@ -57,7 +57,7 @@ async function generatePositionForImage(
 ): Promise<{ x: number; y: number }> {
   // 4問題が1ボードを共有している場合は4象限配置（既存グループの右端を自動検出）
   if (problemCount === 4) {
-    return await calculateQuadrantPosition(boardId, problemIndex);
+    return await calculateQuadrantPosition(boardId, problemIndex, miroClient, alreadyUploadedPositions);
   }
   
   // それ以外の場合はランダム配置（画像ごとに異なるシード値で衝突回避）
