@@ -97,14 +97,18 @@ export async function getExistingGroupsInQuadrant(
  */
 export function findAvailablePositionInQuadrant(
   bounds: QuadrantBounds,
-  existingGroups: Array<{ item: MiroItem; bbox: BoundingBox | null }>
+  existingGroups: Array<{ item: MiroItem; bbox: BoundingBox | null }>,
+  randomOffset: number = 0
 ): { x: number; y: number } {
   const { GROUP_SPACING, MARGIN, ESTIMATED_GROUP_WIDTH } = QUADRANT_CONFIG;
 
   // 既存グループがない場合は象限の左端から開始
+  // ただし、ランダムオフセットを加えて、複数回のアップロードで位置がずれるようにする
   if (existingGroups.length === 0) {
+    const baseX = bounds.minX + MARGIN + ESTIMATED_GROUP_WIDTH / 2;
+    const offsetX = randomOffset * (GROUP_SPACING + ESTIMATED_GROUP_WIDTH); // 横方向のオフセット
     return {
-      x: bounds.minX + MARGIN + ESTIMATED_GROUP_WIDTH / 2,
+      x: baseX + offsetX,
       y: bounds.centerY,
     };
   }
@@ -165,7 +169,8 @@ export async function calculateQuadrantPosition(
   boardId: string,
   problemIndex: number,
   client: IMiroClient = miroClient,
-  alreadyUploadedPositions: Array<{ x: number; y: number }> = []
+  alreadyUploadedPositions: Array<{ x: number; y: number }> = [],
+  uploadSeed: string = Date.now().toString()
 ): Promise<{ x: number; y: number }> {
   try {
     // 象限境界を取得
@@ -193,10 +198,18 @@ export async function calculateQuadrantPosition(
       pos.x >= bounds.minX && pos.x <= bounds.maxX && pos.y >= bounds.minY && pos.y <= bounds.maxY
     ).length} pending uploads)`);
     
-    // 空き位置を計算
-    const position = findAvailablePositionInQuadrant(bounds, existingGroups);
+    // シードからハッシュベースのランダムオフセットを生成
+    // これにより、Miro APIがグループを返さない場合でも異なる位置に配置される
+    let hash = 0;
+    for (let i = 0; i < uploadSeed.length; i++) {
+      hash = uploadSeed.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const randomOffset = Math.abs(hash) % 10; // 0-9のオフセット
     
-    console.log(`Quadrant ${problemIndex + 1}: New position (${position.x}, ${position.y})`);
+    // 空き位置を計算
+    const position = findAvailablePositionInQuadrant(bounds, existingGroups, randomOffset);
+    
+    console.log(`Quadrant ${problemIndex + 1}: New position (${position.x}, ${position.y}) with seed-based offset ${randomOffset}`);
     
     return position;
   } catch (error) {
