@@ -170,7 +170,9 @@ export function ProblemUploadSection({
     }));
   }, [boardStepEnabled]);
 
-  const goToNext = () => {
+  const goToNext = (e?: React.MouseEvent<HTMLButtonElement>) => {
+    e?.preventDefault();
+    
     const currentIndex = stepper.findIndex((step) => step.key === currentStep);
     if (currentIndex === -1) {
       return;
@@ -206,6 +208,10 @@ export function ProblemUploadSection({
       return;
     }
 
+    // ステップ変更前のスクロール位置を保存
+    const uploadSection = document.getElementById('upload-section');
+    const scrollY = window.scrollY;
+
     if (nextStep.key === 'upload') {
       if (!canUpload) {
         alert('アップロードを開始するには必要な項目を確認してください。');
@@ -216,9 +222,20 @@ export function ProblemUploadSection({
     } else {
       setCurrentStep(nextStep.key);
     }
+
+    // 次のレンダリング後にスクロール位置を維持
+    requestAnimationFrame(() => {
+      if (uploadSection) {
+        const rect = uploadSection.getBoundingClientRect();
+        const absoluteTop = rect.top + scrollY;
+        window.scrollTo({ top: absoluteTop, behavior: 'instant' });
+      }
+    });
   };
 
-  const goBack = () => {
+  const goBack = (e?: React.MouseEvent<HTMLButtonElement>) => {
+    e?.preventDefault();
+    
     const currentIndex = stepper.findIndex((step) => step.key === currentStep);
     if (currentIndex <= 0) {
       return;
@@ -395,7 +412,7 @@ export function ProblemUploadSection({
 
   if (!isUploadUnlocked) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div id="upload-section" className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
             <h3 className="text-lg font-semibold text-gray-900">
@@ -414,7 +431,7 @@ export function ProblemUploadSection({
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <div id="upload-section" className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
       <div className="mb-6">
         <h3 className="text-lg font-semibold text-gray-900">
           画像アップロード
