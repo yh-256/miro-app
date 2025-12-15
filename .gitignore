@@ -44,3 +44,5 @@ next-env.d.ts
 /backups
 *.sql
 *.sql.gz
+
+miro-app/miro-app.zip
