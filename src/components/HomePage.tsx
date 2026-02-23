@@ -1,23 +1,23 @@
-'use client';
+"use client";
 
-import { useRouter } from 'next/navigation';
-import { ResponsiveContainer, FlexContainer } from './ResponsiveContainer';
-import { useDeviceDetection } from '@/utils/deviceDetection';
+import { useRouter } from "next/navigation";
+import { ResponsiveContainer, FlexContainer } from "./ResponsiveContainer";
+import { useDeviceDetection } from "@/utils/deviceDetection";
 
 export function HomePage() {
   const router = useRouter();
   const deviceInfo = useDeviceDetection();
 
   const navigateToUpload = () => {
-    router.push('/upload');
+    router.push("/upload");
   };
 
   const navigateToBoard = () => {
-    router.push('/board');
+    router.push("/board");
   };
 
   const navigateToSearch = () => {
-    router.push('/search');
+    router.push("/search");
   };
 
   return (
@@ -85,9 +85,7 @@ export function HomePage() {
               </svg>
               ボード表示
             </div>
-            <p className="text-sm mt-1 opacity-90">
-              Miroボードを表示・確認
-            </p>
+            <p className="text-sm mt-1 opacity-90">Miroボードを表示・確認</p>
           </button>
 
           <button
@@ -111,14 +109,13 @@ export function HomePage() {
               </svg>
               ボード内検索
             </div>
-            <p className="text-sm mt-1 opacity-90">
-              画像・付箋・個人IDを検索
-            </p>
+            <p className="text-sm mt-1 opacity-90">画像・付箋・個人IDを検索</p>
           </button>
 
-          {process.env.NODE_ENV === 'development' && deviceInfo && (
+          {process.env.NODE_ENV === "development" && deviceInfo && (
             <div className="text-xs text-gray-500 text-center">
-              {deviceInfo.type} | {deviceInfo.screenWidth}×{deviceInfo.screenHeight}
+              {deviceInfo.type} | {deviceInfo.screenWidth}×
+              {deviceInfo.screenHeight}
             </div>
           )}
         </div>

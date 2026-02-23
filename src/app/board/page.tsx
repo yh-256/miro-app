@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Layout } from '@/components/Layout';
-import { BoardSelector } from '@/components/BoardSelector';
-import { BoardEmbed } from '@/components/BoardEmbed';
-import { ResponsiveContainer } from '@/components/ResponsiveContainer';
-import { useNotifications } from '@/hooks/useNotifications';
+import { useState } from "react";
+import { Layout } from "@/components/Layout";
+import { BoardSelector } from "@/components/BoardSelector";
+import { BoardEmbed } from "@/components/BoardEmbed";
+import { ResponsiveContainer } from "@/components/ResponsiveContainer";
+import { useNotifications } from "@/hooks/useNotifications";
 
 interface Board {
   id: string;
@@ -22,11 +22,7 @@ export default function BoardPage() {
   const handleBoardSelect = (board: Board) => {
     setSelectedBoard(board);
     setShowSelector(false);
-    showSuccess(
-      'ボード選択完了',
-      `「${board.name}」を表示します`,
-      3000
-    );
+    showSuccess("ボード選択完了", `「${board.name}」を表示します`, 3000);
   };
 
   const handleBackToSelector = () => {
@@ -46,13 +42,12 @@ export default function BoardPage() {
                     ボード表示
                   </h1>
                   <p className="text-sm text-gray-600 mt-1">
-                    {selectedBoard 
+                    {selectedBoard
                       ? `現在表示中: ${selectedBoard.name}`
-                      : 'Miroボードを選択してください'
-                    }
+                      : "Miroボードを選択してください"}
                   </p>
                 </div>
-                
+
                 {selectedBoard && (
                   <button
                     onClick={handleBackToSelector}
@@ -62,8 +57,18 @@ export default function BoardPage() {
                              bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 
                              focus:ring-offset-2 focus:ring-blue-500"
                   >
-                    <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    <svg
+                      className="mr-2 h-4 w-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                      />
                     </svg>
                     ボード選択に戻る
                   </button>
@@ -82,10 +87,8 @@ export default function BoardPage() {
                   <p className="text-sm text-gray-600 mb-6">
                     アップロードした画像やメタデータを確認したいMiroボードを選択してください。
                   </p>
-                  
-                  <BoardSelector
-                    onBoardSelect={handleBoardSelect}
-                  />
+
+                  <BoardSelector onBoardSelect={handleBoardSelect} />
                 </div>
 
                 {/* 機能説明セクション */}
@@ -95,20 +98,44 @@ export default function BoardPage() {
                   </h3>
                   <div className="space-y-2 text-sm text-blue-800">
                     <div className="flex items-start">
-                      <svg className="mt-1 mr-2 h-4 w-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      <svg
+                        className="mt-1 mr-2 h-4 w-4 flex-shrink-0"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                          clipRule="evenodd"
+                        />
                       </svg>
                       <span>画像とメタデータ付箋の一体表示</span>
                     </div>
                     <div className="flex items-start">
-                      <svg className="mt-1 mr-2 h-4 w-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      <svg
+                        className="mt-1 mr-2 h-4 w-4 flex-shrink-0"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                          clipRule="evenodd"
+                        />
                       </svg>
                       <span>個人ID別グループ化の確認</span>
                     </div>
                     <div className="flex items-start">
-                      <svg className="mt-1 mr-2 h-4 w-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      <svg
+                        className="mt-1 mr-2 h-4 w-4 flex-shrink-0"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                          clipRule="evenodd"
+                        />
                       </svg>
                       <span>タッチ操作対応（スマートフォン・タブレット）</span>
                     </div>
@@ -131,7 +158,7 @@ export default function BoardPage() {
                           </p>
                         )}
                       </div>
-                      
+
                       <div className="flex space-x-2">
                         {/* Miroで直接開くボタン */}
                         <a
@@ -143,8 +170,18 @@ export default function BoardPage() {
                                    bg-blue-600 hover:bg-blue-700 focus:outline-none 
                                    focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                         >
-                          <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          <svg
+                            className="mr-2 h-4 w-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                            />
                           </svg>
                           Miroで開く
                         </a>
@@ -167,13 +204,15 @@ export default function BoardPage() {
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-gray-600">
                       <div>
-                        <span className="font-medium">拡大・縮小:</span> マウスホイール、ピンチ操作
+                        <span className="font-medium">拡大・縮小:</span>{" "}
+                        マウスホイール、ピンチ操作
                       </div>
                       <div>
                         <span className="font-medium">移動:</span> ドラッグ操作
                       </div>
                       <div>
-                        <span className="font-medium">編集:</span> アイテムをダブルクリック
+                        <span className="font-medium">編集:</span>{" "}
+                        アイテムをダブルクリック
                       </div>
                     </div>
                   </div>

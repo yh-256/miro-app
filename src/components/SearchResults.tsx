@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { useDeviceDetection } from '@/utils/deviceDetection';
-import { SearchResult, SearchResultItem } from '@/utils/searchService.types';
+import { useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { useDeviceDetection } from "@/utils/deviceDetection";
+import { SearchResult, SearchResultItem } from "@/utils/searchService.types";
 
 interface SearchResultsProps {
   results: SearchResult;
@@ -17,38 +17,44 @@ interface SearchResultsProps {
 
 export function SearchResults({
   results,
-  searchQuery = '',
+  searchQuery = "",
   onItemClick,
   onLoadMore,
   isLoading = false,
-  className = '',
+  className = "",
 }: SearchResultsProps) {
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [sortBy, setSortBy] = useState<'relevance' | 'date' | 'type'>('relevance');
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [sortBy, setSortBy] = useState<"relevance" | "date" | "type">(
+    "relevance",
+  );
   const deviceInfo = useDeviceDetection();
 
   const highlightText = (text: string, query: string): React.ReactNode => {
     if (!query.trim()) return text;
-    
-    const parts = text.split(new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'));
-    return parts.map((part, index) => 
+
+    const parts = text.split(
+      new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi"),
+    );
+    return parts.map((part, index) =>
       part.toLowerCase() === query.toLowerCase() ? (
         <mark key={index} className="bg-yellow-200 px-1 rounded">
           {part}
         </mark>
-      ) : part
+      ) : (
+        part
+      ),
     );
   };
 
   const sortedResults = [...results.items].sort((a, b) => {
     switch (sortBy) {
-      case 'date':
+      case "date":
         const dateA = a.metadata?.uploadedAt?.getTime() || 0;
         const dateB = b.metadata?.uploadedAt?.getTime() || 0;
         return dateB - dateA;
-      case 'type':
+      case "type":
         return a.type.localeCompare(b.type);
-      case 'relevance':
+      case "relevance":
       default:
         return 0; // API側でソート済み
     }
@@ -56,22 +62,52 @@ export function SearchResults({
 
   const getItemTypeIcon = (type: string) => {
     switch (type) {
-      case 'image':
+      case "image":
         return (
-          <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          <svg
+            className="w-5 h-5 text-blue-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
           </svg>
         );
-      case 'sticky_note':
+      case "sticky_note":
         return (
-          <svg className="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+          <svg
+            className="w-5 h-5 text-yellow-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
+            />
           </svg>
         );
-      case 'group':
+      case "group":
         return (
-          <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+          <svg
+            className="w-5 h-5 text-green-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+            />
           </svg>
         );
       default:
@@ -80,21 +116,21 @@ export function SearchResults({
   };
 
   const formatDate = (date?: Date) => {
-    if (!date) return '不明';
+    if (!date) return "不明";
     const time = date.getTime();
-    if (Number.isNaN(time)) return '不明';
-    return new Intl.DateTimeFormat('ja-JP', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+    if (Number.isNaN(time)) return "不明";
+    return new Intl.DateTimeFormat("ja-JP", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     }).format(date);
   };
 
   const formatFileSize = (size?: number) => {
     if (!size || size <= 0) return null;
-    const units = ['B', 'KB', 'MB', 'GB'];
+    const units = ["B", "KB", "MB", "GB"];
     let value = size;
     let unitIndex = 0;
     while (value >= 1024 && unitIndex < units.length - 1) {
@@ -106,18 +142,28 @@ export function SearchResults({
 
   if (results.totalCount === 0) {
     return (
-      <div className={`bg-white border border-gray-200 rounded-lg p-8 text-center ${className}`}>
+      <div
+        className={`bg-white border border-gray-200 rounded-lg p-8 text-center ${className}`}
+      >
         <div className="text-gray-400 mb-4">
-          <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          <svg
+            className="w-16 h-16 mx-auto"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
           </svg>
         </div>
         <h3 className="text-lg font-medium text-gray-900 mb-2">
           検索結果が見つかりませんでした
         </h3>
-        <p className="text-gray-600">
-          検索条件を変更して再度お試しください。
-        </p>
+        <p className="text-gray-600">検索条件を変更して再度お試しください。</p>
       </div>
     );
   }
@@ -128,44 +174,62 @@ export function SearchResults({
       <div className="border-b border-gray-200 p-4">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">
-              検索結果
-            </h3>
+            <h3 className="text-lg font-semibold text-gray-900">検索結果</h3>
             <p className="text-sm text-gray-600">
               {results.totalCount}件の結果が見つかりました
-              {results.hasMore && ' (さらに結果があります)'}
+              {results.hasMore && " (さらに結果があります)"}
             </p>
           </div>
-          
+
           {/* 表示モード切り替え（PC版のみ） */}
-          {deviceInfo?.type !== 'mobile' && (
+          {deviceInfo?.type !== "mobile" && (
             <div className="flex items-center space-x-2">
               <button
-                onClick={() => setViewMode('grid')}
+                onClick={() => setViewMode("grid")}
                 type="button"
                 className={`p-2 rounded-md ${
-                  viewMode === 'grid' 
-                    ? 'bg-blue-100 text-blue-600' 
-                    : 'text-gray-400 hover:text-gray-600'
+                  viewMode === "grid"
+                    ? "bg-blue-100 text-blue-600"
+                    : "text-gray-400 hover:text-gray-600"
                 }`}
                 title="グリッド表示"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+                  />
                 </svg>
               </button>
               <button
-                onClick={() => setViewMode('list')}
+                onClick={() => setViewMode("list")}
                 type="button"
                 className={`p-2 rounded-md ${
-                  viewMode === 'list' 
-                    ? 'bg-blue-100 text-blue-600' 
-                    : 'text-gray-400 hover:text-gray-600'
+                  viewMode === "list"
+                    ? "bg-blue-100 text-blue-600"
+                    : "text-gray-400 hover:text-gray-600"
                 }`}
                 title="リスト表示"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
                 </svg>
               </button>
             </div>
@@ -178,7 +242,9 @@ export function SearchResults({
             <label className="text-sm text-gray-600">並び順:</label>
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as 'relevance' | 'date' | 'type')}
+              onChange={(e) =>
+                setSortBy(e.target.value as "relevance" | "date" | "type")
+              }
               className="text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="relevance">関連度</option>
@@ -191,12 +257,14 @@ export function SearchResults({
 
       {/* 検索結果一覧 */}
       <div className="p-4">
-        {viewMode === 'grid' ? (
-          <div className={`grid gap-4 ${
-            deviceInfo?.type === 'mobile' 
-              ? 'grid-cols-1' 
-              : 'grid-cols-2 lg:grid-cols-3'
-          }`}>
+        {viewMode === "grid" ? (
+          <div
+            className={`grid gap-4 ${
+              deviceInfo?.type === "mobile"
+                ? "grid-cols-1"
+                : "grid-cols-2 lg:grid-cols-3"
+            }`}
+          >
             {sortedResults.map((item) => (
               <SearchResultCard
                 key={item.id}
@@ -242,7 +310,7 @@ export function SearchResults({
                   読み込み中...
                 </>
               ) : (
-                'さらに読み込む'
+                "さらに読み込む"
               )}
             </button>
           </div>
@@ -283,14 +351,14 @@ function SearchResultCard({
       <div className="flex items-center space-x-2 mb-3">
         {getItemTypeIcon(item.type)}
         <span className="text-sm font-medium text-gray-700 capitalize">
-          {item.type === 'image' && '画像'}
-          {item.type === 'sticky_note' && '付箋'}
-          {item.type === 'group' && 'グループ'}
+          {item.type === "image" && "画像"}
+          {item.type === "sticky_note" && "付箋"}
+          {item.type === "group" && "グループ"}
         </span>
       </div>
 
       {/* 画像プレビュー */}
-      {item.type === 'image' && item.imageUrl && (
+      {item.type === "image" && item.imageUrl && (
         <div className="mb-3">
           <Image
             src={item.imageUrl}
@@ -325,13 +393,20 @@ function SearchResultCard({
           </div>
         )}
         {item.metadata?.userId && (
-          <div>ユーザーID: {highlightText(item.metadata.userId, searchQuery)}</div>
+          <div>
+            ユーザーID: {highlightText(item.metadata.userId, searchQuery)}
+          </div>
         )}
         {item.metadata?.userDisplayName && (
-          <div>ユーザー名: {highlightText(item.metadata.userDisplayName, searchQuery)}</div>
+          <div>
+            ユーザー名:{" "}
+            {highlightText(item.metadata.userDisplayName, searchQuery)}
+          </div>
         )}
         {item.metadata?.uploaderName && (
-          <div>送信者: {highlightText(item.metadata.uploaderName, searchQuery)}</div>
+          <div>
+            送信者: {highlightText(item.metadata.uploaderName, searchQuery)}
+          </div>
         )}
         {item.metadata?.fileName && (
           <div>ファイル: {item.metadata.fileName}</div>
@@ -343,9 +418,7 @@ function SearchResultCard({
           const formattedSize = formatFileSize(item.metadata?.fileSize);
           return formattedSize ? <div>サイズ: {formattedSize}</div> : null;
         })()}
-        {item.metadata?.mimeType && (
-          <div>MIME: {item.metadata.mimeType}</div>
-        )}
+        {item.metadata?.mimeType && <div>MIME: {item.metadata.mimeType}</div>}
         <div>アップロード: {formatDate(item.metadata?.uploadedAt)}</div>
       </div>
     </div>
@@ -381,7 +454,7 @@ function SearchResultListItem({
     >
       {/* アイコンとプレビュー */}
       <div className="flex-shrink-0">
-        {item.type === 'image' && item.imageUrl ? (
+        {item.type === "image" && item.imageUrl ? (
           <Image
             src={item.imageUrl}
             alt="検索結果画像"
@@ -400,9 +473,9 @@ function SearchResultListItem({
       <div className="flex-1 min-w-0">
         <div className="flex items-center space-x-2 mb-2">
           <span className="text-sm font-medium text-gray-700">
-            {item.type === 'image' && '画像'}
-            {item.type === 'sticky_note' && '付箋'}
-            {item.type === 'group' && 'グループ'}
+            {item.type === "image" && "画像"}
+            {item.type === "sticky_note" && "付箋"}
+            {item.type === "group" && "グループ"}
           </span>
           <span className="text-xs text-gray-500">
             {formatDate(item.metadata?.uploadedAt)}
@@ -428,13 +501,20 @@ function SearchResultListItem({
             </span>
           )}
           {item.metadata?.userId && (
-            <span>ユーザーID: {highlightText(item.metadata.userId, searchQuery)}</span>
+            <span>
+              ユーザーID: {highlightText(item.metadata.userId, searchQuery)}
+            </span>
           )}
           {item.metadata?.userDisplayName && (
-            <span>ユーザー名: {highlightText(item.metadata.userDisplayName, searchQuery)}</span>
+            <span>
+              ユーザー名:{" "}
+              {highlightText(item.metadata.userDisplayName, searchQuery)}
+            </span>
           )}
           {item.metadata?.uploaderName && (
-            <span>送信者: {highlightText(item.metadata.uploaderName, searchQuery)}</span>
+            <span>
+              送信者: {highlightText(item.metadata.uploaderName, searchQuery)}
+            </span>
           )}
           {item.metadata?.fileName && (
             <span>ファイル: {item.metadata.fileName}</span>

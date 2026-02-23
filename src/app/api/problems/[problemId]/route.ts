@@ -1,18 +1,21 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { ProblemDetailResponse } from '@/types';
-import { ErrorHandler, logError } from '@/utils/errorHandler';
-import { loadProblemAccessContext } from '@/utils/problemProgress';
+import { NextRequest, NextResponse } from "next/server";
+import { ProblemDetailResponse } from "@/types";
+import { ErrorHandler, logError } from "@/utils/errorHandler";
+import { loadProblemAccessContext } from "@/utils/problemProgress";
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ problemId: string }> }
+  { params }: { params: Promise<{ problemId: string }> },
 ) {
   try {
     const { problemId } = await params;
     if (!problemId) {
       return NextResponse.json(
-        { error: 'INVALID_PROBLEM_ID', message: '問題IDが指定されていません。' },
-        { status: 400 }
+        {
+          error: "INVALID_PROBLEM_ID",
+          message: "問題IDが指定されていません。",
+        },
+        { status: 400 },
       );
     }
 
@@ -20,8 +23,11 @@ export async function GET(
 
     if (!context) {
       return NextResponse.json(
-        { error: 'PROBLEM_NOT_FOUND', message: '指定された問題が見つかりません。' },
-        { status: 404 }
+        {
+          error: "PROBLEM_NOT_FOUND",
+          message: "指定された問題が見つかりません。",
+        },
+        { status: 404 },
       );
     }
 
@@ -38,7 +44,7 @@ export async function GET(
       contentUrl: problem.contentUrl ?? undefined,
       miroBoardId:
         isUploadUnlocked || isBoardUnlocked
-          ? problem.miroBoardId ?? undefined
+          ? (problem.miroBoardId ?? undefined)
           : undefined,
       isUploadUnlocked,
       isBoardUnlocked,
@@ -53,11 +59,11 @@ export async function GET(
 
     return NextResponse.json(response);
   } catch (error) {
-    logError(error as Error, 'GET /api/problems/[problemId]');
+    logError(error as Error, "GET /api/problems/[problemId]");
     const userError = ErrorHandler.handleGenericError(error);
     return NextResponse.json(
-      { error: 'PROBLEM_DETAIL_FAILED', message: userError.message },
-      { status: 500 }
+      { error: "PROBLEM_DETAIL_FAILED", message: userError.message },
+      { status: 500 },
     );
   }
 }

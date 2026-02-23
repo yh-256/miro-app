@@ -1,7 +1,7 @@
-import 'server-only';
-import { config } from './config';
-import { ErrorHandler, logError } from './errorHandler';
-import { UserFriendlyError } from '@/types';
+import "server-only";
+import { config } from "./config";
+import { ErrorHandler, logError } from "./errorHandler";
+import { UserFriendlyError } from "@/types";
 
 // Miro API レスポンス型定義
 export interface MiroBoardInfo {
@@ -26,25 +26,25 @@ export interface MiroItemBase {
 }
 
 export interface MiroImageItem extends MiroItemBase {
-  type: 'image';
+  type: "image";
   url: string;
   geometry: { width: number; height: number };
 }
 
 export interface MiroStickyNote extends MiroItemBase {
-  type: 'sticky_note';
+  type: "sticky_note";
   data: {
     content: string;
-    shape?: 'square' | 'rectangle';
+    shape?: "square" | "rectangle";
   };
   style: {
     fillColor: string;
-    textAlign: 'left' | 'center' | 'right';
+    textAlign: "left" | "center" | "right";
   };
 }
 
 export interface MiroGroup extends MiroItemBase {
-  type: 'group';
+  type: "group";
   childrenIds: string[];
 }
 
@@ -54,12 +54,12 @@ export type MiroItem = MiroImageItem | MiroStickyNote | MiroGroup;
  * グループのバウンディングボックス情報
  */
 export interface BoundingBox {
-  x: number;        // 左端X座標
-  y: number;        // 上端Y座標
-  width: number;    // 幅
-  height: number;   // 高さ
-  right: number;    // 右端X座標 (x + width)
-  bottom: number;   // 下端Y座標 (y + height)
+  x: number; // 左端X座標
+  y: number; // 上端Y座標
+  width: number; // 幅
+  height: number; // 高さ
+  right: number; // 右端X座標 (x + width)
+  bottom: number; // 下端Y座標 (y + height)
 }
 
 /**
@@ -75,28 +75,42 @@ export interface IMiroClient {
     options?: {
       position?: { x: number; y: number };
       geometry?: { width: number; height: number };
-    }
+    },
   ): Promise<MiroImageItem>;
   createStickyNote(
     boardId: string,
     content: string,
     position: { x: number; y: number },
-    style?: { fillColor?: string; textAlign?: 'left' | 'center' | 'right' },
-    options?: { geometry?: { width: number; height: number } }
+    style?: { fillColor?: string; textAlign?: "left" | "center" | "right" },
+    options?: { geometry?: { width: number; height: number } },
   ): Promise<MiroStickyNote>;
   patchItem(
     boardId: string,
     itemId: string,
     body: {
-      position?: { x: number; y: number; origin?: 'center' };
+      position?: { x: number; y: number; origin?: "center" };
       parent?: { id: string };
       geometry?: { width?: number; height?: number };
-    }
+    },
   ): Promise<void>;
-  createGroup(boardId: string, payload: { data: { items: string[] } }): Promise<MiroGroup>;
-  searchItems(boardId: string, query?: string, type?: string): Promise<MiroItem[]>;
-  getAllItems(boardId: string, type?: string, limit?: number): Promise<MiroItem[]>;
-  getGroupBoundingBox(boardId: string, groupId: string): Promise<BoundingBox | null>;
+  createGroup(
+    boardId: string,
+    payload: { data: { items: string[] } },
+  ): Promise<MiroGroup>;
+  searchItems(
+    boardId: string,
+    query?: string,
+    type?: string,
+  ): Promise<MiroItem[]>;
+  getAllItems(
+    boardId: string,
+    type?: string,
+    limit?: number,
+  ): Promise<MiroItem[]>;
+  getGroupBoundingBox(
+    boardId: string,
+    groupId: string,
+  ): Promise<BoundingBox | null>;
   refreshAccessToken(refreshToken?: string): Promise<string>;
 }
 
@@ -105,7 +119,7 @@ export interface IMiroClient {
  */
 export class MiroApiClient implements IMiroClient {
   private accessToken: string;
-  private baseUrl = 'https://api.miro.com/v2';
+  private baseUrl = "https://api.miro.com/v2";
 
   static readonly DEFAULT_IMAGE_SIZE = 400;
 
@@ -116,10 +130,7 @@ export class MiroApiClient implements IMiroClient {
   /**
    * 共通のHTTPリクエスト処理（パブリック版）
    */
-  async request<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
+  async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     return this.makeRequest<T>(endpoint, options);
   }
 
@@ -128,13 +139,13 @@ export class MiroApiClient implements IMiroClient {
    */
   private async makeRequest<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
-    
+
     const defaultHeaders = {
-      'Authorization': `Bearer ${this.accessToken}`,
-      'Content-Type': 'application/json',
+      Authorization: `Bearer ${this.accessToken}`,
+      "Content-Type": "application/json",
     };
 
     const requestOptions: RequestInit = {
@@ -147,7 +158,7 @@ export class MiroApiClient implements IMiroClient {
 
     try {
       const response = await fetch(url, requestOptions);
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         const error = {
@@ -157,22 +168,25 @@ export class MiroApiClient implements IMiroClient {
           },
           message: errorData.message || response.statusText,
         };
-        
+
         // エラーの詳細をログ出力（可観測性向上）
-        console.error('Miro API Error:', {
+        console.error("Miro API Error:", {
           url,
-          method: requestOptions.method || 'GET',
+          method: requestOptions.method || "GET",
           status: response.status,
-          errorData: JSON.stringify(errorData, null, 2)
+          errorData: JSON.stringify(errorData, null, 2),
         });
-        
+
         throw error;
       }
 
       const data = await response.json();
       return data;
     } catch (error: unknown) {
-      logError(error instanceof Error ? error : new Error(String(error)), `MiroApiClient.request ${endpoint}`);
+      logError(
+        error instanceof Error ? error : new Error(String(error)),
+        `MiroApiClient.request ${endpoint}`,
+      );
       throw ErrorHandler.handleMiroApiError(error);
     }
   }
@@ -182,10 +196,12 @@ export class MiroApiClient implements IMiroClient {
    */
   async getBoards(limit: number = 20): Promise<MiroBoardInfo[]> {
     try {
-      const response = await this.makeRequest<{ data: MiroBoardInfo[] }>(`/boards?limit=${limit}`);
+      const response = await this.makeRequest<{ data: MiroBoardInfo[] }>(
+        `/boards?limit=${limit}`,
+      );
       return response.data || [];
     } catch (error) {
-      logError(error as Error, 'MiroApiClient.getBoards');
+      logError(error as Error, "MiroApiClient.getBoards");
       throw error;
     }
   }
@@ -197,7 +213,7 @@ export class MiroApiClient implements IMiroClient {
     try {
       return await this.makeRequest<MiroBoardInfo>(`/boards/${boardId}`);
     } catch (error) {
-      logError(error as Error, 'MiroApiClient.getBoard');
+      logError(error as Error, "MiroApiClient.getBoard");
       throw error;
     }
   }
@@ -211,7 +227,7 @@ export class MiroApiClient implements IMiroClient {
     options: {
       position?: { x: number; y: number };
       geometry?: { width: number; height: number };
-    } = {}
+    } = {},
   ): Promise<MiroImageItem> {
     try {
       const position = options.position ?? { x: 0, y: 0 };
@@ -221,16 +237,16 @@ export class MiroApiClient implements IMiroClient {
       };
 
       const formData = new FormData();
-      formData.append('resource', imageFile);
-      formData.append('position.x', String(position.x));
-      formData.append('position.y', String(position.y));
-      formData.append('geometry.width', String(geometry.width));
-      formData.append('geometry.height', String(geometry.height));
+      formData.append("resource", imageFile);
+      formData.append("position.x", String(position.x));
+      formData.append("position.y", String(position.y));
+      formData.append("geometry.width", String(geometry.width));
+      formData.append("geometry.height", String(geometry.height));
 
       const response = await fetch(`${this.baseUrl}/boards/${boardId}/images`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${this.accessToken}`,
+          Authorization: `Bearer ${this.accessToken}`,
         },
         body: formData,
       });
@@ -247,7 +263,7 @@ export class MiroApiClient implements IMiroClient {
 
       return await response.json();
     } catch (error) {
-      logError(error as Error, 'MiroApiClient.uploadImage');
+      logError(error as Error, "MiroApiClient.uploadImage");
       throw ErrorHandler.handleMiroApiError(error);
     }
   }
@@ -261,61 +277,73 @@ export class MiroApiClient implements IMiroClient {
     position: { x: number; y: number },
     style: {
       fillColor?: string;
-      textAlign?: 'left' | 'center' | 'right';
+      textAlign?: "left" | "center" | "right";
     } = {},
-    options: { geometry?: { width?: number; height?: number } } = {}
+    options: { geometry?: { width?: number; height?: number } } = {},
   ): Promise<MiroStickyNote> {
     try {
       // コンテンツを簡易HTMLに変換（改行を<br/>に）
-      const contentHtml = content.replace(/\n/g, '<br/>');
-      
+      const contentHtml = content.replace(/\n/g, "<br/>");
+
       // 色名を正規化
       const normalizedColor = this.normalizeStickyFillColor(style.fillColor);
 
       const data = {
         data: {
           content: contentHtml,
-          shape: 'square' as const,
+          shape: "square" as const,
         },
         style: {
           fillColor: normalizedColor,
-          textAlign: style.textAlign || 'left',
+          textAlign: style.textAlign || "left",
         },
         position: {
           x: position.x,
           y: position.y,
-          origin: 'center' as const,
+          origin: "center" as const,
         },
         ...(options.geometry
           ? {
               geometry: {
-                ...(typeof options.geometry.width === 'number' ? { width: options.geometry.width } : {}),
-                ...(typeof options.geometry.height === 'number' ? { height: options.geometry.height } : {}),
+                ...(typeof options.geometry.width === "number"
+                  ? { width: options.geometry.width }
+                  : {}),
+                ...(typeof options.geometry.height === "number"
+                  ? { height: options.geometry.height }
+                  : {}),
               },
             }
           : {}),
       };
 
       // デバッグ用ログ
-      console.log('Creating sticky note with data:', JSON.stringify(data, null, 2));
+      console.log(
+        "Creating sticky note with data:",
+        JSON.stringify(data, null, 2),
+      );
 
-      return await this.makeRequest<MiroStickyNote>(`/boards/${boardId}/sticky_notes`, {
-        method: 'POST',
-        body: JSON.stringify(data),
-      });
+      return await this.makeRequest<MiroStickyNote>(
+        `/boards/${boardId}/sticky_notes`,
+        {
+          method: "POST",
+          body: JSON.stringify(data),
+        },
+      );
     } catch (error) {
-      logError(error as Error, 'MiroApiClient.createStickyNote');
-      
+      logError(error as Error, "MiroApiClient.createStickyNote");
+
       // エラーの詳細情報をログ出力
-      if (error && typeof error === 'object' && 'response' in error) {
-        const response = (error as { response: { status: number; data: unknown } }).response;
-        console.error('Sticky note creation failed:', {
+      if (error && typeof error === "object" && "response" in error) {
+        const response = (
+          error as { response: { status: number; data: unknown } }
+        ).response;
+        console.error("Sticky note creation failed:", {
           status: response.status,
           data: JSON.stringify(response.data, null, 2),
-          requestData: { boardId, content, position, style }
+          requestData: { boardId, content, position, style },
         });
       }
-      
+
       throw error;
     }
   }
@@ -324,42 +352,57 @@ export class MiroApiClient implements IMiroClient {
    * Miro API v2で許可されている付箋の色名
    */
   private readonly ALLOWED_STICKY_COLORS: readonly string[] = [
-    'gray', 'light_yellow', 'yellow', 'orange', 'light_green', 'green', 'dark_green',
-    'cyan', 'light_pink', 'pink', 'violet', 'red', 'light_blue', 'blue', 'dark_blue', 'black'
+    "gray",
+    "light_yellow",
+    "yellow",
+    "orange",
+    "light_green",
+    "green",
+    "dark_green",
+    "cyan",
+    "light_pink",
+    "pink",
+    "violet",
+    "red",
+    "light_blue",
+    "blue",
+    "dark_blue",
+    "black",
   ];
 
   /**
    * 色名のエイリアス（互換性のため）
    */
   private readonly COLOR_ALIASES: Record<string, string> = {
-    'purple': 'violet',
-    'light_purple': 'violet',
-    'light_orange': 'orange',
+    purple: "violet",
+    light_purple: "violet",
+    light_orange: "orange",
   };
 
   /**
    * 付箋の色名を正規化（Miro API v2準拠）
    */
   private normalizeStickyFillColor(input?: string): string {
-    if (!input) return 'light_yellow';
-    
+    if (!input) return "light_yellow";
+
     const normalized = input.trim().toLowerCase();
-    
+
     // 正規の色名ならそのまま使用
     if (this.ALLOWED_STICKY_COLORS.includes(normalized)) {
       return normalized;
     }
-    
+
     // エイリアスがあれば変換
     if (this.COLOR_ALIASES[normalized]) {
       return this.COLOR_ALIASES[normalized];
     }
-    
-    // 不明な色はデフォルトにフォールバック
-    console.warn(`Unknown sticky note color "${input}", falling back to light_yellow`);
-    return 'light_yellow';
-  }
 
+    // 不明な色はデフォルトにフォールバック
+    console.warn(
+      `Unknown sticky note color "${input}", falling back to light_yellow`,
+    );
+    return "light_yellow";
+  }
 
   /**
    * アイテムの位置・親フレーム更新（Miro API v2準拠）
@@ -368,18 +411,18 @@ export class MiroApiClient implements IMiroClient {
     boardId: string,
     itemId: string,
     body: {
-      position?: { x: number; y: number; origin?: 'center' };
+      position?: { x: number; y: number; origin?: "center" };
       parent?: { id: string };
       geometry?: { width?: number; height?: number };
-    }
+    },
   ): Promise<void> {
     try {
       await this.makeRequest(`/boards/${boardId}/items/${itemId}`, {
-        method: 'PATCH',
+        method: "PATCH",
         body: JSON.stringify(body),
       });
     } catch (error) {
-      logError(error as Error, 'MiroApiClient.patchItem');
+      logError(error as Error, "MiroApiClient.patchItem");
       throw error;
     }
   }
@@ -389,29 +432,34 @@ export class MiroApiClient implements IMiroClient {
    */
   async createGroup(
     boardId: string,
-    payload: { data: { items: string[] } }
+    payload: { data: { items: string[] } },
   ): Promise<MiroGroup> {
     try {
       // デバッグ用ログ（送信直前）
-      console.log('[MiroClient] Creating group with payload:', JSON.stringify(payload, null, 2));
+      console.log(
+        "[MiroClient] Creating group with payload:",
+        JSON.stringify(payload, null, 2),
+      );
 
       return await this.makeRequest<MiroGroup>(`/boards/${boardId}/groups`, {
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify(payload),
       });
     } catch (error) {
-      logError(error as Error, 'MiroApiClient.createGroup');
-      
+      logError(error as Error, "MiroApiClient.createGroup");
+
       // エラーの詳細情報をJSON形式でログ出力
-      if (error && typeof error === 'object' && 'response' in error) {
-        const response = (error as { response: { status: number; data: unknown } }).response;
-        console.error('Group creation failed:', {
+      if (error && typeof error === "object" && "response" in error) {
+        const response = (
+          error as { response: { status: number; data: unknown } }
+        ).response;
+        console.error("Group creation failed:", {
           status: response.status,
           data: JSON.stringify(response.data, null, 2),
-          requestPayload: payload
+          requestPayload: payload,
         });
       }
-      
+
       throw error;
     }
   }
@@ -422,11 +470,11 @@ export class MiroApiClient implements IMiroClient {
   async searchItems(
     boardId: string,
     query?: string,
-    type?: string
+    type?: string,
   ): Promise<MiroItem[]> {
     try {
       let endpoint = `/boards/${boardId}/items?limit=50`;
-      
+
       if (type) {
         endpoint += `&type=${type}`;
       }
@@ -434,7 +482,7 @@ export class MiroApiClient implements IMiroClient {
       const response = await this.makeRequest<{ data: MiroItem[] }>(endpoint);
       return response.data || [];
     } catch (error) {
-      logError(error as Error, 'MiroApiClient.searchItems');
+      logError(error as Error, "MiroApiClient.searchItems");
       throw error;
     }
   }
@@ -446,7 +494,7 @@ export class MiroApiClient implements IMiroClient {
   async getAllItems(
     boardId: string,
     type?: string,
-    limit: number = 50
+    limit: number = 50,
   ): Promise<MiroItem[]> {
     const allItems: MiroItem[] = [];
     let cursor: string | undefined;
@@ -455,29 +503,29 @@ export class MiroApiClient implements IMiroClient {
     try {
       while (hasMore) {
         let endpoint = `/boards/${boardId}/items?limit=${limit}`;
-        
+
         if (type) {
           endpoint += `&type=${type}`;
         }
-        
+
         if (cursor) {
           endpoint += `&cursor=${cursor}`;
         }
 
-        const response = await this.makeRequest<{ 
-          data: MiroItem[]; 
+        const response = await this.makeRequest<{
+          data: MiroItem[];
           cursor?: string;
         }>(endpoint);
-        
+
         allItems.push(...(response.data || []));
-        
+
         cursor = response.cursor;
         hasMore = !!cursor;
       }
 
       return allItems;
     } catch (error) {
-      logError(error as Error, 'MiroApiClient.getAllItems');
+      logError(error as Error, "MiroApiClient.getAllItems");
       throw error;
     }
   }
@@ -487,12 +535,14 @@ export class MiroApiClient implements IMiroClient {
    */
   async getGroupBoundingBox(
     boardId: string,
-    groupId: string
+    groupId: string,
   ): Promise<BoundingBox | null> {
     try {
-      const group = await this.makeRequest<MiroGroup>(`/boards/${boardId}/items/${groupId}`);
-      
-      if (!group || group.type !== 'group') {
+      const group = await this.makeRequest<MiroGroup>(
+        `/boards/${boardId}/items/${groupId}`,
+      );
+
+      if (!group || group.type !== "group") {
         return null;
       }
 
@@ -507,11 +557,15 @@ export class MiroApiClient implements IMiroClient {
 
       for (const childId of group.childrenIds) {
         try {
-          const child = await this.makeRequest<MiroItem>(`/boards/${boardId}/items/${childId}`);
-          
-          const childWidth = ('geometry' in child && child.geometry) ? child.geometry.width : 100;
-          const childHeight = ('geometry' in child && child.geometry) ? child.geometry.height : 100;
-          
+          const child = await this.makeRequest<MiroItem>(
+            `/boards/${boardId}/items/${childId}`,
+          );
+
+          const childWidth =
+            "geometry" in child && child.geometry ? child.geometry.width : 100;
+          const childHeight =
+            "geometry" in child && child.geometry ? child.geometry.height : 100;
+
           const left = child.position.x - childWidth / 2;
           const right = child.position.x + childWidth / 2;
           const top = child.position.y - childHeight / 2;
@@ -542,7 +596,7 @@ export class MiroApiClient implements IMiroClient {
         bottom: maxY,
       };
     } catch (error) {
-      logError(error as Error, 'MiroApiClient.getGroupBoundingBox');
+      logError(error as Error, "MiroApiClient.getGroupBoundingBox");
       return null;
     }
   }
@@ -552,19 +606,19 @@ export class MiroApiClient implements IMiroClient {
    */
   async refreshAccessToken(refreshToken?: string): Promise<string> {
     const token = refreshToken || config.miro.refreshToken;
-    
+
     if (!token) {
-      throw new UserFriendlyError('リフレッシュトークンが設定されていません。');
+      throw new UserFriendlyError("リフレッシュトークンが設定されていません。");
     }
 
     try {
-      const response = await fetch('https://api.miro.com/v1/oauth/token', {
-        method: 'POST',
+      const response = await fetch("https://api.miro.com/v1/oauth/token", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          "Content-Type": "application/x-www-form-urlencoded",
         },
         body: new URLSearchParams({
-          grant_type: 'refresh_token',
+          grant_type: "refresh_token",
           client_id: config.miro.clientId,
           client_secret: config.miro.clientSecret,
           refresh_token: token,
@@ -572,16 +626,18 @@ export class MiroApiClient implements IMiroClient {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to refresh access token');
+        throw new Error("Failed to refresh access token");
       }
 
       const data = await response.json();
       this.accessToken = data.access_token;
-      
+
       return data.access_token;
     } catch (error) {
-      logError(error as Error, 'MiroApiClient.refreshAccessToken');
-      throw new UserFriendlyError('認証の更新に失敗しました。管理者にお問い合わせください。');
+      logError(error as Error, "MiroApiClient.refreshAccessToken");
+      throw new UserFriendlyError(
+        "認証の更新に失敗しました。管理者にお問い合わせください。",
+      );
     }
   }
 }

@@ -1,17 +1,20 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useState } from 'react';
-import { Layout } from '@/components/Layout';
-import { ResponsiveContainer } from '@/components/ResponsiveContainer';
-import { ProblemUploadSection } from '@/components/ProblemUploadSection';
-import { ProblemDetailResponse } from '@/types';
+import { useCallback, useEffect, useState } from "react";
+import { Layout } from "@/components/Layout";
+import { ResponsiveContainer } from "@/components/ResponsiveContainer";
+import { ProblemUploadSection } from "@/components/ProblemUploadSection";
+import { ProblemDetailResponse } from "@/types";
 
 interface UploadPageClientProps {
   problemIdFromQuery: string | null;
 }
 
-export function UploadPageClient({ problemIdFromQuery }: UploadPageClientProps) {
-  const [problemDetail, setProblemDetail] = useState<ProblemDetailResponse | null>(null);
+export function UploadPageClient({
+  problemIdFromQuery,
+}: UploadPageClientProps) {
+  const [problemDetail, setProblemDetail] =
+    useState<ProblemDetailResponse | null>(null);
   const [problemLoading, setProblemLoading] = useState(false);
   const [problemError, setProblemError] = useState<string | null>(null);
 
@@ -27,17 +30,19 @@ export function UploadPageClient({ problemIdFromQuery }: UploadPageClientProps) 
       setProblemError(null);
 
       const response = await fetch(`/api/problems/${problemIdFromQuery}`, {
-        cache: 'no-store',
+        cache: "no-store",
       });
       if (!response.ok) {
         const payload = await response.json().catch(() => ({}));
-        throw new Error(payload.message || '問題情報の取得に失敗しました。');
+        throw new Error(payload.message || "問題情報の取得に失敗しました。");
       }
       const payload = (await response.json()) as ProblemDetailResponse;
       setProblemDetail(payload);
     } catch (error) {
       setProblemError(
-        error instanceof Error ? error.message : '問題情報の取得に失敗しました。'
+        error instanceof Error
+          ? error.message
+          : "問題情報の取得に失敗しました。",
       );
     } finally {
       setProblemLoading(false);

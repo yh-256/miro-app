@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { UploadResponse } from '@/types';
+import { UploadResponse } from "@/types";
 
 /**
  * フロントエンド用アップロードサービス
@@ -44,12 +44,12 @@ export async function uploadImagesToMiro(
   images: ImageUploadData[],
   boardId: string,
   sessionId: string,
-  options?: UploadOptions
+  options?: UploadOptions,
 ): Promise<UploadResponse> {
   let onProgress: UploadProgressCallback | undefined;
   let problemId: string | undefined;
 
-  if (typeof options === 'function') {
+  if (typeof options === "function") {
     onProgress = options;
   } else if (options) {
     onProgress = options.onProgress;
@@ -57,14 +57,18 @@ export async function uploadImagesToMiro(
   }
 
   try {
-    onProgress?.('validating', 0, 'ファイルを検証しています...');
+    onProgress?.("validating", 0, "ファイルを検証しています...");
 
     // 1. 画像をBase64に変換
     const imageData = [];
     for (let i = 0; i < images.length; i++) {
       const image = images[i];
-      onProgress?.('validating', ((i + 1) / images.length) * 100, `${i + 1}/${images.length} ファイルを処理中...`);
-      
+      onProgress?.(
+        "validating",
+        ((i + 1) / images.length) * 100,
+        `${i + 1}/${images.length} ファイルを処理中...`,
+      );
+
       const base64Data = await fileToBase64(image.file);
       imageData.push({
         name: image.file.name,
@@ -73,14 +77,14 @@ export async function uploadImagesToMiro(
       });
     }
 
-    onProgress?.('uploading', 0, 'アップロードを開始しています...');
+    onProgress?.("uploading", 0, "アップロードを開始しています...");
 
     // 2. APIに送信
     const requestBody = {
       images: imageData,
       boardId,
       problemId,
-      metadata: images.map(image => ({
+      metadata: images.map((image) => ({
         userId: image.userDbId,
         userLoginId: image.userId,
         userDisplayName: image.userDisplayName ?? image.uploaderName,
@@ -89,10 +93,10 @@ export async function uploadImagesToMiro(
       })),
     };
 
-    const response = await fetch('/api/upload/images', {
-      method: 'POST',
+    const response = await fetch("/api/upload/images", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(requestBody),
     });
@@ -100,15 +104,15 @@ export async function uploadImagesToMiro(
     const result: UploadResponse = await response.json();
 
     if (!response.ok) {
-      throw new Error(result.message || 'アップロードに失敗しました。');
+      throw new Error(result.message || "アップロードに失敗しました。");
     }
 
-    onProgress?.('completed', 100, 'アップロードが完了しました！');
+    onProgress?.("completed", 100, "アップロードが完了しました！");
     return result;
-
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : '不明なエラーが発生しました。';
-    onProgress?.('error', 0, errorMessage);
+    const errorMessage =
+      error instanceof Error ? error.message : "不明なエラーが発生しました。";
+    onProgress?.("error", 0, errorMessage);
     throw error;
   }
 }
@@ -131,13 +135,13 @@ export function calculateTotalSize(files: File[]): number {
  * ファイルサイズを人間が読める形式に変換
  */
 export function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 Bytes';
+  if (bytes === 0) return "0 Bytes";
 
   const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const sizes = ["Bytes", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
 
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 }
 
 /**
@@ -145,19 +149,22 @@ export function formatFileSize(bytes: number): string {
  */
 export function canUpload(
   images: ImageUploadData[],
-  boardId: string
+  boardId: string,
 ): { canUpload: boolean; reason?: string } {
   if (images.length === 0) {
-    return { canUpload: false, reason: '画像が選択されていません。' };
+    return { canUpload: false, reason: "画像が選択されていません。" };
   }
 
   if (!boardId) {
-    return { canUpload: false, reason: 'ボードが選択されていません。' };
+    return { canUpload: false, reason: "ボードが選択されていません。" };
   }
 
-  const missingUsers = images.filter(img => !img.userId);
+  const missingUsers = images.filter((img) => !img.userId);
   if (missingUsers.length > 0) {
-    return { canUpload: false, reason: 'ユーザーIDを特定できない画像があります。' };
+    return {
+      canUpload: false,
+      reason: "ユーザーIDを特定できない画像があります。",
+    };
   }
 
   return { canUpload: true };
@@ -169,7 +176,7 @@ export function canUpload(
 export async function retryUpload<T>(
   uploadFn: () => Promise<T>,
   maxRetries: number = 3,
-  delay: number = 1000
+  delay: number = 1000,
 ): Promise<T> {
   let lastError: Error;
 
@@ -177,11 +184,11 @@ export async function retryUpload<T>(
     try {
       return await uploadFn();
     } catch (error) {
-      lastError = error instanceof Error ? error : new Error('Unknown error');
-      
+      lastError = error instanceof Error ? error : new Error("Unknown error");
+
       if (i < maxRetries - 1) {
         // 最後の試行でなければ待機
-        await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
+        await new Promise((resolve) => setTimeout(resolve, delay * (i + 1)));
       }
     }
   }
@@ -192,7 +199,10 @@ export async function retryUpload<T>(
 /**
  * アップロード状況の検証
  */
-export function validateUploadResult(result: UploadResponse, expectedCount: number): boolean {
+export function validateUploadResult(
+  result: UploadResponse,
+  expectedCount: number,
+): boolean {
   if (!result.success) {
     return false;
   }
@@ -202,8 +212,8 @@ export function validateUploadResult(result: UploadResponse, expectedCount: numb
   }
 
   // 各アイテムが必要なIDを持っているかチェック
-  return result.uploadedItems.every(item => 
-    item.imageId && item.stickyNoteId && item.groupId
+  return result.uploadedItems.every(
+    (item) => item.imageId && item.stickyNoteId && item.groupId,
   );
 }
 

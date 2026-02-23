@@ -1,24 +1,24 @@
-import type { ProblemProgressStatus } from '@/constants/problemStatus';
+import type { ProblemProgressStatus } from "@/constants/problemStatus";
 
 // アップロードセッション
 export interface UploadSession {
-  sessionId: string;    // セッション識別子
+  sessionId: string; // セッション識別子
   uploaderName?: string; // アップロード者名（任意）
-  timestamp: Date;      // アップロード日時
-  boardId: string;      // 送信先ボードID
+  timestamp: Date; // アップロード日時
+  boardId: string; // 送信先ボードID
   images: Array<{
-    tempId: string;     // 一時ID
-    userId: string;     // ユーザーID
+    tempId: string; // 一時ID
+    userId: string; // ユーザーID
     userDisplayName?: string; // ユーザー表示名
-    filename: string;   // ファイル名
-    mimeType: string;   // MIMEタイプ
+    filename: string; // ファイル名
+    mimeType: string; // MIMEタイプ
   }>;
 }
 
 // Miroアイテム関連付け
 export interface MiroItemGroup {
-  groupId: string;      // MiroグループID
-  imageId: string;      // Miro画像アイテムID
+  groupId: string; // MiroグループID
+  imageId: string; // Miro画像アイテムID
   stickyNoteId: string; // Miro付箋アイテムID
   metadata: {
     userId: string;
@@ -49,7 +49,7 @@ export interface UploadResponse {
     stickyNoteId: string;
     groupId: string;
   }>;
-  skippedItems?: Array<{ fileName: string; reason: string; }>; // スキップされたアイテム情報
+  skippedItems?: Array<{ fileName: string; reason: string }>; // スキップされたアイテム情報
   error?: string;
   message?: string;
 }
@@ -58,7 +58,7 @@ export interface UploadResponse {
 export interface ProgressStep {
   id: string;
   label: string;
-  status: 'pending' | 'in_progress' | 'completed' | 'error';
+  status: "pending" | "in_progress" | "completed" | "error";
   progress?: number;
   message?: string;
 }
@@ -164,13 +164,13 @@ export interface UserListResponse {
 export class UserFriendlyError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'UserFriendlyError';
+    this.name = "UserFriendlyError";
   }
 }
 
 export interface MiroApiError {
-  code: 'UNAUTHORIZED' | 'RATE_LIMITED' | 'BOARD_NOT_FOUND' | 'UNKNOWN';
+  code: "UNAUTHORIZED" | "RATE_LIMITED" | "BOARD_NOT_FOUND" | "UNKNOWN";
   message: string;
 }
 
-export type { ProblemProgressStatus } from '@/constants/problemStatus';
+export type { ProblemProgressStatus } from "@/constants/problemStatus";

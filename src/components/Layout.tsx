@@ -1,21 +1,26 @@
-'use client';
+"use client";
 
-import { ReactNode } from 'react';
-import { useDeviceDetection } from '@/utils/deviceDetection';
-import { ToastProvider } from './Toast';
-import { HomeButton } from './HomeButton';
+import { ReactNode } from "react";
+import { useDeviceDetection } from "@/utils/deviceDetection";
+import { ToastProvider } from "./Toast";
+import { HomeButton } from "./HomeButton";
 
 interface LayoutProps {
   children: ReactNode;
   title?: string;
 }
 
-export function Layout({ children, title = 'Miro Image Upload App' }: LayoutProps) {
+export function Layout({
+  children,
+  title = "Miro Image Upload App",
+}: LayoutProps) {
   const deviceInfo = useDeviceDetection();
 
   return (
     <ToastProvider>
-      <div className={`min-h-screen bg-gray-50 ${deviceInfo?.type === 'mobile' ? 'mobile-layout' : 'desktop-layout'}`}>
+      <div
+        className={`min-h-screen bg-gray-50 ${deviceInfo?.type === "mobile" ? "mobile-layout" : "desktop-layout"}`}
+      >
         {/* ヘッダー */}
         <header className="bg-white shadow-sm border-b border-gray-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -25,15 +30,16 @@ export function Layout({ children, title = 'Miro Image Upload App' }: LayoutProp
                   {title}
                 </h1>
               </div>
-              
+
               <div className="flex items-center gap-2 sm:gap-4">
                 {/* ホームボタン */}
                 <HomeButton variant="outline" size="sm" />
-                
+
                 {/* デバイス情報表示（開発用） */}
-                {process.env.NODE_ENV === 'development' && deviceInfo && (
+                {process.env.NODE_ENV === "development" && deviceInfo && (
                   <div className="text-xs text-gray-500 hidden sm:block">
-                    {deviceInfo.type} | {deviceInfo.screenWidth}×{deviceInfo.screenHeight}
+                    {deviceInfo.type} | {deviceInfo.screenWidth}×
+                    {deviceInfo.screenHeight}
                   </div>
                 )}
               </div>
@@ -42,9 +48,7 @@ export function Layout({ children, title = 'Miro Image Upload App' }: LayoutProp
         </header>
 
         {/* メインコンテンツ */}
-        <main className="flex-1">
-          {children}
-        </main>
+        <main className="flex-1">{children}</main>
 
         {/* フッター */}
         <footer className="bg-white border-t border-gray-200 mt-auto">

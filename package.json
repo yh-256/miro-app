@@ -20,7 +20,11 @@
     "prisma:backup": "bash prisma/scripts/backup.sh",
     "test:upload-bulk": "tsx scripts/test-upload-bulk.ts",
     "prisma:restore": "bash prisma/scripts/restore.sh",
-    "generate:secrets": "node scripts/generate-secrets.js"
+    "generate:secrets": "node scripts/generate-secrets.js",
+    "knip": "knip",
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,md}\"",
+    "check": "pnpm lint && pnpm type-check && pnpm test && pnpm knip"
   },
   "dependencies": {
     "@mirohq/websdk-types": "^2.16.1",

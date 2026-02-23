@@ -1,13 +1,13 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { UserListResponse } from '@/types';
-import { ErrorHandler, logError } from '@/utils/errorHandler';
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { UserListResponse } from "@/types";
+import { ErrorHandler, logError } from "@/utils/errorHandler";
 
 export async function GET() {
   try {
     const users = await prisma.user.findMany({
       where: { isActive: true },
-      orderBy: { userId: 'asc' },
+      orderBy: { userId: "asc" },
       select: {
         id: true,
         userId: true,
@@ -27,11 +27,11 @@ export async function GET() {
 
     return NextResponse.json(response);
   } catch (error) {
-    logError(error as Error, 'GET /api/users/list');
+    logError(error as Error, "GET /api/users/list");
     const userError = ErrorHandler.handleGenericError(error);
     return NextResponse.json(
-      { error: 'USER_LIST_FAILED', message: userError.message },
-      { status: 500 }
+      { error: "USER_LIST_FAILED", message: userError.message },
+      { status: 500 },
     );
   }
 }

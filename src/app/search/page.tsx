@@ -1,12 +1,16 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { Layout } from '@/components/Layout';
-import { SearchForm, SearchFormData } from '@/components/SearchForm';
-import { SearchResults } from '@/components/SearchResults';
-import { BoardSelector } from '@/components/BoardSelector';
-import { SearchResult, SearchResultItem, getSearchStats } from '@/utils/searchService.types';
+import { useState, useEffect, useCallback, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import { Layout } from "@/components/Layout";
+import { SearchForm, SearchFormData } from "@/components/SearchForm";
+import { SearchResults } from "@/components/SearchResults";
+import { BoardSelector } from "@/components/BoardSelector";
+import {
+  SearchResult,
+  SearchResultItem,
+  getSearchStats,
+} from "@/utils/searchService.types";
 
 interface Board {
   id: string;
@@ -20,81 +24,93 @@ function SearchPageContent() {
   const [searchResults, setSearchResults] = useState<SearchResult | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [restrictedCount, setRestrictedCount] = useState(0);
 
   const searchParams = useSearchParams();
 
+  const performSearch = useCallback(
+    async (searchData: SearchFormData, boardId?: string) => {
+      const targetBoardId = boardId || selectedBoard?.id;
 
-  const performSearch = useCallback(async (searchData: SearchFormData, boardId?: string) => {
-    const targetBoardId = boardId || selectedBoard?.id;
-    
-    if (!targetBoardId) {
-      setError('検索を実行するにはボードを選択してください。');
-      return;
-    }
-
-    setIsSearching(true);
-    setError(null);
-    setSearchQuery(searchData.query || searchData.userId || searchData.uploaderName || '');
-
-    try {
-      // 検索パラメータの構築
-      const params = new URLSearchParams({
-        boardId: targetBoardId,
-        searchType: searchData.searchType,
-      });
-
-      if (searchData.query) params.append('query', searchData.query);
-      if (searchData.userId) params.append('userId', searchData.userId);
-      if (searchData.uploaderName) params.append('uploaderName', searchData.uploaderName);
-      if (searchData.dateFrom) params.append('dateFrom', searchData.dateFrom);
-      if (searchData.dateTo) params.append('dateTo', searchData.dateTo);
-      if (searchData.itemTypes.length > 0) {
-        params.append('itemTypes', searchData.itemTypes.join(','));
+      if (!targetBoardId) {
+        setError("検索を実行するにはボードを選択してください。");
+        return;
       }
 
-      const response = await fetch(`/api/search?${params.toString()}`);
-      const data = await response.json();
+      setIsSearching(true);
+      setError(null);
+      setSearchQuery(
+        searchData.query || searchData.userId || searchData.uploaderName || "",
+      );
 
-      if (!response.ok) {
-        throw new Error(data.message || '検索に失敗しました。');
-      }
+      try {
+        // 検索パラメータの構築
+        const params = new URLSearchParams({
+          boardId: targetBoardId,
+          searchType: searchData.searchType,
+        });
 
-      if (data.success) {
-        const normalizedResults = normalizeSearchResults(data.results);
-        setSearchResults(normalizedResults);
-        setRestrictedCount(data.restrictedCount ?? 0);
-      } else {
-        throw new Error(data.message || '検索結果の取得に失敗しました。');
+        if (searchData.query) params.append("query", searchData.query);
+        if (searchData.userId) params.append("userId", searchData.userId);
+        if (searchData.uploaderName)
+          params.append("uploaderName", searchData.uploaderName);
+        if (searchData.dateFrom) params.append("dateFrom", searchData.dateFrom);
+        if (searchData.dateTo) params.append("dateTo", searchData.dateTo);
+        if (searchData.itemTypes.length > 0) {
+          params.append("itemTypes", searchData.itemTypes.join(","));
+        }
+
+        const response = await fetch(`/api/search?${params.toString()}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "検索に失敗しました。");
+        }
+
+        if (data.success) {
+          const normalizedResults = normalizeSearchResults(data.results);
+          setSearchResults(normalizedResults);
+          setRestrictedCount(data.restrictedCount ?? 0);
+        } else {
+          throw new Error(data.message || "検索結果の取得に失敗しました。");
+        }
+      } catch (error) {
+        console.error("Search error:", error);
+        setError(
+          error instanceof Error
+            ? error.message
+            : "検索中にエラーが発生しました。",
+        );
+        setSearchResults(null);
+        setRestrictedCount(0);
+      } finally {
+        setIsSearching(false);
       }
-    } catch (error) {
-      console.error('Search error:', error);
-      setError(error instanceof Error ? error.message : '検索中にエラーが発生しました。');
-      setSearchResults(null);
-      setRestrictedCount(0);
-    } finally {
-      setIsSearching(false);
-    }
-  }, [selectedBoard]);
+    },
+    [selectedBoard],
+  );
 
   // URLパラメータから初期検索条件を取得
   useEffect(() => {
-    const boardId = searchParams.get('boardId');
-    const initialQuery = searchParams.get('q');
-    
+    const boardId = searchParams.get("boardId");
+    const initialQuery = searchParams.get("q");
+
     if (boardId && initialQuery) {
       // URLパラメータから検索実行
-      performSearch({
-        query: initialQuery,
-        userId: '',
-        uploaderName: '',
-        searchType: 'general',
-        dateFrom: '',
-        dateTo: '',
-        itemTypes: [],
-      }, boardId);
+      performSearch(
+        {
+          query: initialQuery,
+          userId: "",
+          uploaderName: "",
+          searchType: "general",
+          dateFrom: "",
+          dateTo: "",
+          itemTypes: [],
+        },
+        boardId,
+      );
       setSearchQuery(initialQuery);
     }
   }, [searchParams, performSearch]);
@@ -105,7 +121,7 @@ function SearchPageContent() {
 
   const handleClearSearch = () => {
     setSearchResults(null);
-    setSearchQuery('');
+    setSearchQuery("");
     setError(null);
     setRestrictedCount(0);
   };
@@ -116,7 +132,7 @@ function SearchPageContent() {
     // Miroボードで該当アイテムを表示（新しいタブで開く）
     const boardUrl = `https://miro.com/app/board/${selectedBoard.id}/`;
     const itemUrl = `${boardUrl}?moveToWidget=${item.id}`;
-    window.open(itemUrl, '_blank', 'noopener,noreferrer');
+    window.open(itemUrl, "_blank", "noopener,noreferrer");
   };
 
   const handleLoadMore = async () => {
@@ -165,8 +181,18 @@ function SearchPageContent() {
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                 <div className="flex items-center">
-                  <svg className="w-5 h-5 text-red-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <svg
+                    className="w-5 h-5 text-red-400 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
                   </svg>
                   <span className="text-sm text-red-800">{error}</span>
                 </div>
@@ -178,8 +204,18 @@ function SearchPageContent() {
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
-                    <svg className="w-5 h-5 text-blue-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 002 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 002 2v4a2 2 0 01-2 2H9a2 2 0 01-2-2z" />
+                    <svg
+                      className="w-5 h-5 text-blue-400 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 002 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 002 2v4a2 2 0 01-2 2H9a2 2 0 01-2-2z"
+                      />
                     </svg>
                     <span className="text-sm font-medium text-blue-800">
                       検索統計
@@ -204,7 +240,8 @@ function SearchPageContent() {
 
             {restrictedCount > 0 && (
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-800">
-                権限のない問題に紐付くアイテム {restrictedCount} 件を結果から除外しました。
+                権限のない問題に紐付くアイテム {restrictedCount}{" "}
+                件を結果から除外しました。
               </div>
             )}
 
@@ -223,8 +260,18 @@ function SearchPageContent() {
             {!searchResults && !isSearching && !error && (
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
                 <div className="text-gray-400 mb-4">
-                  <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  <svg
+                    className="w-16 h-16 mx-auto"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
                   </svg>
                 </div>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -247,8 +294,18 @@ function SearchPageContent() {
         {!selectedBoard && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-8 text-center">
             <div className="text-yellow-400 mb-4">
-              <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.82 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              <svg
+                className="w-16 h-16 mx-auto"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.82 16.5c-.77.833.192 2.5 1.732 2.5z"
+                />
               </svg>
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -267,7 +324,7 @@ function SearchPageContent() {
 function normalizeSearchResults(results: SearchResult): SearchResult {
   return {
     ...results,
-    items: results.items.map(item => ({
+    items: results.items.map((item) => ({
       ...item,
       metadata: item.metadata
         ? {

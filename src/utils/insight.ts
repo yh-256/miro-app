@@ -1,4 +1,4 @@
-import { InsightSummary } from '@/types';
+import { InsightSummary } from "@/types";
 
 export function mapInsightToSummary(insight: {
   id: string;

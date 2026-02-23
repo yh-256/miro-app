@@ -1,14 +1,11 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ImageCapture } from '@/components/ImageCapture';
-import { BoardSelector } from '@/components/BoardSelector';
-import { UploadProgress, UPLOAD_STEPS } from '@/components/UploadProgress';
-import { ProgressStep, UserSummary, UserListResponse } from '@/types';
-import {
-  uploadImagesToMiro,
-  generateSessionId,
-} from '@/utils/uploadService';
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ImageCapture } from "@/components/ImageCapture";
+import { BoardSelector } from "@/components/BoardSelector";
+import { UploadProgress, UPLOAD_STEPS } from "@/components/UploadProgress";
+import { ProgressStep, UserSummary, UserListResponse } from "@/types";
+import { uploadImagesToMiro, generateSessionId } from "@/utils/uploadService";
 
 interface Board {
   id: string;
@@ -25,7 +22,7 @@ interface ImageMetadata {
   uploaderName?: string;
 }
 
-type UploadStep = 'capture' | 'user' | 'board' | 'upload';
+type UploadStep = "capture" | "user" | "board" | "upload";
 
 interface ProblemUploadSectionProps {
   problemId: string;
@@ -48,16 +45,16 @@ export function ProblemUploadSection({
   onUploadCompleted,
   lockBoardSelection = false,
 }: ProblemUploadSectionProps) {
-  const [currentStep, setCurrentStep] = useState<UploadStep>('capture');
+  const [currentStep, setCurrentStep] = useState<UploadStep>("capture");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [selectedBoard, setSelectedBoard] = useState<Board | null>(
     defaultBoardId
       ? {
           id: defaultBoardId,
-          name: defaultBoardName || '選択されたボード',
+          name: defaultBoardName || "選択されたボード",
           description: defaultBoardDescription,
         }
-      : null
+      : null,
   );
   const [sessionId, setSessionId] = useState(() => generateSessionId());
   const [isUploading, setIsUploading] = useState(false);
@@ -78,29 +75,32 @@ export function ProblemUploadSection({
   const [usersError, setUsersError] = useState<string | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const selectedUser = useMemo(
-    () => (selectedUserId ? userOptions.find((user) => user.id === selectedUserId) ?? null : null),
-    [selectedUserId, userOptions]
+    () =>
+      selectedUserId
+        ? (userOptions.find((user) => user.id === selectedUserId) ?? null)
+        : null,
+    [selectedUserId, userOptions],
   );
 
   const loadUsers = useCallback(async () => {
     setUsersLoading(true);
     setUsersError(null);
     try {
-      const response = await fetch('/api/users/list', { cache: 'no-store' });
+      const response = await fetch("/api/users/list", { cache: "no-store" });
       if (!response.ok) {
         const payload = await response.json().catch(() => ({}));
         throw new Error(
-          (payload && payload.message) || 'ユーザー一覧の取得に失敗しました。'
+          (payload && payload.message) || "ユーザー一覧の取得に失敗しました。",
         );
       }
       const data = (await response.json()) as UserListResponse;
       setUserOptions(data.users ?? []);
     } catch (error) {
-      console.error('Failed to fetch user list:', error);
+      console.error("Failed to fetch user list:", error);
       setUsersError(
         error instanceof Error
           ? error.message
-          : 'ユーザー一覧の取得に失敗しました。'
+          : "ユーザー一覧の取得に失敗しました。",
       );
       setUserOptions([]);
     } finally {
@@ -117,7 +117,7 @@ export function ProblemUploadSection({
       if (defaultBoardId) {
         setSelectedBoard({
           id: defaultBoardId,
-          name: defaultBoardName || '選択されたボード',
+          name: defaultBoardName || "選択されたボード",
           description: defaultBoardDescription,
         });
       } else {
@@ -154,15 +154,15 @@ export function ProblemUploadSection({
     Array<{ key: UploadStep; label: string; number: number }>
   >(() => {
     const steps: Array<{ key: UploadStep; label: string }> = [
-      { key: 'capture', label: '画像選択' },
-      { key: 'user', label: 'ユーザー選択' },
+      { key: "capture", label: "画像選択" },
+      { key: "user", label: "ユーザー選択" },
     ];
 
     if (boardStepEnabled) {
-      steps.push({ key: 'board', label: 'ボード選択' });
+      steps.push({ key: "board", label: "ボード選択" });
     }
 
-    steps.push({ key: 'upload', label: 'アップロード' });
+    steps.push({ key: "upload", label: "アップロード" });
 
     return steps.map((step, index) => ({
       ...step,
@@ -172,34 +172,34 @@ export function ProblemUploadSection({
 
   const goToNext = (e?: React.MouseEvent<HTMLButtonElement>) => {
     e?.preventDefault();
-    
+
     const currentIndex = stepper.findIndex((step) => step.key === currentStep);
     if (currentIndex === -1) {
       return;
     }
 
-    if (currentStep === 'capture' && !canProceedFromCapture) {
-      alert('アップロードする画像を選択してください。');
+    if (currentStep === "capture" && !canProceedFromCapture) {
+      alert("アップロードする画像を選択してください。");
       return;
     }
 
-    if (currentStep === 'user') {
+    if (currentStep === "user") {
       if (usersLoading) {
-        alert('ユーザー一覧を読み込み中です。');
+        alert("ユーザー一覧を読み込み中です。");
         return;
       }
       if (usersError) {
-        alert('ユーザー一覧の取得に失敗しました。再読み込みしてください。');
+        alert("ユーザー一覧の取得に失敗しました。再読み込みしてください。");
         return;
       }
       if (!selectedUser) {
-        alert('アップロードに使用するユーザーIDを選択してください。');
+        alert("アップロードに使用するユーザーIDを選択してください。");
         return;
       }
     }
 
-    if (currentStep === 'board' && boardStepEnabled && !selectedBoard) {
-      alert('送信先のボードを選択してください。');
+    if (currentStep === "board" && boardStepEnabled && !selectedBoard) {
+      alert("送信先のボードを選択してください。");
       return;
     }
 
@@ -209,15 +209,15 @@ export function ProblemUploadSection({
     }
 
     // ステップ変更前のスクロール位置を保存
-    const uploadSection = document.getElementById('upload-section');
+    const uploadSection = document.getElementById("upload-section");
     const scrollY = window.scrollY;
 
-    if (nextStep.key === 'upload') {
+    if (nextStep.key === "upload") {
       if (!canUpload) {
-        alert('アップロードを開始するには必要な項目を確認してください。');
+        alert("アップロードを開始するには必要な項目を確認してください。");
         return;
       }
-      setCurrentStep('upload');
+      setCurrentStep("upload");
       handleUpload();
     } else {
       setCurrentStep(nextStep.key);
@@ -228,14 +228,14 @@ export function ProblemUploadSection({
       if (uploadSection) {
         const rect = uploadSection.getBoundingClientRect();
         const absoluteTop = rect.top + scrollY;
-        window.scrollTo({ top: absoluteTop, behavior: 'instant' });
+        window.scrollTo({ top: absoluteTop, behavior: "instant" });
       }
     });
   };
 
   const goBack = (e?: React.MouseEvent<HTMLButtonElement>) => {
     e?.preventDefault();
-    
+
     const currentIndex = stepper.findIndex((step) => step.key === currentStep);
     if (currentIndex <= 0) {
       return;
@@ -262,7 +262,7 @@ export function ProblemUploadSection({
 
       const resetSteps = () =>
         setUploadSteps([
-          { ...UPLOAD_STEPS.VALIDATING, status: 'in_progress' },
+          { ...UPLOAD_STEPS.VALIDATING, status: "in_progress" },
           { ...UPLOAD_STEPS.UPLOADING_IMAGES },
           { ...UPLOAD_STEPS.CREATING_NOTES },
           { ...UPLOAD_STEPS.GROUPING },
@@ -274,56 +274,56 @@ export function ProblemUploadSection({
       const updateProgress = (
         step: string,
         progress: number,
-        message?: string
+        message?: string,
       ) => {
         setUploadSteps((prev) =>
           prev.map((stepItem) => {
             switch (step) {
-              case 'validating':
-                if (stepItem.id === 'validating') {
+              case "validating":
+                if (stepItem.id === "validating") {
                   return {
                     ...stepItem,
-                    status: progress === 100 ? 'completed' : 'in_progress',
+                    status: progress === 100 ? "completed" : "in_progress",
                     progress,
                     message: message || stepItem.message,
                   } as ProgressStep;
                 }
-                if (stepItem.id === 'uploading_images' && progress === 100) {
+                if (stepItem.id === "uploading_images" && progress === 100) {
                   return {
                     ...stepItem,
-                    status: 'in_progress',
+                    status: "in_progress",
                     progress: 0,
                   } as ProgressStep;
                 }
                 break;
-              case 'uploading':
-                if (stepItem.id === 'uploading_images') {
+              case "uploading":
+                if (stepItem.id === "uploading_images") {
                   return {
                     ...stepItem,
-                    status: 'in_progress',
+                    status: "in_progress",
                     progress,
                     message: message || stepItem.message,
                   } as ProgressStep;
                 }
                 break;
-              case 'completed':
-                if (stepItem.id === 'uploading_images') {
+              case "completed":
+                if (stepItem.id === "uploading_images") {
                   return {
                     ...stepItem,
-                    status: 'completed',
-                    message: message || 'アップロード完了',
+                    status: "completed",
+                    message: message || "アップロード完了",
                   } as ProgressStep;
                 }
                 if (
-                  stepItem.id === 'creating_notes' &&
-                  stepItem.status === 'pending'
+                  stepItem.id === "creating_notes" &&
+                  stepItem.status === "pending"
                 ) {
-                  return { ...stepItem, status: 'in_progress' } as ProgressStep;
+                  return { ...stepItem, status: "in_progress" } as ProgressStep;
                 }
                 break;
             }
             return stepItem;
-          })
+          }),
         );
       };
 
@@ -334,38 +334,38 @@ export function ProblemUploadSection({
         {
           onProgress: updateProgress,
           problemId,
-        }
+        },
       );
 
       setUploadSteps((prev) =>
         prev.map((step) => {
           switch (step.id) {
-            case 'creating_notes':
+            case "creating_notes":
               return {
                 ...step,
-                status: 'completed',
-                message: 'メタデータ付箋を作成しました',
+                status: "completed",
+                message: "メタデータ付箋を作成しました",
               } as ProgressStep;
-            case 'grouping':
-              return step.status === 'pending'
+            case "grouping":
+              return step.status === "pending"
                 ? {
                     ...step,
-                    status: 'completed',
-                    message: '画像と付箋をグループ化しました',
+                    status: "completed",
+                    message: "画像と付箋をグループ化しました",
                   }
                 : step;
-            case 'cleanup':
-              return step.status === 'pending'
+            case "cleanup":
+              return step.status === "pending"
                 ? {
                     ...step,
-                    status: 'completed',
-                    message: '処理が完了しました',
+                    status: "completed",
+                    message: "処理が完了しました",
                   }
                 : step;
             default:
               return step;
           }
-        })
+        }),
       );
 
       if (result.skippedItems && result.skippedItems.length > 0) {
@@ -374,20 +374,20 @@ export function ProblemUploadSection({
 
       onUploadCompleted?.();
     } catch (error) {
-      console.error('Problem upload failed:', error);
+      console.error("Problem upload failed:", error);
       const errorMessage =
-        error instanceof Error ? error.message : 'アップロードに失敗しました';
+        error instanceof Error ? error.message : "アップロードに失敗しました";
 
       setUploadSteps((prev) =>
         prev.map((step) =>
-          step.status === 'in_progress'
+          step.status === "in_progress"
             ? ({
                 ...step,
-                status: 'error',
+                status: "error",
                 message: errorMessage,
               } as ProgressStep)
-            : step
-        )
+            : step,
+        ),
       );
     }
   };
@@ -397,22 +397,32 @@ export function ProblemUploadSection({
     setSelectedFiles([]);
     setSkippedFiles([]);
     setSessionId(generateSessionId());
-    setCurrentStep('capture');
+    setCurrentStep("capture");
   };
 
-  const currentStepIndex = stepper.findIndex((step) => step.key === currentStep);
-  const nextStep = currentStepIndex >= 0 ? stepper[currentStepIndex + 1] : undefined;
-  const nextButtonLabel = nextStep?.key === 'upload' ? 'アップロード開始' : '次へ →';
+  const currentStepIndex = stepper.findIndex(
+    (step) => step.key === currentStep,
+  );
+  const nextStep =
+    currentStepIndex >= 0 ? stepper[currentStepIndex + 1] : undefined;
+  const nextButtonLabel =
+    nextStep?.key === "upload" ? "アップロード開始" : "次へ →";
   const isNextDisabled =
-    currentStep === 'upload' ||
-    (currentStep === 'capture' && !canProceedFromCapture) ||
-    (currentStep === 'user' &&
-      (usersLoading || !!usersError || !selectedUser || (!boardStepEnabled && !selectedBoard))) ||
-    (currentStep === 'board' && boardStepEnabled && !selectedBoard);
+    currentStep === "upload" ||
+    (currentStep === "capture" && !canProceedFromCapture) ||
+    (currentStep === "user" &&
+      (usersLoading ||
+        !!usersError ||
+        !selectedUser ||
+        (!boardStepEnabled && !selectedBoard))) ||
+    (currentStep === "board" && boardStepEnabled && !selectedBoard);
 
   if (!isUploadUnlocked) {
     return (
-      <div id="upload-section" className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div
+        id="upload-section"
+        className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+      >
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
             <h3 className="text-lg font-semibold text-gray-900">
@@ -431,7 +441,10 @@ export function ProblemUploadSection({
   }
 
   return (
-    <div id="upload-section" className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <div
+      id="upload-section"
+      className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+    >
       <div className="mb-6">
         <h3 className="text-lg font-semibold text-gray-900">
           画像アップロード
@@ -440,8 +453,6 @@ export function ProblemUploadSection({
           選択した問題に関連する画像をMiroボードへ送信します。
         </p>
       </div>
-
-
 
       {!isBoardUnlocked && (
         <div className="mb-6 rounded-md border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm text-yellow-800">
@@ -482,10 +493,10 @@ export function ProblemUploadSection({
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
                   currentStep === step.key
-                    ? 'bg-blue-600 text-white'
+                    ? "bg-blue-600 text-white"
                     : currentIndex > index
-                    ? 'bg-green-500 text-white'
-                    : 'bg-gray-300 text-gray-600'
+                      ? "bg-green-500 text-white"
+                      : "bg-gray-300 text-gray-600"
                 }`}
               >
                 {currentIndex > index ? (
@@ -516,14 +527,16 @@ export function ProblemUploadSection({
       </div>
 
       <div className="border border-dashed border-gray-300 rounded-lg p-4 mb-6">
-        {currentStep === 'capture' && (
+        {currentStep === "capture" && (
           <ImageCapture onImagesChange={setSelectedFiles} maxFiles={10} />
         )}
 
-        {currentStep === 'user' && (
+        {currentStep === "user" && (
           <div className="space-y-4">
             {usersLoading ? (
-              <p className="text-sm text-gray-600">ユーザー一覧を読み込み中です…</p>
+              <p className="text-sm text-gray-600">
+                ユーザー一覧を読み込み中です…
+              </p>
             ) : usersError ? (
               <div className="space-y-3">
                 <p className="text-sm text-red-600">{usersError}</p>
@@ -544,8 +557,10 @@ export function ProblemUploadSection({
                 </label>
                 <select
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={selectedUserId ?? ''}
-                  onChange={(event) => setSelectedUserId(event.target.value || null)}
+                  value={selectedUserId ?? ""}
+                  onChange={(event) =>
+                    setSelectedUserId(event.target.value || null)
+                  }
                 >
                   <option value="" disabled>
                     ユーザーを選択してください
@@ -553,7 +568,7 @@ export function ProblemUploadSection({
                   {userOptions.map((user) => (
                     <option key={user.id} value={user.id}>
                       {user.userId}
-                      {user.displayName ? `(${user.displayName})` : ''}
+                      {user.displayName ? `(${user.displayName})` : ""}
                     </option>
                   ))}
                 </select>
@@ -565,7 +580,7 @@ export function ProblemUploadSection({
           </div>
         )}
 
-        {currentStep === 'board' && boardStepEnabled && (
+        {currentStep === "board" && boardStepEnabled && (
           <div className="space-y-4">
             <BoardSelector
               onBoardSelect={setSelectedBoard}
@@ -579,7 +594,7 @@ export function ProblemUploadSection({
           </div>
         )}
 
-        {currentStep === 'upload' && (
+        {currentStep === "upload" && (
           <div className="text-center py-8">
             <h3 className="text-xl font-semibold text-gray-900 mb-4">
               アップロード準備完了
@@ -589,7 +604,9 @@ export function ProblemUploadSection({
               {selectedUser && (
                 <p>
                   アップロードユーザー: {selectedUser.userId}
-                  {selectedUser.displayName ? `(${selectedUser.displayName})` : ''}
+                  {selectedUser.displayName
+                    ? `(${selectedUser.displayName})`
+                    : ""}
                 </p>
               )}
               {selectedBoard ? (
@@ -608,7 +625,7 @@ export function ProblemUploadSection({
         <button
           onClick={goBack}
           type="button"
-          disabled={currentStep === 'capture'}
+          disabled={currentStep === "capture"}
           className="btn-outline disabled:opacity-50 disabled:cursor-not-allowed"
         >
           ← 戻る

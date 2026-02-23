@@ -1,25 +1,25 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useState } from 'react';
-import Link from 'next/link';
-import { useParams } from 'next/navigation';
-import { Layout } from '@/components/Layout';
-import { ResponsiveContainer } from '@/components/ResponsiveContainer';
-import { BoardEmbed } from '@/components/BoardEmbed';
-import { ProblemUploadSection } from '@/components/ProblemUploadSection';
-import { ProblemDetailResponse } from '@/types';
-import { PROBLEM_STATUS_LABEL } from '@/constants/problemStatus';
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { Layout } from "@/components/Layout";
+import { ResponsiveContainer } from "@/components/ResponsiveContainer";
+import { BoardEmbed } from "@/components/BoardEmbed";
+import { ProblemUploadSection } from "@/components/ProblemUploadSection";
+import { ProblemDetailResponse } from "@/types";
+import { PROBLEM_STATUS_LABEL } from "@/constants/problemStatus";
 
 function formatTimestamp(timestamp?: string) {
   if (!timestamp) return undefined;
   const date = new Date(timestamp);
   if (Number.isNaN(date.getTime())) return undefined;
-  return date.toLocaleString('ja-JP');
+  return date.toLocaleString("ja-JP");
 }
 
 export default function ProblemDetailPage() {
   const params = useParams();
-  const problemId = (params?.problemId as string) ?? '';
+  const problemId = (params?.problemId as string) ?? "";
   const [detail, setDetail] = useState<ProblemDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,19 +30,17 @@ export default function ProblemDetailPage() {
 
     try {
       const resp = await fetch(`/api/problems/${problemId}`, {
-        cache: 'no-store',
+        cache: "no-store",
       });
       if (!resp.ok) {
         const payload = await resp.json().catch(() => ({}));
-        throw new Error(
-          payload.message || '問題詳細の取得に失敗しました。'
-        );
+        throw new Error(payload.message || "問題詳細の取得に失敗しました。");
       }
       const payload = (await resp.json()) as ProblemDetailResponse;
       setDetail(payload);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : '問題詳細の取得に失敗しました。'
+        err instanceof Error ? err.message : "問題詳細の取得に失敗しました。",
       );
     } finally {
       setLoading(false);
@@ -56,8 +54,8 @@ export default function ProblemDetailPage() {
   }, [problemId, fetchDetail]);
 
   const statusLabel = detail
-    ? PROBLEM_STATUS_LABEL[detail.problem.status] ?? detail.problem.status
-    : '';
+    ? (PROBLEM_STATUS_LABEL[detail.problem.status] ?? detail.problem.status)
+    : "";
 
   const uploadUnlocked = detail?.problem.isUploadUnlocked ?? false;
   const boardUnlocked = detail?.problem.isBoardUnlocked ?? false;
@@ -155,7 +153,6 @@ export default function ProblemDetailPage() {
                 </div>
               )}
             </section>
-
           </div>
         )}
       </ResponsiveContainer>

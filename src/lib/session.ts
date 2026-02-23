@@ -1,6 +1,6 @@
-import { cookies } from 'next/headers';
-import crypto from 'crypto';
-import { prisma } from './prisma';
+import { cookies } from "next/headers";
+import crypto from "crypto";
+import { prisma } from "./prisma";
 
 export interface SessionInfo {
   sessionId: string;
@@ -17,11 +17,11 @@ export interface SessionContext {
   };
 }
 
-const SESSION_COOKIE_NAME = 'app_session';
+const SESSION_COOKIE_NAME = "app_session";
 const SESSION_TTL_DAYS = 30;
 
 function generateSessionId(): string {
-  return crypto.randomBytes(16).toString('hex');
+  return crypto.randomBytes(16).toString("hex");
 }
 
 function getExpiryDate(): Date {
@@ -40,9 +40,9 @@ export async function ensureSession(): Promise<SessionInfo> {
       name: SESSION_COOKIE_NAME,
       value: existing,
       httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
-      path: '/',
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
       expires: getExpiryDate(),
     });
 
@@ -55,9 +55,9 @@ export async function ensureSession(): Promise<SessionInfo> {
     name: SESSION_COOKIE_NAME,
     value: sessionId,
     httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    path: '/',
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
     expires: getExpiryDate(),
   });
 

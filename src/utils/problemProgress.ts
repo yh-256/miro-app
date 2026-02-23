@@ -3,16 +3,16 @@ import {
   ProblemProgressStatus,
   BOARD_UNLOCKED_STATUSES,
   isStatusAtLeast,
-} from '@/constants/problemStatus';
-import { ProblemProgressSnapshot } from '@/types';
-import { prisma } from '@/lib/prisma';
-import type { Prisma } from '@prisma/client';
+} from "@/constants/problemStatus";
+import { ProblemProgressSnapshot } from "@/types";
+import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 
 export function deriveStatus(
-  progressStatus: ProblemProgressStatus | null
+  progressStatus: ProblemProgressStatus | null,
 ): ProblemProgressStatus {
-  if (!progressStatus || progressStatus === 'LOCKED') {
-    return 'AVAILABLE';
+  if (!progressStatus || progressStatus === "LOCKED") {
+    return "AVAILABLE";
   }
   return progressStatus;
 }
@@ -24,7 +24,7 @@ export function toSnapshot(
     boardUnlockedAt: Date | null;
     boardViewedAt: Date | null;
     completedAt: Date | null;
-  }
+  },
 ): ProblemProgressSnapshot {
   return {
     status,
@@ -45,7 +45,7 @@ export function toSnapshot(
 
 export function maxStatus(
   current: ProblemProgressStatus,
-  candidate: ProblemProgressStatus
+  candidate: ProblemProgressStatus,
 ): ProblemProgressStatus {
   return PROBLEM_STATUS_ORDER[current] >= PROBLEM_STATUS_ORDER[candidate]
     ? current
@@ -63,10 +63,9 @@ type ProblemWithProgress = Prisma.ProblemGetPayload<{
   };
 }>;
 
-type ProblemProgressRecord =
-  ProblemWithProgress['progress'] extends (infer U)[]
-    ? U
-    : never;
+type ProblemProgressRecord = ProblemWithProgress["progress"] extends (infer U)[]
+  ? U
+  : never;
 
 export interface ProblemAccessContext {
   problem: ProblemWithProgress;
@@ -79,7 +78,7 @@ export interface ProblemAccessContext {
 
 export async function loadProblemAccessContext(
   problemId: string,
-  userId?: string | null
+  userId?: string | null,
 ): Promise<ProblemAccessContext | null> {
   const problem = (await prisma.problem.findUnique({
     where: { id: problemId },
@@ -96,7 +95,7 @@ export async function loadProblemAccessContext(
   }
 
   const isUserScoped = !!userId;
-  const progress = isUserScoped ? problem.progress[0] ?? null : null;
+  const progress = isUserScoped ? (problem.progress[0] ?? null) : null;
   const status = deriveStatus(progress?.status ?? null);
 
   return {
@@ -104,16 +103,17 @@ export async function loadProblemAccessContext(
     progress,
     status,
     snapshot: toSnapshot(status, progress ?? undefined),
-    isUploadUnlocked: isUserScoped ? isStatusAtLeast(status, 'AVAILABLE') : true,
-    isBoardUnlocked:
-      isUserScoped
-        ? BOARD_UNLOCKED_STATUSES.has(status) || !!progress?.boardUnlockedAt
-        : true,
+    isUploadUnlocked: isUserScoped
+      ? isStatusAtLeast(status, "AVAILABLE")
+      : true,
+    isBoardUnlocked: isUserScoped
+      ? BOARD_UNLOCKED_STATUSES.has(status) || !!progress?.boardUnlockedAt
+      : true,
   };
 }
 
 export async function getAccessibleProblemIds(
-  userId?: string | null
+  userId?: string | null,
 ): Promise<Set<string>> {
   if (!userId) {
     const problems = await prisma.problem.findMany({

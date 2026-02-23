@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useDeviceDetection } from '@/utils/deviceDetection';
+import { useState } from "react";
+import { useDeviceDetection } from "@/utils/deviceDetection";
 
 export interface SearchFormData {
   query: string;
   userId: string;
   uploaderName: string;
-  searchType: 'general' | 'user' | 'uploader';
+  searchType: "general" | "user" | "uploader";
   dateFrom: string;
   dateTo: string;
   itemTypes: string[];
@@ -24,50 +24,51 @@ export function SearchForm({
   onSearch,
   onClear,
   isLoading = false,
-  className = '',
+  className = "",
 }: SearchFormProps) {
   const [formData, setFormData] = useState<SearchFormData>({
-    query: '',
-    userId: '',
-    uploaderName: '',
-    searchType: 'general',
-    dateFrom: '',
-    dateTo: '',
+    query: "",
+    userId: "",
+    uploaderName: "",
+    searchType: "general",
+    dateFrom: "",
+    dateTo: "",
     itemTypes: [],
   });
 
   const [showAdvanced, setShowAdvanced] = useState(false);
   const deviceInfo = useDeviceDetection();
 
-  const handleInputChange = (field: keyof SearchFormData, value: string | string[]) => {
-    setFormData(prev => ({
+  const handleInputChange = (
+    field: keyof SearchFormData,
+    value: string | string[],
+  ) => {
+    setFormData((prev) => ({
       ...prev,
       [field]: value,
     }));
   };
 
-  const handleSearchTypeChange = (type: SearchFormData['searchType']) => {
-    setFormData(prev => ({
+  const handleSearchTypeChange = (type: SearchFormData["searchType"]) => {
+    setFormData((prev) => ({
       ...prev,
       searchType: type,
       // 検索タイプ変更時に関連フィールドをクリア
-      query: type === 'general' ? prev.query : '',
-      userId: type === 'user' ? prev.userId : '',
-      uploaderName: type === 'uploader' ? prev.uploaderName : '',
+      query: type === "general" ? prev.query : "",
+      userId: type === "user" ? prev.userId : "",
+      uploaderName: type === "uploader" ? prev.uploaderName : "",
     }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // 基本的な検証
-    const hasSearchCriteria = 
-      formData.query.trim() || 
-      formData.userId || 
-      formData.uploaderName.trim();
+    const hasSearchCriteria =
+      formData.query.trim() || formData.userId || formData.uploaderName.trim();
 
     if (!hasSearchCriteria) {
-      alert('検索条件を入力してください。');
+      alert("検索条件を入力してください。");
       return;
     }
 
@@ -80,12 +81,12 @@ export function SearchForm({
 
   const handleClear = () => {
     setFormData({
-      query: '',
-      userId: '',
-      uploaderName: '',
-      searchType: 'general',
-      dateFrom: '',
-      dateTo: '',
+      query: "",
+      userId: "",
+      uploaderName: "",
+      searchType: "general",
+      dateFrom: "",
+      dateTo: "",
       itemTypes: [],
     });
     setShowAdvanced(false);
@@ -93,52 +94,56 @@ export function SearchForm({
   };
 
   const handleItemTypeToggle = (itemType: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       itemTypes: prev.itemTypes.includes(itemType)
-        ? prev.itemTypes.filter(type => type !== itemType)
+        ? prev.itemTypes.filter((type) => type !== itemType)
         : [...prev.itemTypes, itemType],
     }));
   };
 
   return (
-    <div className={`bg-white border border-gray-200 rounded-lg p-4 ${className}`}>
+    <div
+      className={`bg-white border border-gray-200 rounded-lg p-4 ${className}`}
+    >
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* 検索タイプ選択 */}
         <div className="border-b border-gray-200 pb-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">
             検索タイプ
           </label>
-          <div className={`grid gap-2 ${deviceInfo?.type === 'mobile' ? 'grid-cols-1' : 'grid-cols-3'}`}>
+          <div
+            className={`grid gap-2 ${deviceInfo?.type === "mobile" ? "grid-cols-1" : "grid-cols-3"}`}
+          >
             <button
               type="button"
-              onClick={() => handleSearchTypeChange('general')}
+              onClick={() => handleSearchTypeChange("general")}
               className={`px-3 py-2 text-sm rounded-md border transition-colors ${
-                formData.searchType === 'general'
-                  ? 'bg-blue-500 text-white border-blue-500'
-                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                formData.searchType === "general"
+                  ? "bg-blue-500 text-white border-blue-500"
+                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
               }`}
             >
               総合検索
             </button>
             <button
               type="button"
-              onClick={() => handleSearchTypeChange('user')}
+              onClick={() => handleSearchTypeChange("user")}
               className={`px-3 py-2 text-sm rounded-md border transition-colors ${
-                formData.searchType === 'user'
-                  ? 'bg-blue-500 text-white border-blue-500'
-                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                formData.searchType === "user"
+                  ? "bg-blue-500 text-white border-blue-500"
+                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
               }`}
             >
               ユーザーID検索
             </button>
             <button
               type="button"
-              onClick={() => handleSearchTypeChange('uploader')}
+              onClick={() => handleSearchTypeChange("uploader")}
               className={`px-3 py-2 text-sm rounded-md border transition-colors ${
-                formData.searchType === 'uploader'
-                  ? 'bg-blue-500 text-white border-blue-500'
-                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                formData.searchType === "uploader"
+                  ? "bg-blue-500 text-white border-blue-500"
+                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
               }`}
             >
               送信者検索
@@ -149,16 +154,19 @@ export function SearchForm({
         {/* 検索条件入力 */}
         <div className="space-y-4">
           {/* 総合検索 */}
-          {formData.searchType === 'general' && (
+          {formData.searchType === "general" && (
             <div>
-              <label htmlFor="query" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="query"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 キーワード検索
               </label>
               <input
                 type="text"
                 id="query"
                 value={formData.query}
-                onChange={(e) => handleInputChange('query', e.target.value)}
+                onChange={(e) => handleInputChange("query", e.target.value)}
                 placeholder="キーワードを入力してください"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
@@ -166,16 +174,19 @@ export function SearchForm({
           )}
 
           {/* ユーザーID検索 */}
-          {formData.searchType === 'user' && (
+          {formData.searchType === "user" && (
             <div>
-              <label htmlFor="userId" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="userId"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 ユーザーID
               </label>
               <input
                 type="text"
                 id="userId"
                 value={formData.userId}
-                onChange={(e) => handleInputChange('userId', e.target.value)}
+                onChange={(e) => handleInputChange("userId", e.target.value)}
                 placeholder="ユーザーIDを入力してください"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
@@ -183,16 +194,21 @@ export function SearchForm({
           )}
 
           {/* 送信者検索 */}
-          {formData.searchType === 'uploader' && (
+          {formData.searchType === "uploader" && (
             <div>
-              <label htmlFor="uploaderName" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="uploaderName"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 送信者名
               </label>
               <input
                 type="text"
                 id="uploaderName"
                 value={formData.uploaderName}
-                onChange={(e) => handleInputChange('uploaderName', e.target.value)}
+                onChange={(e) =>
+                  handleInputChange("uploaderName", e.target.value)
+                }
                 placeholder="送信者名を入力してください"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
@@ -207,13 +223,18 @@ export function SearchForm({
             onClick={() => setShowAdvanced(!showAdvanced)}
             className="flex items-center text-sm text-blue-600 hover:text-blue-800 transition-colors"
           >
-            <svg 
-              className={`w-4 h-4 mr-1 transition-transform ${showAdvanced ? 'rotate-180' : ''}`}
-              fill="none" 
-              stroke="currentColor" 
+            <svg
+              className={`w-4 h-4 mr-1 transition-transform ${showAdvanced ? "rotate-180" : ""}`}
+              fill="none"
+              stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
             </svg>
             詳細検索オプション
           </button>
@@ -221,28 +242,40 @@ export function SearchForm({
           {showAdvanced && (
             <div className="mt-4 space-y-4 pl-5 border-l-2 border-blue-100">
               {/* 日付範囲 */}
-              <div className={`grid gap-4 ${deviceInfo?.type === 'mobile' ? 'grid-cols-1' : 'grid-cols-2'}`}>
+              <div
+                className={`grid gap-4 ${deviceInfo?.type === "mobile" ? "grid-cols-1" : "grid-cols-2"}`}
+              >
                 <div>
-                  <label htmlFor="dateFrom" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="dateFrom"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     開始日
                   </label>
                   <input
                     type="date"
                     id="dateFrom"
                     value={formData.dateFrom}
-                    onChange={(e) => handleInputChange('dateFrom', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("dateFrom", e.target.value)
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
                 <div>
-                  <label htmlFor="dateTo" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="dateTo"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     終了日
                   </label>
                   <input
                     type="date"
                     id="dateTo"
                     value={formData.dateTo}
-                    onChange={(e) => handleInputChange('dateTo', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("dateTo", e.target.value)
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -255,10 +288,10 @@ export function SearchForm({
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {[
-                    { value: 'image', label: '画像' },
-                    { value: 'sticky_note', label: '付箋' },
-                    { value: 'group', label: 'グループ' },
-                  ].map(type => (
+                    { value: "image", label: "画像" },
+                    { value: "sticky_note", label: "付箋" },
+                    { value: "group", label: "グループ" },
+                  ].map((type) => (
                     <label key={type.value} className="flex items-center">
                       <input
                         type="checkbox"
@@ -266,7 +299,9 @@ export function SearchForm({
                         onChange={() => handleItemTypeToggle(type.value)}
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
-                      <span className="ml-2 text-sm text-gray-700">{type.label}</span>
+                      <span className="ml-2 text-sm text-gray-700">
+                        {type.label}
+                      </span>
                     </label>
                   ))}
                 </div>
@@ -276,7 +311,9 @@ export function SearchForm({
         </div>
 
         {/* アクションボタン */}
-        <div className={`flex gap-2 pt-4 ${deviceInfo?.type === 'mobile' ? 'flex-col' : 'flex-row'}`}>
+        <div
+          className={`flex gap-2 pt-4 ${deviceInfo?.type === "mobile" ? "flex-col" : "flex-row"}`}
+        >
           <button
             type="submit"
             disabled={isLoading}
@@ -289,8 +326,18 @@ export function SearchForm({
               </>
             ) : (
               <>
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                <svg
+                  className="w-4 h-4 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
                 </svg>
                 検索
               </>
