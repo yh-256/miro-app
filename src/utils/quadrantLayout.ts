@@ -4,7 +4,7 @@ import { logError } from "./errorHandler";
 /**
  * 象限の境界情報
  */
-export interface QuadrantBounds {
+interface QuadrantBounds {
   minX: number;
   maxX: number;
   minY: number;
@@ -30,7 +30,7 @@ const QUADRANT_CONFIG = {
 /**
  * 問題インデックスから象限境界を計算
  */
-export function getQuadrantBounds(problemIndex: number): QuadrantBounds {
+function getQuadrantBounds(problemIndex: number): QuadrantBounds {
   const { QUADRANT_WIDTH, QUADRANT_HEIGHT } = QUADRANT_CONFIG;
 
   const quadrantConfigs = [
@@ -57,7 +57,7 @@ export function getQuadrantBounds(problemIndex: number): QuadrantBounds {
 /**
  * 象限内の既存グループを取得
  */
-export async function getExistingGroupsInQuadrant(
+async function getExistingGroupsInQuadrant(
   boardId: string,
   bounds: QuadrantBounds,
   client: IMiroClient = miroClient,
@@ -139,7 +139,7 @@ function generateGridCandidates(
  * 象限内で空いている位置を見つける（衝突回避グリッド配置）
  * 既存グループのBBoxを考慮して、確実に重ならない位置を探索
  */
-export function findAvailablePositionInQuadrant(
+function findAvailablePositionInQuadrant(
   bounds: QuadrantBounds,
   existingGroups: Array<{ item: MiroItem; bbox: BoundingBox | null }>,
   randomOffset: number = 0,
@@ -297,7 +297,7 @@ const RANDOM_PLACEMENT_CONFIG = {
  * @param minSpacing - グループ間の最小スペース
  * @returns true=衝突あり, false=衝突なし
  */
-export function hasCollision(
+function hasCollision(
   candidatePosition: { x: number; y: number },
   estimatedSize: { width: number; height: number },
   existingGroups: Array<{ item: MiroItem; bbox: BoundingBox | null }>,

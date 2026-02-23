@@ -2,12 +2,12 @@ import { cookies } from "next/headers";
 import crypto from "crypto";
 import { prisma } from "./prisma";
 
-export interface SessionInfo {
+interface SessionInfo {
   sessionId: string;
   isNew: boolean;
 }
 
-export interface SessionContext {
+interface SessionContext {
   sessionId: string;
   userSession: {
     id: string;
@@ -30,7 +30,7 @@ function getExpiryDate(): Date {
   return expiry;
 }
 
-export async function ensureSession(): Promise<SessionInfo> {
+async function ensureSession(): Promise<SessionInfo> {
   const cookieStore = await cookies();
   const existing = cookieStore.get(SESSION_COOKIE_NAME)?.value;
 
@@ -69,7 +69,7 @@ export async function ensureSession(): Promise<SessionInfo> {
  * - 存在する場合は lastActiveAt を更新
  * - 未作成の場合は新規作成
  */
-export async function ensureUserSessionRecord(sessionId: string) {
+async function ensureUserSessionRecord(sessionId: string) {
   return prisma.userSession.upsert({
     where: { sessionToken: sessionId },
     update: {

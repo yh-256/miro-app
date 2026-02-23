@@ -14,7 +14,7 @@ export interface MiroBoardInfo {
   };
 }
 
-export interface MiroItemBase {
+interface MiroItemBase {
   id: string;
   type: string;
   position: { x: number; y: number };

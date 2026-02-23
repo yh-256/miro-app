@@ -1,14 +1,5 @@
 import { ProblemStatus } from "@prisma/client";
 
-export const PROBLEM_STATUSES = [
-  ProblemStatus.LOCKED,
-  ProblemStatus.AVAILABLE,
-  ProblemStatus.INSIGHT_WRITTEN,
-  ProblemStatus.UPLOAD_COMPLETED,
-  ProblemStatus.BOARD_VIEWED,
-  ProblemStatus.COMPLETED,
-] as const;
-
 export type ProblemProgressStatus = ProblemStatus;
 
 export const PROBLEM_STATUS_ORDER: Record<ProblemProgressStatus, number> = {
@@ -39,22 +30,6 @@ export const COMPLETED_STATUSES: ReadonlySet<ProblemProgressStatus> = new Set([
   ProblemStatus.COMPLETED,
   ProblemStatus.BOARD_VIEWED,
 ]);
-
-export function isProblemProgressStatus(
-  value: unknown,
-): value is ProblemProgressStatus {
-  return (
-    typeof value === "string" &&
-    PROBLEM_STATUSES.includes(value as ProblemProgressStatus)
-  );
-}
-
-export function compareProblemStatus(
-  a: ProblemProgressStatus,
-  b: ProblemProgressStatus,
-): number {
-  return PROBLEM_STATUS_ORDER[a] - PROBLEM_STATUS_ORDER[b];
-}
 
 export function isStatusAtLeast(
   value: ProblemProgressStatus,

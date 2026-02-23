@@ -18,7 +18,7 @@ export const CLIENT_CONFIG = {
 /**
  * ファイルサイズを人間が読める形式に変換
  */
-export function formatBytes(bytes: number, decimals: number = 2): string {
+function formatBytes(bytes: number, decimals: number = 2): string {
   if (bytes === 0) return "0 Bytes";
   const k = 1024;
   const dm = decimals < 0 ? 0 : decimals;

@@ -3,9 +3,8 @@ import {
   searchBoardItems,
   searchByUserId,
   searchByUploaderName,
-  SearchCriteria,
-  SearchResult,
 } from "@/utils/searchService";
+import type { SearchCriteria, SearchResult } from "@/utils/searchService.types";
 import { ErrorHandler, logError } from "@/utils/errorHandler";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@prisma/client";

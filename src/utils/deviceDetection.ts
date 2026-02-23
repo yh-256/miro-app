@@ -1,8 +1,8 @@
 "use client";
 
-export type DeviceType = "mobile" | "tablet" | "desktop";
+type DeviceType = "mobile" | "tablet" | "desktop";
 
-export interface DeviceInfo {
+interface DeviceInfo {
   type: DeviceType;
   isTouchDevice: boolean;
   screenWidth: number;
@@ -13,7 +13,7 @@ export interface DeviceInfo {
 /**
  * User-Agent文字列からデバイスタイプを判定
  */
-export function detectDeviceFromUserAgent(userAgent: string): DeviceType {
+function detectDeviceFromUserAgent(userAgent: string): DeviceType {
   const mobileRegex =
     /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
   const tabletRegex =
@@ -34,7 +34,7 @@ export function detectDeviceFromUserAgent(userAgent: string): DeviceType {
  * 画面サイズからデバイスタイプを判定
  * 10.2インチiPad等もmobileとして扱うため、1024px未満をmobileに設定
  */
-export function detectDeviceFromScreenSize(width: number): DeviceType {
+function detectDeviceFromScreenSize(width: number): DeviceType {
   if (width < 1024) {
     return "mobile";
   } else if (width < 1280) {
@@ -46,7 +46,7 @@ export function detectDeviceFromScreenSize(width: number): DeviceType {
 /**
  * タッチデバイスかどうかを判定
  */
-export function isTouchDevice(): boolean {
+function isTouchDevice(): boolean {
   if (typeof window === "undefined") return false;
 
   return (
@@ -60,7 +60,7 @@ export function isTouchDevice(): boolean {
 /**
  * 現在のデバイス情報を取得
  */
-export function getCurrentDeviceInfo(): DeviceInfo | null {
+function getCurrentDeviceInfo(): DeviceInfo | null {
   if (typeof window === "undefined") return null;
 
   const userAgent = navigator.userAgent;
@@ -113,7 +113,7 @@ export function useDeviceDetection(): DeviceInfo | null {
 /**
  * React Hook: 画面サイズ監視
  */
-export function useScreenSize() {
+function useScreenSize() {
   const [screenSize, setScreenSize] = useState({
     width: 0,
     height: 0,

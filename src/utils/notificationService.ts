@@ -5,7 +5,7 @@ import { UserFriendlyError } from "@/types";
  * 通知サービス - エラーハンドリングとトースト通知を統合
  */
 
-export interface NotificationService {
+interface NotificationService {
   showSuccess: (title: string, message?: string, duration?: number) => void;
   showError: (title: string, message?: string, duration?: number) => void;
   showWarning: (title: string, message?: string, duration?: number) => void;
@@ -76,47 +76,14 @@ function getNotificationService(): NotificationService {
 }
 
 /**
- * 成功通知の表示
- */
-export function showSuccessNotification(
-  title: string,
-  message?: string,
-  duration?: number,
-) {
-  getNotificationService().showSuccess(title, message, duration);
-}
-
-/**
- * エラー通知の表示
- */
-export function showErrorNotification(
-  title: string,
-  message?: string,
-  duration?: number,
-) {
-  getNotificationService().showError(title, message, duration);
-}
-
-/**
  * 警告通知の表示
  */
-export function showWarningNotification(
+function showWarningNotification(
   title: string,
   message?: string,
   duration?: number,
 ) {
   getNotificationService().showWarning(title, message, duration);
-}
-
-/**
- * 情報通知の表示
- */
-export function showInfoNotification(
-  title: string,
-  message?: string,
-  duration?: number,
-) {
-  getNotificationService().showInfo(title, message, duration);
 }
 
 /**
@@ -235,14 +202,14 @@ export const MiroNotifications = {
       ? `${count}件の画像を「${boardName}」にアップロードしました。`
       : `${count}件の画像をMiroボードにアップロードしました。`;
 
-    showSuccessNotification("アップロード完了", message, 6000);
+    getNotificationService().showSuccess("アップロード完了", message, 6000);
   },
 
   /**
    * ボード読み込み成功
    */
   boardLoadSuccess: (boardName: string) => {
-    showSuccessNotification(
+    getNotificationService().showSuccess(
       "ボード読み込み完了",
       `「${boardName}」を読み込みました。`,
       4000,
@@ -257,14 +224,14 @@ export const MiroNotifications = {
       ? `「${query}」で${count}件の結果が見つかりました。`
       : `${count}件の結果が見つかりました。`;
 
-    showSuccessNotification("検索完了", message, 4000);
+    getNotificationService().showSuccess("検索完了", message, 4000);
   },
 
   /**
    * ボード選択成功
    */
   boardSelected: (boardName: string) => {
-    showInfoNotification(
+    getNotificationService().showInfo(
       "ボードを選択しました",
       `「${boardName}」を選択しました。`,
       3000,
@@ -275,7 +242,7 @@ export const MiroNotifications = {
    * データ保存成功
    */
   dataSaved: (type: string) => {
-    showSuccessNotification(
+    getNotificationService().showSuccess(
       "データを保存しました",
       `${type}を正常に保存しました。`,
       3000,
@@ -329,7 +296,7 @@ export const ProcessNotifications = {
    * 処理開始
    */
   started: (processName: string) => {
-    showInfoNotification(
+    getNotificationService().showInfo(
       `${processName}を開始しました`,
       "処理が完了するまでお待ちください。",
       3000,
@@ -340,13 +307,21 @@ export const ProcessNotifications = {
    * 処理完了
    */
   completed: (processName: string) => {
-    showSuccessNotification(`${processName}が完了しました`, undefined, 3000);
+    getNotificationService().showSuccess(
+      `${processName}が完了しました`,
+      undefined,
+      3000,
+    );
   },
 
   /**
    * 処理キャンセル
    */
   cancelled: (processName: string) => {
-    showInfoNotification(`${processName}をキャンセルしました`, undefined, 3000);
+    getNotificationService().showInfo(
+      `${processName}をキャンセルしました`,
+      undefined,
+      3000,
+    );
   },
 };

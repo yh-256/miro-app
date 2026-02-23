@@ -293,20 +293,6 @@ export class ErrorHandler {
 }
 
 /**
- * APIレスポンスのエラーチェック
- */
-export function isApiError(
-  response: unknown,
-): response is { error: string; message?: string } {
-  return (
-    response !== null &&
-    typeof response === "object" &&
-    "error" in response &&
-    typeof (response as { error: unknown }).error === "string"
-  );
-}
-
-/**
  * エラーログの記録
  */
 export function logError(error: Error, context?: string): void {
@@ -322,24 +308,5 @@ export function logError(error: Error, context?: string): void {
   // 本番環境では外部ログサービス（Sentry等）に送信
   if (process.env.NODE_ENV === "production") {
     // TODO: 外部ログサービスへの送信処理
-  }
-}
-
-/**
- * 非同期処理のエラートラップ
- */
-export async function safeAsync<T>(
-  fn: () => Promise<T>,
-  _fallback?: T,
-): Promise<
-  { success: true; data: T } | { success: false; error: UserFriendlyError }
-> {
-  try {
-    const data = await fn();
-    return { success: true, data };
-  } catch (error) {
-    const userError = ErrorHandler.handleGenericError(error);
-    logError(error as Error, "safeAsync");
-    return { success: false, error: userError };
   }
 }

@@ -67,7 +67,7 @@ type ProblemProgressRecord = ProblemWithProgress["progress"] extends (infer U)[]
   ? U
   : never;
 
-export interface ProblemAccessContext {
+interface ProblemAccessContext {
   problem: ProblemWithProgress;
   progress: ProblemProgressRecord | null;
   status: ProblemProgressStatus;

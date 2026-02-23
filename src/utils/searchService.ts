@@ -17,8 +17,6 @@ import type {
   SearchResult,
   SearchResultItem,
 } from "./searchService.types";
-export type { SearchCriteria, SearchResult, SearchResultItem };
-export { getSearchStats } from "./searchService.types";
 
 /**
  * 検索機能の基盤サービス（サーバー専用）
@@ -393,26 +391,4 @@ async function getGroupInfo(
     logError(error as Error, "getGroupInfo");
     return null;
   }
-}
-
-/**
- * 検索ハイライト用のテキスト処理
- */
-export function highlightSearchTerms(
-  text: string,
-  searchTerms: string[],
-): string {
-  let highlightedText = text;
-
-  searchTerms.forEach((term) => {
-    if (term.trim()) {
-      const regex = new RegExp(
-        `(${term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`,
-        "gi",
-      );
-      highlightedText = highlightedText.replace(regex, "<mark>$1</mark>");
-    }
-  });
-
-  return highlightedText;
 }

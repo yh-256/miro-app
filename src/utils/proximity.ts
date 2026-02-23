@@ -1,7 +1,7 @@
 import type { IMiroClient, MiroItem } from "./miroClient";
 import { logError } from "./errorHandler";
 
-export function distance(
+function distance(
   a: { x: number; y: number },
   b: { x: number; y: number },
 ): number {
