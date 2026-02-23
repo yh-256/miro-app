@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useNotifications } from '@/hooks/useNotifications';
+import { useState, useEffect } from "react";
+import { useNotifications } from "@/hooks/useNotifications";
 
 interface User {
   id: string;
   userId: string;
   displayName: string | null;
-  role: 'ADMIN' | 'USER';
+  role: "ADMIN" | "USER";
   isActive: boolean;
   createdAt: string;
   lastLoginAt: string | null;
@@ -21,26 +21,26 @@ export default function AdminUsersClient() {
   const [showCreateForm, setShowCreateForm] = useState(false);
 
   // 新規ユーザーフォーム
-  const [newUserId, setNewUserId] = useState('');
-  const [newPin, setNewPin] = useState('');
-  const [newDisplayName, setNewDisplayName] = useState('');
-  const [newRole, setNewRole] = useState<'USER' | 'ADMIN'>('USER');
+  const [newUserId, setNewUserId] = useState("");
+  const [newPin, setNewPin] = useState("");
+  const [newDisplayName, setNewDisplayName] = useState("");
+  const [newRole, setNewRole] = useState<"USER" | "ADMIN">("USER");
 
   // ユーザー一覧取得
   const fetchUsers = async () => {
     try {
-      const response = await fetch('/api/admin/users');
+      const response = await fetch("/api/admin/users");
       const data = await response.json();
 
       if (!response.ok) {
-        showError('エラー', data.message || 'ユーザー一覧の取得に失敗しました');
+        showError("エラー", data.message || "ユーザー一覧の取得に失敗しました");
         return;
       }
 
       setUsers(data.users);
     } catch (error) {
-      console.error('Failed to fetch users:', error);
-      showError('エラー', 'ユーザー一覧の取得中にエラーが発生しました');
+      console.error("Failed to fetch users:", error);
+      showError("エラー", "ユーザー一覧の取得中にエラーが発生しました");
     } finally {
       setLoading(false);
     }
@@ -57,10 +57,10 @@ export default function AdminUsersClient() {
     setCreating(true);
 
     try {
-      const response = await fetch('/api/admin/users', {
-        method: 'POST',
+      const response = await fetch("/api/admin/users", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           userId: newUserId,
@@ -73,24 +73,24 @@ export default function AdminUsersClient() {
       const data = await response.json();
 
       if (!response.ok) {
-        showError('作成失敗', data.message || 'ユーザーの作成に失敗しました');
+        showError("作成失敗", data.message || "ユーザーの作成に失敗しました");
         return;
       }
 
-      showSuccess('作成成功', `ユーザー「${data.user.userId}」を作成しました`);
-      
+      showSuccess("作成成功", `ユーザー「${data.user.userId}」を作成しました`);
+
       // フォームをリセット
-      setNewUserId('');
-      setNewPin('');
-      setNewDisplayName('');
-      setNewRole('USER');
+      setNewUserId("");
+      setNewPin("");
+      setNewDisplayName("");
+      setNewRole("USER");
       setShowCreateForm(false);
 
       // ユーザー一覧を再取得
       fetchUsers();
     } catch (error) {
-      console.error('Failed to create user:', error);
-      showError('エラー', 'ユーザー作成中にエラーが発生しました');
+      console.error("Failed to create user:", error);
+      showError("エラー", "ユーザー作成中にエラーが発生しました");
     } finally {
       setCreating(false);
     }
@@ -115,18 +115,23 @@ export default function AdminUsersClient() {
           onClick={() => setShowCreateForm(!showCreateForm)}
           className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
         >
-          {showCreateForm ? 'キャンセル' : '新規ユーザー作成'}
+          {showCreateForm ? "キャンセル" : "新規ユーザー作成"}
         </button>
       </div>
 
       {/* 新規ユーザー作成フォーム */}
       {showCreateForm && (
         <div className="bg-white shadow-md rounded-lg p-6 mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">新規ユーザー作成</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            新規ユーザー作成
+          </h3>
           <form onSubmit={handleCreateUser} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="userId" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="userId"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   ユーザーID <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -144,7 +149,10 @@ export default function AdminUsersClient() {
               </div>
 
               <div>
-                <label htmlFor="pin" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="pin"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   PIN <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -162,7 +170,10 @@ export default function AdminUsersClient() {
               </div>
 
               <div>
-                <label htmlFor="displayName" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="displayName"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   表示名
                 </label>
                 <input
@@ -178,13 +189,18 @@ export default function AdminUsersClient() {
               </div>
 
               <div>
-                <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="role"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   権限 <span className="text-red-500">*</span>
                 </label>
                 <select
                   id="role"
                   value={newRole}
-                  onChange={(e) => setNewRole(e.target.value as 'USER' | 'ADMIN')}
+                  onChange={(e) =>
+                    setNewRole(e.target.value as "USER" | "ADMIN")
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   disabled={creating}
                 >
@@ -199,7 +215,7 @@ export default function AdminUsersClient() {
               disabled={creating}
               className="w-full md:w-auto bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {creating ? '作成中...' : 'ユーザーを作成'}
+              {creating ? "作成中..." : "ユーザーを作成"}
             </button>
           </form>
         </div>
@@ -235,40 +251,44 @@ export default function AdminUsersClient() {
               {users.map((user) => (
                 <tr key={user.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{user.userId}</div>
+                    <div className="text-sm font-medium text-gray-900">
+                      {user.userId}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{user.displayName || '-'}</div>
+                    <div className="text-sm text-gray-900">
+                      {user.displayName || "-"}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
                       className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        user.role === 'ADMIN'
-                          ? 'bg-purple-100 text-purple-800'
-                          : 'bg-green-100 text-green-800'
+                        user.role === "ADMIN"
+                          ? "bg-purple-100 text-purple-800"
+                          : "bg-green-100 text-green-800"
                       }`}
                     >
-                      {user.role === 'ADMIN' ? '管理者' : '一般'}
+                      {user.role === "ADMIN" ? "管理者" : "一般"}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
                       className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                         user.isActive
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
+                          ? "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-800"
                       }`}
                     >
-                      {user.isActive ? '有効' : '無効'}
+                      {user.isActive ? "有効" : "無効"}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {user.lastLoginAt
-                      ? new Date(user.lastLoginAt).toLocaleString('ja-JP')
-                      : '-'}
+                      ? new Date(user.lastLoginAt).toLocaleString("ja-JP")
+                      : "-"}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(user.createdAt).toLocaleString('ja-JP')}
+                    {new Date(user.createdAt).toLocaleString("ja-JP")}
                   </td>
                 </tr>
               ))}

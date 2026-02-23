@@ -1,14 +1,11 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import { ImageCapture } from '@/components/ImageCapture';
-import { BoardSelector } from '@/components/BoardSelector';
-import { UploadProgress, UPLOAD_STEPS } from '@/components/UploadProgress';
-import { ProgressStep } from '@/types';
-import {
-  uploadImagesToMiro,
-  generateSessionId,
-} from '@/utils/uploadService';
+import { useEffect, useMemo, useState } from "react";
+import { ImageCapture } from "@/components/ImageCapture";
+import { BoardSelector } from "@/components/BoardSelector";
+import { UploadProgress, UPLOAD_STEPS } from "@/components/UploadProgress";
+import { ProgressStep } from "@/types";
+import { uploadImagesToMiro, generateSessionId } from "@/utils/uploadService";
 
 interface Board {
   id: string;
@@ -25,14 +22,14 @@ interface ImageMetadata {
   uploaderName?: string;
 }
 
-type UploadStep = 'capture' | 'board' | 'upload';
+type UploadStep = "capture" | "board" | "upload";
 
 interface AuthStatus {
   isLoggedIn: boolean;
   userId?: string; // ログインID
   userDbId?: string; // 内部ID
   displayName?: string;
-  role?: 'ADMIN' | 'USER';
+  role?: "ADMIN" | "USER";
 }
 
 interface ProblemUploadSectionProps {
@@ -56,16 +53,16 @@ export function ProblemUploadSection({
   onUploadCompleted,
   lockBoardSelection = false,
 }: ProblemUploadSectionProps) {
-  const [currentStep, setCurrentStep] = useState<UploadStep>('capture');
+  const [currentStep, setCurrentStep] = useState<UploadStep>("capture");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [selectedBoard, setSelectedBoard] = useState<Board | null>(
     defaultBoardId
       ? {
           id: defaultBoardId,
-          name: defaultBoardName || '選択されたボード',
+          name: defaultBoardName || "選択されたボード",
           description: defaultBoardDescription,
         }
-      : null
+      : null,
   );
   const [sessionId, setSessionId] = useState(() => generateSessionId());
   const [isUploading, setIsUploading] = useState(false);
@@ -79,25 +76,31 @@ export function ProblemUploadSection({
   const [skippedFiles, setSkippedFiles] = useState<
     Array<{ fileName: string; reason: string }>
   >([]);
-  const [authStatus, setAuthStatus] = useState<AuthStatus>({ isLoggedIn: false });
+  const [authStatus, setAuthStatus] = useState<AuthStatus>({
+    isLoggedIn: false,
+  });
   const [authLoading, setAuthLoading] = useState(true);
 
   const boardStepEnabled = !lockBoardSelection;
   const currentUserLoginId =
-    !authLoading && authStatus.isLoggedIn ? authStatus.userId ?? null : null;
+    !authLoading && authStatus.isLoggedIn ? (authStatus.userId ?? null) : null;
   const currentUserDbId =
-    !authLoading && authStatus.isLoggedIn ? authStatus.userDbId ?? null : null;
+    !authLoading && authStatus.isLoggedIn
+      ? (authStatus.userDbId ?? null)
+      : null;
   const currentUserDisplayName =
     !authLoading && authStatus.isLoggedIn
-      ? authStatus.displayName ?? authStatus.userId ?? undefined
+      ? (authStatus.displayName ?? authStatus.userId ?? undefined)
       : undefined;
 
   useEffect(() => {
     const fetchAuthStatus = async () => {
       try {
-        const response = await fetch('/api/auth/session', { cache: 'no-store' });
+        const response = await fetch("/api/auth/session", {
+          cache: "no-store",
+        });
         if (!response.ok) {
-          throw new Error('failed');
+          throw new Error("failed");
         }
         const data = await response.json();
         setAuthStatus({
@@ -108,7 +111,7 @@ export function ProblemUploadSection({
           role: data.user?.role,
         });
       } catch (error) {
-        console.error('Failed to fetch auth status for upload flow:', error);
+        console.error("Failed to fetch auth status for upload flow:", error);
         setAuthStatus({ isLoggedIn: false });
       } finally {
         setAuthLoading(false);
@@ -123,7 +126,7 @@ export function ProblemUploadSection({
       if (defaultBoardId) {
         setSelectedBoard({
           id: defaultBoardId,
-          name: defaultBoardName || '選択されたボード',
+          name: defaultBoardName || "選択されたボード",
           description: defaultBoardDescription,
         });
       } else {
@@ -145,14 +148,14 @@ export function ProblemUploadSection({
     Array<{ key: UploadStep; label: string; number: number }>
   >(() => {
     const steps: Array<{ key: UploadStep; label: string }> = [
-      { key: 'capture', label: '画像選択' },
+      { key: "capture", label: "画像選択" },
     ];
 
     if (boardStepEnabled) {
-      steps.push({ key: 'board', label: 'ボード選択' });
+      steps.push({ key: "board", label: "ボード選択" });
     }
 
-    steps.push({ key: 'upload', label: 'アップロード' });
+    steps.push({ key: "upload", label: "アップロード" });
 
     return steps.map((step, index) => ({
       ...step,
@@ -161,50 +164,54 @@ export function ProblemUploadSection({
   }, [boardStepEnabled]);
 
   const goToNext = () => {
-    if (currentStep === 'capture') {
+    if (currentStep === "capture") {
       if (!canProceedFromCapture) {
         if (!currentUserLoginId) {
-          alert('アップロードを行うにはログインが必要です。');
+          alert("アップロードを行うにはログインが必要です。");
         }
         if (selectedFiles.length === 0) {
-          alert('アップロードする画像を選択してください。');
+          alert("アップロードする画像を選択してください。");
         }
         return;
       }
 
       if (boardStepEnabled) {
-        setCurrentStep('board');
+        setCurrentStep("board");
       } else {
-        setCurrentStep('upload');
+        setCurrentStep("upload");
         handleUpload();
       }
       return;
     }
 
-    if (currentStep === 'board') {
+    if (currentStep === "board") {
       if (!selectedBoard) {
-        alert('送信先のボードを選択してください。');
+        alert("送信先のボードを選択してください。");
         return;
       }
-      setCurrentStep('upload');
+      setCurrentStep("upload");
       handleUpload();
     }
   };
 
   const goBack = () => {
-    if (currentStep === 'board') {
-      setCurrentStep('capture');
-    } else if (currentStep === 'upload') {
+    if (currentStep === "board") {
+      setCurrentStep("capture");
+    } else if (currentStep === "upload") {
       if (boardStepEnabled) {
-        setCurrentStep('board');
+        setCurrentStep("board");
       } else {
-        setCurrentStep('capture');
+        setCurrentStep("capture");
       }
     }
   };
 
   const handleUpload = async () => {
-    if (!selectedBoard || !authStatus.isLoggedIn || selectedFiles.length === 0) {
+    if (
+      !selectedBoard ||
+      !authStatus.isLoggedIn ||
+      selectedFiles.length === 0
+    ) {
       return;
     }
 
@@ -221,7 +228,7 @@ export function ProblemUploadSection({
 
       const resetSteps = () =>
         setUploadSteps([
-          { ...UPLOAD_STEPS.VALIDATING, status: 'in_progress' },
+          { ...UPLOAD_STEPS.VALIDATING, status: "in_progress" },
           { ...UPLOAD_STEPS.UPLOADING_IMAGES },
           { ...UPLOAD_STEPS.CREATING_NOTES },
           { ...UPLOAD_STEPS.GROUPING },
@@ -233,56 +240,56 @@ export function ProblemUploadSection({
       const updateProgress = (
         step: string,
         progress: number,
-        message?: string
+        message?: string,
       ) => {
         setUploadSteps((prev) =>
           prev.map((stepItem) => {
             switch (step) {
-              case 'validating':
-                if (stepItem.id === 'validating') {
+              case "validating":
+                if (stepItem.id === "validating") {
                   return {
                     ...stepItem,
-                    status: progress === 100 ? 'completed' : 'in_progress',
+                    status: progress === 100 ? "completed" : "in_progress",
                     progress,
                     message: message || stepItem.message,
                   } as ProgressStep;
                 }
-                if (stepItem.id === 'uploading_images' && progress === 100) {
+                if (stepItem.id === "uploading_images" && progress === 100) {
                   return {
                     ...stepItem,
-                    status: 'in_progress',
+                    status: "in_progress",
                     progress: 0,
                   } as ProgressStep;
                 }
                 break;
-              case 'uploading':
-                if (stepItem.id === 'uploading_images') {
+              case "uploading":
+                if (stepItem.id === "uploading_images") {
                   return {
                     ...stepItem,
-                    status: 'in_progress',
+                    status: "in_progress",
                     progress,
                     message: message || stepItem.message,
                   } as ProgressStep;
                 }
                 break;
-              case 'completed':
-                if (stepItem.id === 'uploading_images') {
+              case "completed":
+                if (stepItem.id === "uploading_images") {
                   return {
                     ...stepItem,
-                    status: 'completed',
-                    message: message || 'アップロード完了',
+                    status: "completed",
+                    message: message || "アップロード完了",
                   } as ProgressStep;
                 }
                 if (
-                  stepItem.id === 'creating_notes' &&
-                  stepItem.status === 'pending'
+                  stepItem.id === "creating_notes" &&
+                  stepItem.status === "pending"
                 ) {
-                  return { ...stepItem, status: 'in_progress' } as ProgressStep;
+                  return { ...stepItem, status: "in_progress" } as ProgressStep;
                 }
                 break;
             }
             return stepItem;
-          })
+          }),
         );
       };
 
@@ -293,38 +300,38 @@ export function ProblemUploadSection({
         {
           onProgress: updateProgress,
           problemId,
-        }
+        },
       );
 
       setUploadSteps((prev) =>
         prev.map((step) => {
           switch (step.id) {
-            case 'creating_notes':
+            case "creating_notes":
               return {
                 ...step,
-                status: 'completed',
-                message: 'メタデータ付箋を作成しました',
+                status: "completed",
+                message: "メタデータ付箋を作成しました",
               } as ProgressStep;
-            case 'grouping':
-              return step.status === 'pending'
+            case "grouping":
+              return step.status === "pending"
                 ? {
                     ...step,
-                    status: 'completed',
-                    message: '画像と付箋をグループ化しました',
+                    status: "completed",
+                    message: "画像と付箋をグループ化しました",
                   }
                 : step;
-            case 'cleanup':
-              return step.status === 'pending'
+            case "cleanup":
+              return step.status === "pending"
                 ? {
                     ...step,
-                    status: 'completed',
-                    message: '処理が完了しました',
+                    status: "completed",
+                    message: "処理が完了しました",
                   }
                 : step;
             default:
               return step;
           }
-        })
+        }),
       );
 
       if (result.skippedItems && result.skippedItems.length > 0) {
@@ -333,20 +340,20 @@ export function ProblemUploadSection({
 
       onUploadCompleted?.();
     } catch (error) {
-      console.error('Problem upload failed:', error);
+      console.error("Problem upload failed:", error);
       const errorMessage =
-        error instanceof Error ? error.message : 'アップロードに失敗しました';
+        error instanceof Error ? error.message : "アップロードに失敗しました";
 
       setUploadSteps((prev) =>
         prev.map((step) =>
-          step.status === 'in_progress'
+          step.status === "in_progress"
             ? ({
                 ...step,
-                status: 'error',
+                status: "error",
                 message: errorMessage,
               } as ProgressStep)
-            : step
-        )
+            : step,
+        ),
       );
     }
   };
@@ -356,12 +363,12 @@ export function ProblemUploadSection({
     setSelectedFiles([]);
     setSkippedFiles([]);
     setSessionId(generateSessionId());
-    setCurrentStep('capture');
+    setCurrentStep("capture");
   };
 
-  const uploadTriggerStep = boardStepEnabled ? 'board' : 'capture';
+  const uploadTriggerStep = boardStepEnabled ? "board" : "capture";
   const isUploadTriggerStep = currentStep === uploadTriggerStep;
-  const nextButtonLabel = isUploadTriggerStep ? 'アップロード開始' : '次へ →';
+  const nextButtonLabel = isUploadTriggerStep ? "アップロード開始" : "次へ →";
 
   if (!isUploadUnlocked) {
     return (
@@ -425,7 +432,8 @@ export function ProblemUploadSection({
 
       {!authLoading && currentUserLoginId && (
         <div className="mb-6 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
-          このアップロードはユーザーID「{currentUserLoginId}」として記録されます。
+          このアップロードはユーザーID「{currentUserLoginId}
+          」として記録されます。
         </div>
       )}
 
@@ -437,10 +445,10 @@ export function ProblemUploadSection({
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
                   currentStep === step.key
-                    ? 'bg-blue-600 text-white'
+                    ? "bg-blue-600 text-white"
                     : currentIndex > index
-                    ? 'bg-green-500 text-white'
-                    : 'bg-gray-300 text-gray-600'
+                      ? "bg-green-500 text-white"
+                      : "bg-gray-300 text-gray-600"
                 }`}
               >
                 {currentIndex > index ? (
@@ -471,11 +479,11 @@ export function ProblemUploadSection({
       </div>
 
       <div className="border border-dashed border-gray-300 rounded-lg p-4 mb-6">
-        {currentStep === 'capture' && (
+        {currentStep === "capture" && (
           <ImageCapture onImagesChange={setSelectedFiles} maxFiles={10} />
         )}
 
-        {currentStep === 'board' && boardStepEnabled && (
+        {currentStep === "board" && boardStepEnabled && (
           <div className="space-y-4">
             <BoardSelector
               onBoardSelect={setSelectedBoard}
@@ -489,7 +497,7 @@ export function ProblemUploadSection({
           </div>
         )}
 
-        {currentStep === 'upload' && selectedBoard && (
+        {currentStep === "upload" && selectedBoard && (
           <div className="text-center py-8">
             <h3 className="text-xl font-semibold text-gray-900 mb-4">
               アップロード準備完了
@@ -506,7 +514,7 @@ export function ProblemUploadSection({
         <button
           onClick={goBack}
           type="button"
-          disabled={currentStep === 'capture'}
+          disabled={currentStep === "capture"}
           className="btn-outline disabled:opacity-50 disabled:cursor-not-allowed"
         >
           ← 戻る
@@ -516,9 +524,9 @@ export function ProblemUploadSection({
           onClick={goToNext}
           type="button"
           disabled={
-            (currentStep === 'capture' && !canProceedFromCapture) ||
-            (currentStep === 'board' && !canUpload) ||
-            currentStep === 'upload'
+            (currentStep === "capture" && !canProceedFromCapture) ||
+            (currentStep === "board" && !canUpload) ||
+            currentStep === "upload"
           }
           className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
         >

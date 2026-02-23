@@ -2,9 +2,9 @@
  * GET /api/auth/session - 現在のセッション情報を取得
  */
 
-import { NextResponse } from 'next/server';
-import { getAuthSession } from '@/lib/auth/helpers';
-import { logError } from '@/utils/errorHandler';
+import { NextResponse } from "next/server";
+import { getAuthSession } from "@/lib/auth/helpers";
+import { logError } from "@/utils/errorHandler";
 
 interface SessionResponse {
   isLoggedIn: boolean;
@@ -32,13 +32,13 @@ export async function GET() {
         : null,
     } as SessionResponse);
   } catch (error) {
-    logError(error as Error, 'GET /api/auth/session');
+    logError(error as Error, "GET /api/auth/session");
     return NextResponse.json(
       {
         isLoggedIn: false,
         user: null,
       } as SessionResponse,
-      { status: 200 }
+      { status: 200 },
     );
   }
 }

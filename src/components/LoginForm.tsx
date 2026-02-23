@@ -1,16 +1,16 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useNotifications } from '@/hooks/useNotifications';
+import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useNotifications } from "@/hooks/useNotifications";
 
 export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showSuccess, showError } = useNotifications();
-  
-  const [userId, setUserId] = useState('');
-  const [pin, setPin] = useState('');
+
+  const [userId, setUserId] = useState("");
+  const [pin, setPin] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -20,10 +20,10 @@ export default function LoginForm() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ userId, pin }),
       });
@@ -31,21 +31,27 @@ export default function LoginForm() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.message || 'ログインに失敗しました');
-        showError('ログイン失敗', data.message || 'ユーザーIDまたはPINが正しくありません');
+        setError(data.message || "ログインに失敗しました");
+        showError(
+          "ログイン失敗",
+          data.message || "ユーザーIDまたはPINが正しくありません",
+        );
         return;
       }
 
-      showSuccess('ログイン成功', `${data.user.displayName || data.user.userId}さん、ようこそ!`);
-      
+      showSuccess(
+        "ログイン成功",
+        `${data.user.displayName || data.user.userId}さん、ようこそ!`,
+      );
+
       // リダイレクト先を確認（デフォルトはホーム）
-      const redirectTo = searchParams.get('redirect') || '/problems';
+      const redirectTo = searchParams.get("redirect") || "/problems";
       router.push(redirectTo);
       router.refresh();
     } catch (err) {
-      console.error('Login error:', err);
-      setError('ログイン処理中にエラーが発生しました');
-      showError('エラー', 'ログイン処理中にエラーが発生しました');
+      console.error("Login error:", err);
+      setError("ログイン処理中にエラーが発生しました");
+      showError("エラー", "ログイン処理中にエラーが発生しました");
     } finally {
       setLoading(false);
     }
@@ -62,7 +68,10 @@ export default function LoginForm() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* ユーザーID入力 */}
             <div>
-              <label htmlFor="userId" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="userId"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 ユーザーID
               </label>
               <input
@@ -81,7 +90,10 @@ export default function LoginForm() {
 
             {/* PIN入力 */}
             <div>
-              <label htmlFor="pin" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="pin"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 PIN
               </label>
               <input
@@ -111,10 +123,9 @@ export default function LoginForm() {
               disabled={loading}
               className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {loading ? 'ログイン中...' : 'ログイン'}
+              {loading ? "ログイン中..." : "ログイン"}
             </button>
           </form>
-
         </div>
       </div>
     </div>

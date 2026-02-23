@@ -1,22 +1,25 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Layout } from '@/components/Layout';
-import { ResponsiveContainer, FlexContainer } from '@/components/ResponsiveContainer';
-import { ImageCapture } from '@/components/ImageCapture';
-import { BoardSelector } from '@/components/BoardSelector';
-import { UploadProgress, UPLOAD_STEPS } from '@/components/UploadProgress';
-import { ProblemUploadSection } from '@/components/ProblemUploadSection';
-import { ProgressStep, ProblemDetailResponse } from '@/types';
-import { uploadImagesToMiro, generateSessionId } from '@/utils/uploadService';
+import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Layout } from "@/components/Layout";
+import {
+  ResponsiveContainer,
+  FlexContainer,
+} from "@/components/ResponsiveContainer";
+import { ImageCapture } from "@/components/ImageCapture";
+import { BoardSelector } from "@/components/BoardSelector";
+import { UploadProgress, UPLOAD_STEPS } from "@/components/UploadProgress";
+import { ProblemUploadSection } from "@/components/ProblemUploadSection";
+import { ProgressStep, ProblemDetailResponse } from "@/types";
+import { uploadImagesToMiro, generateSessionId } from "@/utils/uploadService";
 
 interface AuthStatus {
   isLoggedIn: boolean;
   userId?: string;
   userDbId?: string;
   displayName?: string;
-  role?: 'ADMIN' | 'USER';
+  role?: "ADMIN" | "USER";
 }
 
 interface Board {
@@ -26,17 +29,22 @@ interface Board {
   thumbnailUrl?: string;
 }
 
-type UploadStep = 'capture' | 'board' | 'upload';
+type UploadStep = "capture" | "board" | "upload";
 
 interface UploadPageClientProps {
   problemIdFromQuery: string | null;
 }
 
-export function UploadPageClient({ problemIdFromQuery }: UploadPageClientProps) {
+export function UploadPageClient({
+  problemIdFromQuery,
+}: UploadPageClientProps) {
   const router = useRouter();
-  const [authStatus, setAuthStatus] = useState<AuthStatus>({ isLoggedIn: false });
+  const [authStatus, setAuthStatus] = useState<AuthStatus>({
+    isLoggedIn: false,
+  });
   const [authLoading, setAuthLoading] = useState(true);
-  const [problemDetail, setProblemDetail] = useState<ProblemDetailResponse | null>(null);
+  const [problemDetail, setProblemDetail] =
+    useState<ProblemDetailResponse | null>(null);
   const [problemLoading, setProblemLoading] = useState(false);
   const [problemError, setProblemError] = useState<string | null>(null);
 
@@ -44,7 +52,7 @@ export function UploadPageClient({ problemIdFromQuery }: UploadPageClientProps) 
   useEffect(() => {
     const fetchAuthStatus = async () => {
       try {
-        const response = await fetch('/api/auth/session');
+        const response = await fetch("/api/auth/session");
         const data = await response.json();
         setAuthStatus({
           isLoggedIn: data.isLoggedIn ?? false,
@@ -54,7 +62,7 @@ export function UploadPageClient({ problemIdFromQuery }: UploadPageClientProps) 
           role: data.user?.role,
         });
       } catch (error) {
-        console.error('Failed to fetch auth status:', error);
+        console.error("Failed to fetch auth status:", error);
       } finally {
         setAuthLoading(false);
       }
@@ -75,17 +83,19 @@ export function UploadPageClient({ problemIdFromQuery }: UploadPageClientProps) 
       setProblemError(null);
 
       const response = await fetch(`/api/problems/${problemIdFromQuery}`, {
-        cache: 'no-store',
+        cache: "no-store",
       });
       if (!response.ok) {
         const payload = await response.json().catch(() => ({}));
-        throw new Error(payload.message || '問題情報の取得に失敗しました。');
+        throw new Error(payload.message || "問題情報の取得に失敗しました。");
       }
       const payload = (await response.json()) as ProblemDetailResponse;
       setProblemDetail(payload);
     } catch (error) {
       setProblemError(
-        error instanceof Error ? error.message : '問題情報の取得に失敗しました。'
+        error instanceof Error
+          ? error.message
+          : "問題情報の取得に失敗しました。",
       );
     } finally {
       setProblemLoading(false);
@@ -101,7 +111,7 @@ export function UploadPageClient({ problemIdFromQuery }: UploadPageClientProps) 
     }
   }, [problemIdFromQuery, refreshProblemDetail]);
 
-  const [currentStep, setCurrentStep] = useState<UploadStep>('capture');
+  const [currentStep, setCurrentStep] = useState<UploadStep>("capture");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [selectedBoard, setSelectedBoard] = useState<Board | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -112,59 +122,70 @@ export function UploadPageClient({ problemIdFromQuery }: UploadPageClientProps) 
     { ...UPLOAD_STEPS.GROUPING },
     { ...UPLOAD_STEPS.CLEANUP },
   ]);
-  const [skippedFiles, setSkippedFiles] = useState<Array<{ fileName: string; reason: string }>>([]);
+  const [skippedFiles, setSkippedFiles] = useState<
+    Array<{ fileName: string; reason: string }>
+  >([]);
   const [sessionId, setSessionId] = useState(() => generateSessionId());
 
-  const currentUserLoginId = authStatus.isLoggedIn ? authStatus.userId ?? null : null;
-  const currentUserDbId = authStatus.isLoggedIn ? authStatus.userDbId ?? null : null;
+  const currentUserLoginId = authStatus.isLoggedIn
+    ? (authStatus.userId ?? null)
+    : null;
+  const currentUserDbId = authStatus.isLoggedIn
+    ? (authStatus.userDbId ?? null)
+    : null;
   const currentUserDisplayName = authStatus.isLoggedIn
-    ? authStatus.displayName ?? authStatus.userId ?? undefined
+    ? (authStatus.displayName ?? authStatus.userId ?? undefined)
     : undefined;
 
-  const canProceedFromCapture = selectedFiles.length > 0 && !!currentUserLoginId;
+  const canProceedFromCapture =
+    selectedFiles.length > 0 && !!currentUserLoginId;
   const canUpload = Boolean(selectedBoard) && canProceedFromCapture;
 
   const handleNext = () => {
-    if (currentStep === 'capture') {
+    if (currentStep === "capture") {
       if (!canProceedFromCapture) {
         if (!currentUserLoginId) {
-          alert('アップロードを行うにはログインが必要です。');
+          alert("アップロードを行うにはログインが必要です。");
         } else if (selectedFiles.length === 0) {
-          alert('アップロードする画像を選択してください。');
+          alert("アップロードする画像を選択してください。");
         }
         return;
       }
-      setCurrentStep('board');
+      setCurrentStep("board");
       return;
     }
 
-    if (currentStep === 'board') {
+    if (currentStep === "board") {
       if (!selectedBoard) {
-        alert('送信先のボードを選択してください。');
+        alert("送信先のボードを選択してください。");
         return;
       }
-      setCurrentStep('upload');
+      setCurrentStep("upload");
       handleUpload();
     }
   };
 
   const handleBack = () => {
-    if (currentStep === 'board') {
-      setCurrentStep('capture');
-    } else if (currentStep === 'upload') {
-      setCurrentStep('board');
+    if (currentStep === "board") {
+      setCurrentStep("capture");
+    } else if (currentStep === "upload") {
+      setCurrentStep("board");
     }
   };
 
   const handleUpload = async () => {
-    if (!selectedBoard || !authStatus.isLoggedIn || selectedFiles.length === 0) {
+    if (
+      !selectedBoard ||
+      !authStatus.isLoggedIn ||
+      selectedFiles.length === 0
+    ) {
       return;
     }
 
     setIsUploading(true);
 
     setUploadSteps([
-      { ...UPLOAD_STEPS.VALIDATING, status: 'in_progress' as const },
+      { ...UPLOAD_STEPS.VALIDATING, status: "in_progress" as const },
       { ...UPLOAD_STEPS.UPLOADING_IMAGES },
       { ...UPLOAD_STEPS.CREATING_NOTES },
       { ...UPLOAD_STEPS.GROUPING },
@@ -180,99 +201,126 @@ export function UploadPageClient({ problemIdFromQuery }: UploadPageClientProps) 
         uploaderName: currentUserDisplayName,
       }));
 
-      const updateProgress = (step: string, progress: number, message?: string) => {
+      const updateProgress = (
+        step: string,
+        progress: number,
+        message?: string,
+      ) => {
         setUploadSteps((prev) =>
           prev.map((stepItem) => {
             switch (step) {
-              case 'validating':
-                if (stepItem.id === 'validating') {
+              case "validating":
+                if (stepItem.id === "validating") {
                   return {
                     ...stepItem,
-                    status: progress === 100 ? ('completed' as const) : ('in_progress' as const),
+                    status:
+                      progress === 100
+                        ? ("completed" as const)
+                        : ("in_progress" as const),
                     progress,
                     message: message || stepItem.message,
                   } as ProgressStep;
                 }
-                if (stepItem.id === 'uploading_images' && progress === 100) {
-                  return { ...stepItem, status: 'in_progress' as const, progress: 0 } as ProgressStep;
-                }
-                break;
-              case 'uploading':
-                if (stepItem.id === 'uploading_images') {
+                if (stepItem.id === "uploading_images" && progress === 100) {
                   return {
                     ...stepItem,
-                    status: 'in_progress' as const,
+                    status: "in_progress" as const,
+                    progress: 0,
+                  } as ProgressStep;
+                }
+                break;
+              case "uploading":
+                if (stepItem.id === "uploading_images") {
+                  return {
+                    ...stepItem,
+                    status: "in_progress" as const,
                     progress,
                     message: message || stepItem.message,
                   } as ProgressStep;
                 }
                 break;
-              case 'completed':
-                if (stepItem.id === 'uploading_images') {
+              case "completed":
+                if (stepItem.id === "uploading_images") {
                   return {
                     ...stepItem,
-                    status: 'completed' as const,
-                    message: message || 'アップロード完了',
+                    status: "completed" as const,
+                    message: message || "アップロード完了",
                   } as ProgressStep;
                 }
-                if (stepItem.id === 'creating_notes' && stepItem.status === 'pending') {
-                  return { ...stepItem, status: 'in_progress' as const } as ProgressStep;
+                if (
+                  stepItem.id === "creating_notes" &&
+                  stepItem.status === "pending"
+                ) {
+                  return {
+                    ...stepItem,
+                    status: "in_progress" as const,
+                  } as ProgressStep;
                 }
                 break;
             }
             return stepItem;
-          })
+          }),
         );
       };
 
-      const result = await uploadImagesToMiro(uploadData, selectedBoard.id, sessionId, {
-        onProgress: updateProgress,
-      });
+      const result = await uploadImagesToMiro(
+        uploadData,
+        selectedBoard.id,
+        sessionId,
+        {
+          onProgress: updateProgress,
+        },
+      );
 
       setUploadSteps((prev) =>
         prev.map((step) => {
           switch (step.id) {
-            case 'creating_notes':
+            case "creating_notes":
               return {
                 ...step,
-                status: 'completed' as const,
-                message: 'メタデータ付箋を作成しました',
+                status: "completed" as const,
+                message: "メタデータ付箋を作成しました",
               } as ProgressStep;
-            case 'grouping':
-              return step.status === 'pending'
+            case "grouping":
+              return step.status === "pending"
                 ? ({
                     ...step,
-                    status: 'completed' as const,
-                    message: '画像と付箋をグループ化しました',
+                    status: "completed" as const,
+                    message: "画像と付箋をグループ化しました",
                   } as ProgressStep)
                 : step;
-            case 'cleanup':
-              return step.status === 'pending'
+            case "cleanup":
+              return step.status === "pending"
                 ? ({
                     ...step,
-                    status: 'completed' as const,
-                    message: '処理が完了しました',
+                    status: "completed" as const,
+                    message: "処理が完了しました",
                   } as ProgressStep)
                 : step;
             default:
               return step;
           }
-        })
+        }),
       );
 
       if (result.skippedItems && result.skippedItems.length > 0) {
         setSkippedFiles(result.skippedItems);
       }
     } catch (error) {
-      console.error('Upload failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'アップロードに失敗しました';
+      console.error("Upload failed:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "アップロードに失敗しました";
 
       setUploadSteps((prev) =>
         prev.map((step) =>
-          step.status === 'in_progress'
-            ? ({ ...step, status: 'error' as const, message: errorMessage } as ProgressStep)
-            : step
-        )
+          step.status === "in_progress"
+            ? ({
+                ...step,
+                status: "error" as const,
+                message: errorMessage,
+              } as ProgressStep)
+            : step,
+        ),
       );
     }
   };
@@ -290,19 +338,26 @@ export function UploadPageClient({ problemIdFromQuery }: UploadPageClientProps) 
       { ...UPLOAD_STEPS.CLEANUP },
     ]);
     setSessionId(generateSessionId());
-    setCurrentStep('capture');
+    setCurrentStep("capture");
   };
 
   const renderStepContent = () => {
     switch (currentStep) {
-      case 'capture':
+      case "capture":
         return <ImageCapture onImagesChange={setSelectedFiles} maxFiles={10} />;
-      case 'board':
-        return <BoardSelector selectedBoardId={selectedBoard?.id} onBoardSelect={setSelectedBoard} />;
-      case 'upload':
+      case "board":
+        return (
+          <BoardSelector
+            selectedBoardId={selectedBoard?.id}
+            onBoardSelect={setSelectedBoard}
+          />
+        );
+      case "upload":
         return (
           <div className="text-center py-8">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">アップロード準備完了</h3>
+            <h3 className="text-xl font-semibold text-gray-900 mb-4">
+              アップロード準備完了
+            </h3>
             <div className="space-y-2 text-sm text-gray-600">
               <p>選択された画像: {selectedFiles.length}枚</p>
               <p>送信先ボード: {selectedBoard?.name}</p>
@@ -316,9 +371,9 @@ export function UploadPageClient({ problemIdFromQuery }: UploadPageClientProps) 
 
   const renderStepIndicator = () => {
     const steps = [
-      { key: 'capture', label: '画像選択', number: 1 },
-      { key: 'board', label: 'ボード選択', number: 2 },
-      { key: 'upload', label: 'アップロード', number: 3 },
+      { key: "capture", label: "画像選択", number: 1 },
+      { key: "board", label: "ボード選択", number: 2 },
+      { key: "upload", label: "アップロード", number: 3 },
     ];
 
     return (
@@ -328,16 +383,21 @@ export function UploadPageClient({ problemIdFromQuery }: UploadPageClientProps) 
             <div
               className={`
                 w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
-                ${currentStep === step.key
-                  ? 'bg-blue-600 text-white'
-                  : steps.findIndex(s => s.key === currentStep) > index
-                  ? 'bg-green-500 text-white'
-                  : 'bg-gray-300 text-gray-600'
+                ${
+                  currentStep === step.key
+                    ? "bg-blue-600 text-white"
+                    : steps.findIndex((s) => s.key === currentStep) > index
+                      ? "bg-green-500 text-white"
+                      : "bg-gray-300 text-gray-600"
                 }
               `}
             >
-              {steps.findIndex(s => s.key === currentStep) > index ? (
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              {steps.findIndex((s) => s.key === currentStep) > index ? (
+                <svg
+                  className="w-5 h-5"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
                   <path
                     fillRule="evenodd"
                     d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
@@ -348,8 +408,12 @@ export function UploadPageClient({ problemIdFromQuery }: UploadPageClientProps) 
                 step.number
               )}
             </div>
-            <span className="ml-2 text-sm font-medium text-gray-600">{step.label}</span>
-            {index < steps.length - 1 && <div className="w-8 h-px bg-gray-300 mx-4" />}
+            <span className="ml-2 text-sm font-medium text-gray-600">
+              {step.label}
+            </span>
+            {index < steps.length - 1 && (
+              <div className="w-8 h-px bg-gray-300 mx-4" />
+            )}
           </div>
         ))}
       </div>
@@ -363,7 +427,9 @@ export function UploadPageClient({ problemIdFromQuery }: UploadPageClientProps) 
           {problemLoading && (
             <div className="bg-white border border-gray-200 rounded-lg p-6 text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2" />
-              <p className="text-sm text-gray-600">問題情報を読み込み中です...</p>
+              <p className="text-sm text-gray-600">
+                問題情報を読み込み中です...
+              </p>
             </div>
           )}
 
@@ -376,7 +442,9 @@ export function UploadPageClient({ problemIdFromQuery }: UploadPageClientProps) 
           {problemDetail && !problemLoading && !problemError && (
             <div className="space-y-6">
               <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
-                <h1 className="text-xl font-semibold text-gray-900 mb-2">{problemDetail.problem.title}</h1>
+                <h1 className="text-xl font-semibold text-gray-900 mb-2">
+                  {problemDetail.problem.title}
+                </h1>
                 <p className="text-sm text-gray-600">
                   問題に紐付けて画像をアップロードします。ページ下部の問題詳細からも直接アップロードできます。
                 </p>
@@ -407,14 +475,22 @@ export function UploadPageClient({ problemIdFromQuery }: UploadPageClientProps) 
             <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-md">
               <div className="flex">
                 <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  <svg
+                    className="h-5 w-5 text-yellow-400"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                      clipRule="evenodd"
+                    />
                   </svg>
                 </div>
                 <div className="ml-3">
                   <p className="text-sm text-yellow-700">
                     <button
-                      onClick={() => router.push('/login')}
+                      onClick={() => router.push("/login")}
                       className="font-medium underline hover:text-yellow-800"
                     >
                       ログイン
@@ -425,7 +501,7 @@ export function UploadPageClient({ problemIdFromQuery }: UploadPageClientProps) 
               </div>
             </div>
           )}
-          
+
           {renderStepIndicator()}
           <div className="flex-1">{renderStepContent()}</div>
           <div className="flex justify-between items-center pt-6 border-t border-gray-200">
@@ -433,7 +509,7 @@ export function UploadPageClient({ problemIdFromQuery }: UploadPageClientProps) 
               <button
                 onClick={handleBack}
                 type="button"
-                disabled={currentStep === 'capture'}
+                disabled={currentStep === "capture"}
                 className="btn-outline disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 ← 戻る
@@ -443,13 +519,13 @@ export function UploadPageClient({ problemIdFromQuery }: UploadPageClientProps) 
               onClick={handleNext}
               type="button"
               disabled={
-                (currentStep === 'capture' && !canProceedFromCapture) ||
-                (currentStep === 'board' && !canUpload) ||
-                currentStep === 'upload'
+                (currentStep === "capture" && !canProceedFromCapture) ||
+                (currentStep === "board" && !canUpload) ||
+                currentStep === "upload"
               }
               className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {currentStep === 'board' ? 'アップロード開始' : '次へ →'}
+              {currentStep === "board" ? "アップロード開始" : "次へ →"}
             </button>
           </div>
         </FlexContainer>

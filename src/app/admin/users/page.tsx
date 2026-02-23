@@ -1,5 +1,5 @@
-import { requireAdmin } from '@/lib/auth/helpers';
-import { Layout, AdminUsersClient } from '@/components';
+import { requireAdmin } from "@/lib/auth/helpers";
+import { Layout, AdminUsersClient } from "@/components";
 
 export default async function AdminUsersPage() {
   // Server Componentで管理者権限チェック

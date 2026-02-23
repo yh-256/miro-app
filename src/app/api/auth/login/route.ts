@@ -2,11 +2,11 @@
  * POST /api/auth/login - ユーザーログイン
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
-import { prisma } from '@/lib/prisma';
-import { getSession } from '@/lib/auth/iron-session';
-import { logError } from '@/utils/errorHandler';
+import { NextRequest, NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
+import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth/iron-session";
+import { logError } from "@/utils/errorHandler";
 
 interface LoginRequest {
   userId: string;
@@ -32,12 +32,12 @@ export async function POST(request: NextRequest) {
     // バリデーション
     if (!userId || !pin) {
       return NextResponse.json(
-        { 
+        {
           success: false,
-          error: 'INVALID_REQUEST', 
-          message: 'ユーザーIDとPINを入力してください。' 
+          error: "INVALID_REQUEST",
+          message: "ユーザーIDとPINを入力してください。",
         } as LoginResponse,
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -48,14 +48,14 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       // タイミング攻撃対策: ユーザーが存在しない場合もbcryptを実行
-      await bcrypt.compare(pin, '$2a$10$invalidHashToPreventTimingAttack');
+      await bcrypt.compare(pin, "$2a$10$invalidHashToPreventTimingAttack");
       return NextResponse.json(
-        { 
+        {
           success: false,
-          error: 'INVALID_CREDENTIALS', 
-          message: 'ユーザーIDまたはPINが正しくありません。' 
+          error: "INVALID_CREDENTIALS",
+          message: "ユーザーIDまたはPINが正しくありません。",
         } as LoginResponse,
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -63,12 +63,12 @@ export async function POST(request: NextRequest) {
     const isValidPin = await bcrypt.compare(pin, user.pinHash);
     if (!isValidPin) {
       return NextResponse.json(
-        { 
+        {
           success: false,
-          error: 'INVALID_CREDENTIALS', 
-          message: 'ユーザーIDまたはPINが正しくありません。' 
+          error: "INVALID_CREDENTIALS",
+          message: "ユーザーIDまたはPINが正しくありません。",
         } as LoginResponse,
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -96,14 +96,14 @@ export async function POST(request: NextRequest) {
       },
     } as LoginResponse);
   } catch (error) {
-    logError(error as Error, 'POST /api/auth/login');
+    logError(error as Error, "POST /api/auth/login");
     return NextResponse.json(
-      { 
+      {
         success: false,
-        error: 'LOGIN_FAILED', 
-        message: 'ログインに失敗しました。' 
+        error: "LOGIN_FAILED",
+        message: "ログインに失敗しました。",
       } as LoginResponse,
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

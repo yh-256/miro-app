@@ -2,10 +2,10 @@
  * 認証ヘルパー関数
  */
 
-import 'server-only';
-import { redirect } from 'next/navigation';
-import { getSession } from './iron-session';
-import { IronSessionData } from './session.types';
+import "server-only";
+import { redirect } from "next/navigation";
+import { getSession } from "./iron-session";
+import { IronSessionData } from "./session.types";
 
 /**
  * 現在の認証セッションを取得
@@ -29,7 +29,7 @@ export async function getAuthSession(): Promise<IronSessionData> {
 export async function requireAuth(): Promise<IronSessionData> {
   const session = await getAuthSession();
   if (!session.isLoggedIn || !session.userId) {
-    redirect('/login');
+    redirect("/login");
   }
   return session;
 }
@@ -40,8 +40,8 @@ export async function requireAuth(): Promise<IronSessionData> {
  */
 export async function requireAdmin(): Promise<IronSessionData> {
   const session = await requireAuth();
-  if (session.role !== 'ADMIN') {
-    throw new Error('管理者権限が必要です');
+  if (session.role !== "ADMIN") {
+    throw new Error("管理者権限が必要です");
   }
   return session;
 }

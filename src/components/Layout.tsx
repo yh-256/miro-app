@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { ReactNode, useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useDeviceDetection } from '@/utils/deviceDetection';
-import { ToastProvider } from './Toast';
-import { HomeButton } from './HomeButton';
-import { useNotifications } from '@/hooks/useNotifications';
+import { ReactNode, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useDeviceDetection } from "@/utils/deviceDetection";
+import { ToastProvider } from "./Toast";
+import { HomeButton } from "./HomeButton";
+import { useNotifications } from "@/hooks/useNotifications";
 
 interface LayoutProps {
   children: ReactNode;
@@ -17,21 +17,26 @@ interface AuthStatus {
   userId?: string;
   userDbId?: string;
   displayName?: string;
-  role?: 'ADMIN' | 'USER';
+  role?: "ADMIN" | "USER";
 }
 
-export function Layout({ children, title = 'Miro Image Upload App' }: LayoutProps) {
+export function Layout({
+  children,
+  title = "Miro Image Upload App",
+}: LayoutProps) {
   const deviceInfo = useDeviceDetection();
   const router = useRouter();
   const { showSuccess, showError } = useNotifications();
-  const [authStatus, setAuthStatus] = useState<AuthStatus>({ isLoggedIn: false });
+  const [authStatus, setAuthStatus] = useState<AuthStatus>({
+    isLoggedIn: false,
+  });
   const [authLoading, setAuthLoading] = useState(true);
 
   // 認証状態を取得
   useEffect(() => {
     const fetchAuthStatus = async () => {
       try {
-        const response = await fetch('/api/auth/session');
+        const response = await fetch("/api/auth/session");
         const data = await response.json();
         setAuthStatus({
           isLoggedIn: data.isLoggedIn ?? false,
@@ -41,7 +46,7 @@ export function Layout({ children, title = 'Miro Image Upload App' }: LayoutProp
           role: data.user?.role,
         });
       } catch (error) {
-        console.error('Failed to fetch auth status:', error);
+        console.error("Failed to fetch auth status:", error);
       } finally {
         setAuthLoading(false);
       }
@@ -53,27 +58,29 @@ export function Layout({ children, title = 'Miro Image Upload App' }: LayoutProp
   // ログアウト処理
   const handleLogout = async () => {
     try {
-      const response = await fetch('/api/auth/logout', {
-        method: 'POST',
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
       });
 
       if (response.ok) {
-        showSuccess('ログアウト', 'ログアウトしました');
+        showSuccess("ログアウト", "ログアウトしました");
         setAuthStatus({ isLoggedIn: false });
-        router.push('/');
+        router.push("/");
         router.refresh();
       } else {
-        showError('エラー', 'ログアウトに失敗しました');
+        showError("エラー", "ログアウトに失敗しました");
       }
     } catch (error) {
-      console.error('Logout error:', error);
-      showError('エラー', 'ログアウト処理中にエラーが発生しました');
+      console.error("Logout error:", error);
+      showError("エラー", "ログアウト処理中にエラーが発生しました");
     }
   };
 
   return (
     <ToastProvider>
-      <div className={`min-h-screen bg-gray-50 ${deviceInfo?.type === 'mobile' ? 'mobile-layout' : 'desktop-layout'}`}>
+      <div
+        className={`min-h-screen bg-gray-50 ${deviceInfo?.type === "mobile" ? "mobile-layout" : "desktop-layout"}`}
+      >
         {/* ヘッダー */}
         <header className="bg-white shadow-sm border-b border-gray-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -83,7 +90,7 @@ export function Layout({ children, title = 'Miro Image Upload App' }: LayoutProp
                   {title}
                 </h1>
               </div>
-              
+
               <div className="flex items-center gap-2 sm:gap-4">
                 {/* 認証状態表示 */}
                 {!authLoading && (
@@ -102,7 +109,7 @@ export function Layout({ children, title = 'Miro Image Upload App' }: LayoutProp
                       </div>
                     ) : (
                       <button
-                        onClick={() => router.push('/login')}
+                        onClick={() => router.push("/login")}
                         className="text-sm px-3 py-1 bg-blue-600 text-white hover:bg-blue-700 rounded-md transition-colors"
                       >
                         ログイン
@@ -110,14 +117,15 @@ export function Layout({ children, title = 'Miro Image Upload App' }: LayoutProp
                     )}
                   </>
                 )}
-                
+
                 {/* ホームボタン */}
                 <HomeButton variant="outline" size="sm" />
-                
+
                 {/* デバイス情報表示（開発用） */}
-                {process.env.NODE_ENV === 'development' && deviceInfo && (
+                {process.env.NODE_ENV === "development" && deviceInfo && (
                   <div className="text-xs text-gray-500 hidden sm:block">
-                    {deviceInfo.type} | {deviceInfo.screenWidth}×{deviceInfo.screenHeight}
+                    {deviceInfo.type} | {deviceInfo.screenWidth}×
+                    {deviceInfo.screenHeight}
                   </div>
                 )}
               </div>
@@ -126,9 +134,7 @@ export function Layout({ children, title = 'Miro Image Upload App' }: LayoutProp
         </header>
 
         {/* メインコンテンツ */}
-        <main className="flex-1">
-          {children}
-        </main>
+        <main className="flex-1">{children}</main>
 
         {/* フッター */}
         <footer className="bg-white border-t border-gray-200 mt-auto">

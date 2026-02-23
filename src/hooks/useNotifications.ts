@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { useToast } from '@/components/Toast';
-import { 
+import { useEffect } from "react";
+import { useToast } from "@/components/Toast";
+import {
   initializeNotificationService,
   MiroNotifications,
   ValidationNotifications,
@@ -15,8 +15,8 @@ import {
   // showErrorNotification,
   // showWarningNotification,
   showInfoNotification,
-} from '@/utils/notificationService';
-import { UserFriendlyError } from '@/types';
+} from "@/utils/notificationService";
+import { UserFriendlyError } from "@/types";
 
 /**
  * 通知システムを統合するカスタムフック
@@ -58,15 +58,24 @@ export function useNotifications() {
       return handleAndNotifyMiroError(error, context);
     },
 
-    handleUploadError: (error: unknown, context?: string): UserFriendlyError => {
+    handleUploadError: (
+      error: unknown,
+      context?: string,
+    ): UserFriendlyError => {
       return handleAndNotifyUploadError(error, context);
     },
 
-    handleSearchError: (error: unknown, context?: string): UserFriendlyError => {
+    handleSearchError: (
+      error: unknown,
+      context?: string,
+    ): UserFriendlyError => {
       return handleAndNotifySearchError(error, context);
     },
 
-    handleGenericError: (error: unknown, context?: string): UserFriendlyError => {
+    handleGenericError: (
+      error: unknown,
+      context?: string,
+    ): UserFriendlyError => {
       return handleAndNotifyGenericError(error, context);
     },
 
@@ -112,12 +121,12 @@ export function useNotifications() {
     withErrorHandling: async <T>(
       promise: Promise<T>,
       context?: string,
-      successMessage?: string
+      successMessage?: string,
     ): Promise<T | null> => {
       try {
         const result = await promise;
         if (successMessage) {
-          toast.showSuccess('処理完了', successMessage);
+          toast.showSuccess("処理完了", successMessage);
         }
         return result;
       } catch (error) {
@@ -129,12 +138,12 @@ export function useNotifications() {
     withMiroErrorHandling: async <T>(
       promise: Promise<T>,
       context?: string,
-      successMessage?: string
+      successMessage?: string,
     ): Promise<T | null> => {
       try {
         const result = await promise;
         if (successMessage) {
-          toast.showSuccess('処理完了', successMessage);
+          toast.showSuccess("処理完了", successMessage);
         }
         return result;
       } catch (error) {
@@ -146,12 +155,12 @@ export function useNotifications() {
     withUploadErrorHandling: async <T>(
       promise: Promise<T>,
       context?: string,
-      successMessage?: string
+      successMessage?: string,
     ): Promise<T | null> => {
       try {
         const result = await promise;
         if (successMessage) {
-          toast.showSuccess('アップロード完了', successMessage);
+          toast.showSuccess("アップロード完了", successMessage);
         }
         return result;
       } catch (error) {
@@ -171,40 +180,41 @@ export async function apiCallWithNotification<T>(
     loadingMessage?: string;
     successMessage?: string | ((result: T) => string);
     errorContext?: string;
-    errorHandler?: 'miro' | 'upload' | 'search' | 'generic';
-  } = {}
+    errorHandler?: "miro" | "upload" | "search" | "generic";
+  } = {},
 ): Promise<T | null> {
   const {
     loadingMessage,
     successMessage,
     errorContext,
-    errorHandler = 'generic'
+    errorHandler = "generic",
   } = options;
 
   try {
     if (loadingMessage) {
-      showInfoNotification('処理中', loadingMessage, 2000);
+      showInfoNotification("処理中", loadingMessage, 2000);
     }
 
     const result = await apiCall();
 
     if (successMessage) {
-      const message = typeof successMessage === 'function' 
-        ? successMessage(result) 
-        : successMessage;
-      showSuccessNotification('処理完了', message);
+      const message =
+        typeof successMessage === "function"
+          ? successMessage(result)
+          : successMessage;
+      showSuccessNotification("処理完了", message);
     }
 
     return result;
   } catch (error) {
     switch (errorHandler) {
-      case 'miro':
+      case "miro":
         handleAndNotifyMiroError(error, errorContext);
         break;
-      case 'upload':
+      case "upload":
         handleAndNotifyUploadError(error, errorContext);
         break;
-      case 'search':
+      case "search":
         handleAndNotifySearchError(error, errorContext);
         break;
       default:
@@ -224,21 +234,21 @@ export async function submitFormWithNotification<T>(
     submittingMessage?: string;
     successMessage?: string;
     errorContext?: string;
-  } = {}
+  } = {},
 ): Promise<{ success: boolean; data?: T; error?: UserFriendlyError }> {
   const {
-    submittingMessage = '送信中...',
-    successMessage = 'フォームを送信しました',
-    errorContext = 'Form submission'
+    submittingMessage = "送信中...",
+    successMessage = "フォームを送信しました",
+    errorContext = "Form submission",
   } = options;
 
   try {
-    showInfoNotification('送信中', submittingMessage, 2000);
-    
+    showInfoNotification("送信中", submittingMessage, 2000);
+
     const result = await submitFunction();
-    
-    showSuccessNotification('送信完了', successMessage);
-    
+
+    showSuccessNotification("送信完了", successMessage);
+
     return { success: true, data: result };
   } catch (error) {
     const userError = handleAndNotifyGenericError(error, errorContext);

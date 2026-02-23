@@ -1,6 +1,12 @@
-import { miroClient, MiroImageItem, MiroStickyNote, IMiroClient, MiroApiClient } from './miroClient';
-import { logError } from './errorHandler';
-import { findNearbyItems } from './proximity';
+import {
+  miroClient,
+  MiroImageItem,
+  MiroStickyNote,
+  IMiroClient,
+  MiroApiClient,
+} from "./miroClient";
+import { logError } from "./errorHandler";
+import { findNearbyItems } from "./proximity";
 
 /**
  * Miroボード上での高度なグループ化とレイアウト管理
@@ -69,13 +75,13 @@ export async function createUserBasedLayout(
     stickyHeight: number;
   }>,
   basePosition: { x: number; y: number } = { x: 0, y: 0 },
-  client: IMiroClient = miroClient
+  client: IMiroClient = miroClient,
 ): Promise<UserGroup[]> {
   try {
     // ユーザー別にアイテムをグループ化
     const userGroups = new Map<string, UserGroup>();
-    
-    uploadItems.forEach(item => {
+
+    uploadItems.forEach((item) => {
       if (!userGroups.has(item.userId)) {
         userGroups.set(item.userId, {
           userId: item.userId,
@@ -84,7 +90,7 @@ export async function createUserBasedLayout(
           bounds: { x: 0, y: 0, width: 0, height: 0 },
         });
       }
-      
+
       const group = userGroups.get(item.userId)!;
       group.items.push({
         imageId: item.imageId,
@@ -104,26 +110,36 @@ export async function createUserBasedLayout(
     // 各ユーザーグループのレイアウトを計算
     const userGroupsArray = Array.from(userGroups.values());
     let currentUserX = basePosition.x;
-    
-    for (let groupIndex = 0; groupIndex < userGroupsArray.length; groupIndex++) {
+
+    for (
+      let groupIndex = 0;
+      groupIndex < userGroupsArray.length;
+      groupIndex++
+    ) {
       const userGroup = userGroupsArray[groupIndex];
       const groupBaseY = basePosition.y;
 
       // グループ内でのアイテム配置
-      await layoutItemsInGroup(boardId, userGroup, {
-        x: currentUserX,
-        y: groupBaseY,
-      }, client);
+      await layoutItemsInGroup(
+        boardId,
+        userGroup,
+        {
+          x: currentUserX,
+          y: groupBaseY,
+        },
+        client,
+      );
 
       // 次のユーザーグループの中心位置を計算（右端 + 余白 + 付箋半分）
       const groupRightEdge = userGroup.bounds.x + userGroup.bounds.width;
       const halfSticky = LAYOUT_CONFIG.STICKY_NOTE_WIDTH / 2;
-      currentUserX = groupRightEdge + LAYOUT_CONFIG.USER_GROUP_SPACING + halfSticky;
+      currentUserX =
+        groupRightEdge + LAYOUT_CONFIG.USER_GROUP_SPACING + halfSticky;
     }
 
     return userGroupsArray;
   } catch (error) {
-    logError(error as Error, 'createUserBasedLayout');
+    logError(error as Error, "createUserBasedLayout");
     throw error;
   }
 }
@@ -135,38 +151,39 @@ async function layoutItemsInGroup(
   boardId: string,
   userGroup: UserGroup,
   basePosition: { x: number; y: number },
-  client: IMiroClient
+  client: IMiroClient,
 ): Promise<void> {
   const items = userGroup.items;
   let minLeft = Infinity;
   let maxRight = -Infinity;
   let minTop = Infinity;
   let maxBottom = -Infinity;
-  
+
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
     const row = Math.floor(i / LAYOUT_CONFIG.ITEMS_PER_ROW);
     const col = i % LAYOUT_CONFIG.ITEMS_PER_ROW;
-    
+
     // アイテムの新しい位置を計算（画像の中心位置）
     const newPosition = {
       x: basePosition.x + col * LAYOUT_CONFIG.IMAGE_SPACING_X,
       y: basePosition.y + row * LAYOUT_CONFIG.IMAGE_SPACING_Y,
     };
-    
+
     item.position = newPosition;
-    
+
     try {
       const imageWidth = item.imageWidth || LAYOUT_CONFIG.IMAGE_WIDTH;
       const imageHeight = item.imageHeight || LAYOUT_CONFIG.IMAGE_HEIGHT;
       const stickyWidth = item.stickyWidth || LAYOUT_CONFIG.STICKY_NOTE_WIDTH;
-      const stickyHeight = item.stickyHeight || LAYOUT_CONFIG.STICKY_NOTE_HEIGHT;
+      const stickyHeight =
+        item.stickyHeight || LAYOUT_CONFIG.STICKY_NOTE_HEIGHT;
 
       await client.patchItem(boardId, item.stickyNoteId, {
         position: {
           x: newPosition.x,
           y: newPosition.y,
-          origin: 'center',
+          origin: "center",
         },
         geometry: {
           width: stickyWidth,
@@ -177,7 +194,7 @@ async function layoutItemsInGroup(
         position: {
           x: newPosition.x,
           y: newPosition.y,
-          origin: 'center',
+          origin: "center",
         },
         geometry: {
           width: imageWidth,
@@ -202,7 +219,7 @@ async function layoutItemsInGroup(
       // 個別のアイテム移動に失敗しても継続
     }
   }
-  
+
   // グループのバウンディング情報を更新
   const width = maxRight - minLeft;
   const height = maxBottom - minTop;
@@ -215,32 +232,40 @@ async function layoutItemsInGroup(
   };
 }
 
-
-
 /**
  * 同一ユーザーの既存アイテムを検索
  */
 export async function findExistingUserItems(
   boardId: string,
   userId: string,
-  client: IMiroClient = miroClient
+  client: IMiroClient = miroClient,
 ): Promise<{ images: MiroImageItem[]; stickyNotes: MiroStickyNote[] }> {
   try {
     // 付箋を検索（メタデータからユーザーIDを抽出）
-    const allItems = await client.searchItems(boardId, userId, 'sticky_note');
-    const stickyNotes = allItems.filter((item): item is MiroStickyNote => item.type === 'sticky_note');
-    
+    const allItems = await client.searchItems(boardId, userId, "sticky_note");
+    const stickyNotes = allItems.filter(
+      (item): item is MiroStickyNote => item.type === "sticky_note",
+    );
+
     // 画像アイテムを取得（付箋の近くにある画像を探す）
     const images: MiroImageItem[] = [];
     for (const note of stickyNotes) {
-      const nearbyItems = await findNearbyItems(client, boardId, note.position, 'image', 300);
-      const nearbyImages = nearbyItems.filter((item): item is MiroImageItem => item.type === 'image');
+      const nearbyItems = await findNearbyItems(
+        client,
+        boardId,
+        note.position,
+        "image",
+        300,
+      );
+      const nearbyImages = nearbyItems.filter(
+        (item): item is MiroImageItem => item.type === "image",
+      );
       images.push(...nearbyImages);
     }
-    
+
     return { images, stickyNotes };
   } catch (error) {
-    logError(error as Error, 'findExistingUserItems');
+    logError(error as Error, "findExistingUserItems");
     return { images: [], stickyNotes: [] };
   }
 }
@@ -258,20 +283,23 @@ export function getLayoutStats(userGroups: UserGroup[]): {
   totalItems: number;
   layoutBounds: { x: number; y: number; width: number; height: number };
 } {
-  const totalItems = userGroups.reduce((sum, group) => sum + group.items.length, 0);
-  
+  const totalItems = userGroups.reduce(
+    (sum, group) => sum + group.items.length,
+    0,
+  );
+
   let minX = Infinity;
   let minY = Infinity;
   let maxX = -Infinity;
   let maxY = -Infinity;
-  
-  userGroups.forEach(group => {
+
+  userGroups.forEach((group) => {
     minX = Math.min(minX, group.bounds.x);
     minY = Math.min(minY, group.bounds.y);
     maxX = Math.max(maxX, group.bounds.x + group.bounds.width);
     maxY = Math.max(maxY, group.bounds.y + group.bounds.height);
   });
-  
+
   return {
     totalUsers: userGroups.length,
     totalItems,

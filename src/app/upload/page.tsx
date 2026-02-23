@@ -1,4 +1,4 @@
-import { UploadPageClient } from '@/components/UploadPageClient';
+import { UploadPageClient } from "@/components/UploadPageClient";
 
 type SearchParamsValue = string | string[] | undefined;
 

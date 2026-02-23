@@ -1,38 +1,47 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { ensureAuthenticatedSession } from '@/lib/session';
-import { ProblemDetailResponse, InsightSummary } from '@/types';
-import { ErrorHandler, logError } from '@/utils/errorHandler';
-import { loadProblemAccessContext } from '@/utils/problemProgress';
-import { mapInsightToSummary } from '@/utils/insight';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { ensureAuthenticatedSession } from "@/lib/session";
+import { ProblemDetailResponse, InsightSummary } from "@/types";
+import { ErrorHandler, logError } from "@/utils/errorHandler";
+import { loadProblemAccessContext } from "@/utils/problemProgress";
+import { mapInsightToSummary } from "@/utils/insight";
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ problemId: string }> }
+  { params }: { params: Promise<{ problemId: string }> },
 ) {
   try {
     const { problemId } = await params;
     if (!problemId) {
       return NextResponse.json(
-        { error: 'INVALID_PROBLEM_ID', message: '問題IDが指定されていません。' },
-        { status: 400 }
+        {
+          error: "INVALID_PROBLEM_ID",
+          message: "問題IDが指定されていません。",
+        },
+        { status: 400 },
       );
     }
 
     const { ironSession } = await ensureAuthenticatedSession();
     if (!ironSession.isLoggedIn || !ironSession.userId) {
       return NextResponse.json(
-        { error: 'UNAUTHORIZED', message: 'ログインが必要です。' },
-        { status: 401 }
+        { error: "UNAUTHORIZED", message: "ログインが必要です。" },
+        { status: 401 },
       );
     }
 
-    const context = await loadProblemAccessContext(problemId, ironSession.userId);
+    const context = await loadProblemAccessContext(
+      problemId,
+      ironSession.userId,
+    );
 
     if (!context) {
       return NextResponse.json(
-        { error: 'PROBLEM_NOT_FOUND', message: '指定された問題が見つかりません。' },
-        { status: 404 }
+        {
+          error: "PROBLEM_NOT_FOUND",
+          message: "指定された問題が見つかりません。",
+        },
+        { status: 404 },
       );
     }
 
@@ -49,7 +58,7 @@ export async function GET(
       contentUrl: problem.contentUrl ?? undefined,
       miroBoardId:
         isUploadUnlocked || isBoardUnlocked
-          ? problem.miroBoardId ?? undefined
+          ? (problem.miroBoardId ?? undefined)
           : undefined,
       isUploadUnlocked,
       isBoardUnlocked,
@@ -63,12 +72,9 @@ export async function GET(
       const insightRecords = await prisma.insight.findMany({
         where: {
           problemId,
-          OR: [
-            { isPublic: true },
-            { userId: ironSession.userId },
-          ],
+          OR: [{ isPublic: true }, { userId: ironSession.userId }],
         },
-        orderBy: { createdAt: 'asc' },
+        orderBy: { createdAt: "asc" },
         include: {
           user: true,
         },
@@ -84,11 +90,11 @@ export async function GET(
 
     return NextResponse.json(response);
   } catch (error) {
-    logError(error as Error, 'GET /api/problems/[problemId]');
+    logError(error as Error, "GET /api/problems/[problemId]");
     const userError = ErrorHandler.handleGenericError(error);
     return NextResponse.json(
-      { error: 'PROBLEM_DETAIL_FAILED', message: userError.message },
-      { status: 500 }
+      { error: "PROBLEM_DETAIL_FAILED", message: userError.message },
+      { status: 500 },
     );
   }
 }

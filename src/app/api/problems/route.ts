@@ -1,24 +1,24 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { ensureAuthenticatedSession } from '@/lib/session';
-import { ProblemListResponse } from '@/types';
-import { ErrorHandler, logError } from '@/utils/errorHandler';
-import { deriveStatus, toSnapshot } from '@/utils/problemProgress';
-import { COMPLETED_STATUSES } from '@/constants/problemStatus';
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { ensureAuthenticatedSession } from "@/lib/session";
+import { ProblemListResponse } from "@/types";
+import { ErrorHandler, logError } from "@/utils/errorHandler";
+import { deriveStatus, toSnapshot } from "@/utils/problemProgress";
+import { COMPLETED_STATUSES } from "@/constants/problemStatus";
 
 export async function GET() {
   try {
     const { ironSession } = await ensureAuthenticatedSession();
     if (!ironSession.isLoggedIn || !ironSession.userId) {
       return NextResponse.json(
-        { error: 'UNAUTHORIZED', message: 'ログインが必要です。' },
-        { status: 401 }
+        { error: "UNAUTHORIZED", message: "ログインが必要です。" },
+        { status: 401 },
       );
     }
 
     const problems = await prisma.problem.findMany({
       where: { isActive: true },
-      orderBy: { orderIndex: 'asc' },
+      orderBy: { orderIndex: "asc" },
       include: {
         progress: {
           where: { userId: ironSession.userId },
@@ -57,7 +57,9 @@ export async function GET() {
       };
     });
 
-    const summaries = allSummaries.filter((summary) => summary.status !== 'LOCKED');
+    const summaries = allSummaries.filter(
+      (summary) => summary.status !== "LOCKED",
+    );
 
     let activeProblemId: string | undefined;
     for (const summary of summaries) {
@@ -70,7 +72,7 @@ export async function GET() {
     const nextProblemId = activeProblemId
       ? (() => {
           const currentIndex = summaries.findIndex(
-            (p) => p.id === activeProblemId
+            (p) => p.id === activeProblemId,
           );
           return currentIndex >= 0 && currentIndex + 1 < summaries.length
             ? summaries[currentIndex + 1].id
@@ -81,15 +83,15 @@ export async function GET() {
     const stats = summaries.reduce(
       (acc, summary) => {
         acc.total += 1;
-        if (summary.status === 'COMPLETED') {
+        if (summary.status === "COMPLETED") {
           acc.completed += 1;
         }
-        if (summary.status === 'AVAILABLE') {
+        if (summary.status === "AVAILABLE") {
           acc.available += 1;
         }
         return acc;
       },
-      { total: 0, completed: 0, available: 0 }
+      { total: 0, completed: 0, available: 0 },
     );
 
     const response: ProblemListResponse = {
@@ -101,11 +103,11 @@ export async function GET() {
 
     return NextResponse.json(response);
   } catch (error) {
-    logError(error as Error, 'GET /api/problems');
+    logError(error as Error, "GET /api/problems");
     const userError = ErrorHandler.handleGenericError(error);
     return NextResponse.json(
-      { error: 'PROBLEM_LIST_FAILED', message: userError.message },
-      { status: 500 }
+      { error: "PROBLEM_LIST_FAILED", message: userError.message },
+      { status: 500 },
     );
   }
 }

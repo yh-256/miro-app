@@ -1,51 +1,52 @@
-'use client';
+"use client";
 
-import { ReactNode } from 'react';
-import { useBreakpoint, useDeviceDetection } from '@/utils/deviceDetection';
+import { ReactNode } from "react";
+import { useBreakpoint, useDeviceDetection } from "@/utils/deviceDetection";
 
 interface ResponsiveContainerProps {
   children: ReactNode;
   className?: string;
-  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full';
-  padding?: 'none' | 'sm' | 'md' | 'lg';
+  maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "full";
+  padding?: "none" | "sm" | "md" | "lg";
 }
 
-export function ResponsiveContainer({ 
-  children, 
-  className = '',
-  maxWidth = 'lg',
-  padding = 'md'
+export function ResponsiveContainer({
+  children,
+  className = "",
+  maxWidth = "lg",
+  padding = "md",
 }: ResponsiveContainerProps) {
   const _breakpoint = useBreakpoint();
   const deviceInfo = useDeviceDetection();
 
   // 最大幅のクラス設定
   const maxWidthClasses = {
-    sm: 'max-w-sm',
-    md: 'max-w-md',
-    lg: 'max-w-4xl',
-    xl: 'max-w-6xl',
-    '2xl': 'max-w-7xl',
-    full: 'max-w-full'
+    sm: "max-w-sm",
+    md: "max-w-md",
+    lg: "max-w-4xl",
+    xl: "max-w-6xl",
+    "2xl": "max-w-7xl",
+    full: "max-w-full",
   };
 
   // パディングのクラス設定
   const paddingClasses = {
-    none: '',
-    sm: 'px-4 py-2',
-    md: 'px-4 sm:px-6 lg:px-8 py-4 sm:py-6',
-    lg: 'px-6 sm:px-8 lg:px-12 py-6 sm:py-8 lg:py-12'
+    none: "",
+    sm: "px-4 py-2",
+    md: "px-4 sm:px-6 lg:px-8 py-4 sm:py-6",
+    lg: "px-6 sm:px-8 lg:px-12 py-6 sm:py-8 lg:py-12",
   };
 
   // デバイス固有のクラス
-  const deviceClasses = deviceInfo?.type === 'mobile' 
-    ? 'mobile-container' 
-    : deviceInfo?.type === 'tablet' 
-    ? 'tablet-container' 
-    : 'desktop-container';
+  const deviceClasses =
+    deviceInfo?.type === "mobile"
+      ? "mobile-container"
+      : deviceInfo?.type === "tablet"
+        ? "tablet-container"
+        : "desktop-container";
 
   return (
-    <div 
+    <div
       className={`
         w-full mx-auto
         ${maxWidthClasses[maxWidth]}
@@ -66,22 +67,22 @@ interface GridContainerProps {
     tablet?: number;
     desktop?: number;
   };
-  gap?: 'sm' | 'md' | 'lg';
+  gap?: "sm" | "md" | "lg";
   className?: string;
 }
 
-export function GridContainer({ 
-  children, 
+export function GridContainer({
+  children,
   columns = { mobile: 1, tablet: 2, desktop: 3 },
-  gap = 'md',
-  className = ''
+  gap = "md",
+  className = "",
 }: GridContainerProps) {
   const breakpoint = useBreakpoint();
 
   const gapClasses = {
-    sm: 'gap-2',
-    md: 'gap-4',
-    lg: 'gap-6'
+    sm: "gap-2",
+    md: "gap-4",
+    lg: "gap-6",
   };
 
   // 現在のデバイスに応じた列数を決定
@@ -95,7 +96,7 @@ export function GridContainer({
   const gridClasses = `grid-cols-${currentColumns}`;
 
   return (
-    <div 
+    <div
       className={`
         grid
         ${gridClasses}
@@ -110,51 +111,51 @@ export function GridContainer({
 
 interface FlexContainerProps {
   children: ReactNode;
-  direction?: 'row' | 'col';
-  justify?: 'start' | 'center' | 'end' | 'between' | 'around';
-  align?: 'start' | 'center' | 'end' | 'stretch';
+  direction?: "row" | "col";
+  justify?: "start" | "center" | "end" | "between" | "around";
+  align?: "start" | "center" | "end" | "stretch";
   wrap?: boolean;
-  gap?: 'sm' | 'md' | 'lg';
+  gap?: "sm" | "md" | "lg";
   className?: string;
 }
 
 export function FlexContainer({
   children,
-  direction = 'col',
-  justify = 'start',
-  align = 'start',
+  direction = "col",
+  justify = "start",
+  align = "start",
   wrap = false,
-  gap = 'md',
-  className = ''
+  gap = "md",
+  className = "",
 }: FlexContainerProps) {
   const directionClass = `flex-${direction}`;
   const justifyClasses = {
-    start: 'justify-start',
-    center: 'justify-center',
-    end: 'justify-end',
-    between: 'justify-between',
-    around: 'justify-around'
+    start: "justify-start",
+    center: "justify-center",
+    end: "justify-end",
+    between: "justify-between",
+    around: "justify-around",
   };
   const alignClasses = {
-    start: 'items-start',
-    center: 'items-center',
-    end: 'items-end',
-    stretch: 'items-stretch'
+    start: "items-start",
+    center: "items-center",
+    end: "items-end",
+    stretch: "items-stretch",
   };
   const gapClasses = {
-    sm: 'gap-2',
-    md: 'gap-4',
-    lg: 'gap-6'
+    sm: "gap-2",
+    md: "gap-4",
+    lg: "gap-6",
   };
 
   return (
-    <div 
+    <div
       className={`
         flex
         ${directionClass}
         ${justifyClasses[justify]}
         ${alignClasses[align]}
-        ${wrap ? 'flex-wrap' : ''}
+        ${wrap ? "flex-wrap" : ""}
         ${gapClasses[gap]}
         ${className}
       `}

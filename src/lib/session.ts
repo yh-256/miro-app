@@ -1,7 +1,7 @@
-import { cookies } from 'next/headers';
-import crypto from 'crypto';
-import { prisma } from './prisma';
-import { getSession as getIronSession } from './auth/iron-session';
+import { cookies } from "next/headers";
+import crypto from "crypto";
+import { prisma } from "./prisma";
+import { getSession as getIronSession } from "./auth/iron-session";
 
 export interface SessionInfo {
   sessionId: string;
@@ -13,7 +13,7 @@ export interface AuthenticatedSessionInfo {
     userId?: string;
     loginId?: string;
     displayName?: string;
-    role?: 'ADMIN' | 'USER';
+    role?: "ADMIN" | "USER";
     isLoggedIn: boolean;
   };
   userSession: {
@@ -24,11 +24,11 @@ export interface AuthenticatedSessionInfo {
   };
 }
 
-const SESSION_COOKIE_NAME = 'app_session';
+const SESSION_COOKIE_NAME = "app_session";
 const SESSION_TTL_DAYS = 30;
 
 function generateSessionId(): string {
-  return crypto.randomBytes(16).toString('hex');
+  return crypto.randomBytes(16).toString("hex");
 }
 
 function getExpiryDate(): Date {
@@ -47,9 +47,9 @@ export async function ensureSession(): Promise<SessionInfo> {
       name: SESSION_COOKIE_NAME,
       value: existing,
       httpOnly: true,
-      sameSite: 'lax',
-      secure: process.env.NODE_ENV === 'production',
-      path: '/',
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
       expires: getExpiryDate(),
     });
 
@@ -62,9 +62,9 @@ export async function ensureSession(): Promise<SessionInfo> {
     name: SESSION_COOKIE_NAME,
     value: sessionId,
     httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    path: '/',
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
     expires: getExpiryDate(),
   });
 
@@ -94,7 +94,7 @@ export async function ensureUserSessionRecord(sessionId: string) {
  */
 export async function ensureAuthenticatedSession(): Promise<AuthenticatedSessionInfo> {
   const ironSession = await getIronSession();
-  
+
   // 匿名セッションを確保
   const { sessionId } = await ensureSession();
   let userSession = await ensureUserSessionRecord(sessionId);
@@ -128,9 +128,7 @@ export async function ensureAuthenticatedSession(): Promise<AuthenticatedSession
   }
 
   const displayName =
-    ironSession.displayName ??
-    userSession.displayName ??
-    loginId;
+    ironSession.displayName ?? userSession.displayName ?? loginId;
 
   return {
     ironSession: {

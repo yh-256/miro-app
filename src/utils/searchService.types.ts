@@ -21,7 +21,7 @@ export interface SearchResult {
 
 export interface SearchResultItem {
   id: string;
-  type: 'image' | 'sticky_note' | 'group';
+  type: "image" | "sticky_note" | "group";
   position: { x: number; y: number };
   metadata?: {
     userId?: string;
@@ -58,33 +58,34 @@ export function getSearchStats(results: SearchResult): {
     userCounts: new Map<string, number>(),
     uploaderCounts: new Map<string, number>(),
   };
-  
-  results.items.forEach(item => {
+
+  results.items.forEach((item) => {
     switch (item.type) {
-      case 'image':
+      case "image":
         stats.totalImages++;
         break;
-      case 'sticky_note':
+      case "sticky_note":
         stats.totalStickyNotes++;
         break;
-      case 'group':
+      case "group":
         stats.totalGroups++;
         break;
     }
-    
+
     // ユーザー統計
     if (item.metadata?.userId) {
-      const displayLabel = item.metadata.userDisplayName ?? item.metadata.userId;
+      const displayLabel =
+        item.metadata.userDisplayName ?? item.metadata.userId;
       const current = stats.userCounts.get(displayLabel) || 0;
       stats.userCounts.set(displayLabel, current + 1);
     }
-    
+
     // アップロード者統計
     if (item.metadata?.uploaderName) {
       const current = stats.uploaderCounts.get(item.metadata.uploaderName) || 0;
       stats.uploaderCounts.set(item.metadata.uploaderName, current + 1);
     }
   });
-  
+
   return stats;
 }

@@ -1,41 +1,41 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
-import { Layout } from '@/components/Layout';
-import { ResponsiveContainer } from '@/components/ResponsiveContainer';
-import { ProblemListResponse } from '@/types';
-import { PROBLEM_STATUS_LABEL } from '@/constants/problemStatus';
-import type { ProblemProgressStatus } from '@/constants/problemStatus';
-import { ProblemStatus as PrismaProblemStatus } from '@prisma/client';
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { Layout } from "@/components/Layout";
+import { ResponsiveContainer } from "@/components/ResponsiveContainer";
+import { ProblemListResponse } from "@/types";
+import { PROBLEM_STATUS_LABEL } from "@/constants/problemStatus";
+import type { ProblemProgressStatus } from "@/constants/problemStatus";
+import { ProblemStatus as PrismaProblemStatus } from "@prisma/client";
 
 const STATUS_STYLES: Record<
   ProblemProgressStatus,
   { badge: string; dot: string }
 > = {
   [PrismaProblemStatus.LOCKED]: {
-    badge: 'bg-gray-100 text-gray-600 border border-gray-200',
-    dot: 'bg-gray-400',
+    badge: "bg-gray-100 text-gray-600 border border-gray-200",
+    dot: "bg-gray-400",
   },
   [PrismaProblemStatus.AVAILABLE]: {
-    badge: 'bg-blue-50 text-blue-700 border border-blue-200',
-    dot: 'bg-blue-500',
+    badge: "bg-blue-50 text-blue-700 border border-blue-200",
+    dot: "bg-blue-500",
   },
   [PrismaProblemStatus.INSIGHT_WRITTEN]: {
-    badge: 'bg-indigo-50 text-indigo-700 border border-indigo-200',
-    dot: 'bg-indigo-500',
+    badge: "bg-indigo-50 text-indigo-700 border border-indigo-200",
+    dot: "bg-indigo-500",
   },
   [PrismaProblemStatus.UPLOAD_COMPLETED]: {
-    badge: 'bg-purple-50 text-purple-700 border border-purple-200',
-    dot: 'bg-purple-500',
+    badge: "bg-purple-50 text-purple-700 border border-purple-200",
+    dot: "bg-purple-500",
   },
   [PrismaProblemStatus.BOARD_VIEWED]: {
-    badge: 'bg-teal-50 text-teal-700 border border-teal-200',
-    dot: 'bg-teal-500',
+    badge: "bg-teal-50 text-teal-700 border border-teal-200",
+    dot: "bg-teal-500",
   },
   [PrismaProblemStatus.COMPLETED]: {
-    badge: 'bg-green-50 text-green-700 border border-green-200',
-    dot: 'bg-green-500',
+    badge: "bg-green-50 text-green-700 border border-green-200",
+    dot: "bg-green-500",
   },
 };
 
@@ -43,7 +43,7 @@ function formatDate(timestamp?: string) {
   if (!timestamp) return undefined;
   const date = new Date(timestamp);
   if (Number.isNaN(date.getTime())) return undefined;
-  return date.toLocaleString('ja-JP');
+  return date.toLocaleString("ja-JP");
 }
 
 export default function ProblemsPage() {
@@ -59,10 +59,10 @@ export default function ProblemsPage() {
       setError(null);
 
       try {
-        const response = await fetch('/api/problems', { cache: 'no-store' });
+        const response = await fetch("/api/problems", { cache: "no-store" });
         if (!response.ok) {
           const payload = await response.json().catch(() => ({}));
-          throw new Error(payload.message || '問題一覧の取得に失敗しました。');
+          throw new Error(payload.message || "問題一覧の取得に失敗しました。");
         }
         const payload = (await response.json()) as ProblemListResponse;
         if (!cancelled) {
@@ -73,7 +73,7 @@ export default function ProblemsPage() {
           setError(
             err instanceof Error
               ? err.message
-              : '問題一覧の取得に失敗しました。'
+              : "問題一覧の取得に失敗しました。",
           );
         }
       } finally {
@@ -113,16 +113,10 @@ export default function ProblemsPage() {
               </p>
             </div>
             <div className="flex gap-2">
-              <Link
-                href="/search"
-                className="btn-outline text-sm px-4 py-2"
-              >
+              <Link href="/search" className="btn-outline text-sm px-4 py-2">
                 ボード検索へ
               </Link>
-              <Link
-                href="/upload"
-                className="btn-primary text-sm px-4 py-2"
-              >
+              <Link href="/upload" className="btn-primary text-sm px-4 py-2">
                 通常アップロード
               </Link>
             </div>
@@ -180,7 +174,7 @@ export default function ProblemsPage() {
                   <div
                     key={problem.id}
                     className={`bg-white border rounded-lg shadow-sm transition hover:shadow-md ${
-                      isActive ? 'border-blue-300' : 'border-gray-200'
+                      isActive ? "border-blue-300" : "border-gray-200"
                     }`}
                   >
                     <div className="p-6 space-y-4">
@@ -227,7 +221,7 @@ export default function ProblemsPage() {
                             気づき記入
                           </p>
                           <p>
-                            {formatDate(problem.insightSubmittedAt) ?? '未実施'}
+                            {formatDate(problem.insightSubmittedAt) ?? "未実施"}
                           </p>
                         </div>
                         <div>
@@ -235,14 +229,14 @@ export default function ProblemsPage() {
                             ボード解禁
                           </p>
                           <p>
-                            {formatDate(problem.boardUnlockedAt) ?? '未解禁'}
+                            {formatDate(problem.boardUnlockedAt) ?? "未解禁"}
                           </p>
                         </div>
                         <div>
                           <p className="font-medium text-gray-500 mb-1">
                             最終更新
                           </p>
-                          <p>{formatDate(problem.completedAt) ?? '未完了'}</p>
+                          <p>{formatDate(problem.completedAt) ?? "未完了"}</p>
                         </div>
                       </div>
                     </div>

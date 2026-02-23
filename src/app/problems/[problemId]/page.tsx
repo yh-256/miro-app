@@ -1,18 +1,21 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
-import { Layout } from '@/components/Layout';
-import { ResponsiveContainer } from '@/components/ResponsiveContainer';
-import { BoardEmbed } from '@/components/BoardEmbed';
-import { ProblemUploadSection } from '@/components/ProblemUploadSection';
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { Layout } from "@/components/Layout";
+import { ResponsiveContainer } from "@/components/ResponsiveContainer";
+import { BoardEmbed } from "@/components/BoardEmbed";
+import { ProblemUploadSection } from "@/components/ProblemUploadSection";
 import {
   ProblemDetailResponse,
   InsightSummary,
   ProblemProgressUpdatePayload,
-} from '@/types';
-import { PROBLEM_STATUS_LABEL, isStatusAtLeast } from '@/constants/problemStatus';
+} from "@/types";
+import {
+  PROBLEM_STATUS_LABEL,
+  isStatusAtLeast,
+} from "@/constants/problemStatus";
 
 interface InsightFormState {
   content: string;
@@ -23,12 +26,12 @@ function formatTimestamp(timestamp?: string) {
   if (!timestamp) return undefined;
   const date = new Date(timestamp);
   if (Number.isNaN(date.getTime())) return undefined;
-  return date.toLocaleString('ja-JP');
+  return date.toLocaleString("ja-JP");
 }
 
 export default function ProblemDetailPage() {
   const params = useParams();
-  const problemId = (params?.problemId as string) ?? '';
+  const problemId = (params?.problemId as string) ?? "";
   const router = useRouter();
 
   const [detail, setDetail] = useState<ProblemDetailResponse | null>(null);
@@ -36,7 +39,7 @@ export default function ProblemDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [insightForm, setInsightForm] = useState<InsightFormState>({
-    content: '',
+    content: "",
     isPublic: true,
   });
   const [submittingInsight, setSubmittingInsight] = useState(false);
@@ -49,20 +52,18 @@ export default function ProblemDetailPage() {
 
     try {
       const resp = await fetch(`/api/problems/${problemId}`, {
-        cache: 'no-store',
+        cache: "no-store",
       });
       if (!resp.ok) {
         const payload = await resp.json().catch(() => ({}));
-        throw new Error(
-          payload.message || '問題詳細の取得に失敗しました。'
-        );
+        throw new Error(payload.message || "問題詳細の取得に失敗しました。");
       }
       const payload = (await resp.json()) as ProblemDetailResponse;
       setDetail(payload);
       setInsights(payload.relatedInsights ?? []);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : '問題詳細の取得に失敗しました。'
+        err instanceof Error ? err.message : "問題詳細の取得に失敗しました。",
       );
     } finally {
       setLoading(false);
@@ -76,16 +77,16 @@ export default function ProblemDetailPage() {
   }, [problemId, fetchDetail]);
 
   const statusLabel = detail
-    ? PROBLEM_STATUS_LABEL[detail.problem.status] ?? detail.problem.status
-    : '';
+    ? (PROBLEM_STATUS_LABEL[detail.problem.status] ?? detail.problem.status)
+    : "";
 
   const canPostInsight = detail
     ? [
-        'AVAILABLE',
-        'INSIGHT_WRITTEN',
-        'UPLOAD_COMPLETED',
-        'BOARD_VIEWED',
-        'COMPLETED',
+        "AVAILABLE",
+        "INSIGHT_WRITTEN",
+        "UPLOAD_COMPLETED",
+        "BOARD_VIEWED",
+        "COMPLETED",
       ].includes(detail.problem.status)
     : false;
 
@@ -100,8 +101,8 @@ export default function ProblemDetailPage() {
     setSubmittingInsight(true);
     try {
       const resp = await fetch(`/api/problems/${problemId}/insights`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           content: insightForm.content.trim(),
           isPublic: insightForm.isPublic,
@@ -110,18 +111,18 @@ export default function ProblemDetailPage() {
 
       if (!resp.ok) {
         const payload = await resp.json().catch(() => ({}));
-        throw new Error(payload.message || '気づきの投稿に失敗しました。');
+        throw new Error(payload.message || "気づきの投稿に失敗しました。");
       }
 
       const payload = await resp.json();
       if (payload.insight) {
         setInsights((prev) => [...prev, payload.insight as InsightSummary]);
       }
-      setInsightForm({ content: '', isPublic: true });
+      setInsightForm({ content: "", isPublic: true });
       await fetchDetail();
     } catch (err) {
       alert(
-        err instanceof Error ? err.message : '気づきの投稿に失敗しました。'
+        err instanceof Error ? err.message : "気づきの投稿に失敗しました。",
       );
     } finally {
       setSubmittingInsight(false);
@@ -132,28 +133,24 @@ export default function ProblemDetailPage() {
     setProgressUpdating(true);
     try {
       const resp = await fetch(`/api/problems/${problemId}/progress`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(update),
       });
 
       if (!resp.ok) {
         const payload = await resp.json().catch(() => ({}));
-        throw new Error(
-          payload.message || '進捗の更新に失敗しました。'
-        );
+        throw new Error(payload.message || "進捗の更新に失敗しました。");
       }
 
       if (update.completed) {
-        router.push('/problems');
+        router.push("/problems");
         return;
       }
 
       await fetchDetail();
     } catch (err) {
-      alert(
-        err instanceof Error ? err.message : '進捗の更新に失敗しました。'
-      );
+      alert(err instanceof Error ? err.message : "進捗の更新に失敗しました。");
     } finally {
       setProgressUpdating(false);
     }
@@ -168,19 +165,19 @@ export default function ProblemDetailPage() {
     if (!detail) return [];
     return [
       {
-        label: '気づき記入',
+        label: "気づき記入",
         value: formatTimestamp(detail.problem.insightSubmittedAt),
       },
       {
-        label: 'アップロード完了',
+        label: "アップロード完了",
         value: formatTimestamp(detail.problem.boardUnlockedAt),
       },
       {
-        label: 'ボード閲覧済み',
+        label: "ボード閲覧済み",
         value: formatTimestamp(detail.problem.boardViewedAt),
       },
       {
-        label: '完了',
+        label: "完了",
         value: formatTimestamp(detail.problem.completedAt),
       },
     ];
@@ -244,11 +241,12 @@ export default function ProblemDetailPage() {
                 </div>
               </div>
 
-              {detail.problem.contentType === 'text' && detail.problem.contentBody && (
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-gray-700 whitespace-pre-wrap">
-                  {detail.problem.contentBody}
-                </div>
-              )}
+              {detail.problem.contentType === "text" &&
+                detail.problem.contentBody && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-gray-700 whitespace-pre-wrap">
+                    {detail.problem.contentBody}
+                  </div>
+                )}
             </section>
 
             <section className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 space-y-4">
@@ -293,16 +291,16 @@ export default function ProblemDetailPage() {
                       公開気づきとして共有
                     </label>
                     <button
-                    onClick={handleInsightSubmit}
-                    type="button"
-                    disabled={
-                      submittingInsight ||
-                      !canPostInsight ||
-                      !insightForm.content.trim()
-                    }
+                      onClick={handleInsightSubmit}
+                      type="button"
+                      disabled={
+                        submittingInsight ||
+                        !canPostInsight ||
+                        !insightForm.content.trim()
+                      }
                       className="btn-primary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {submittingInsight ? '送信中...' : '気づきを投稿'}
+                      {submittingInsight ? "送信中..." : "気づきを投稿"}
                     </button>
                   </div>
                   {!canPostInsight && (
@@ -325,7 +323,7 @@ export default function ProblemDetailPage() {
                       >
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                           <div className="text-sm text-gray-700">
-                            投稿者: {insight.author?.displayName ?? '匿名'}
+                            投稿者: {insight.author?.displayName ?? "匿名"}
                           </div>
                           <div className="text-xs text-gray-500">
                             {formatTimestamp(insight.createdAt)}
@@ -384,14 +382,14 @@ export default function ProblemDetailPage() {
             </section>
 
             <section className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 space-y-4">
-              <h2 className="text-lg font-semibold text-gray-900">
-                進捗状況
-              </h2>
+              <h2 className="text-lg font-semibold text-gray-900">進捗状況</h2>
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-sm text-gray-600">
                 {statusTimeline.map((item) => (
                   <div key={item.label}>
-                    <p className="font-medium text-gray-500 mb-1">{item.label}</p>
-                    <p>{item.value ?? '未実施'}</p>
+                    <p className="font-medium text-gray-500 mb-1">
+                      {item.label}
+                    </p>
+                    <p>{item.value ?? "未実施"}</p>
                   </div>
                 ))}
               </div>
@@ -401,7 +399,7 @@ export default function ProblemDetailPage() {
                   onClick={() => updateProgress({ boardViewed: true })}
                   disabled={
                     progressUpdating ||
-                    !isStatusAtLeast(detail.problem.status, 'INSIGHT_WRITTEN')
+                    !isStatusAtLeast(detail.problem.status, "INSIGHT_WRITTEN")
                   }
                   className="btn-outline text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -412,7 +410,7 @@ export default function ProblemDetailPage() {
                   onClick={() => updateProgress({ completed: true })}
                   disabled={
                     progressUpdating ||
-                    !isStatusAtLeast(detail.problem.status, 'BOARD_VIEWED')
+                    !isStatusAtLeast(detail.problem.status, "BOARD_VIEWED")
                   }
                   className="btn-primary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >

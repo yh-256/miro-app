@@ -1,23 +1,23 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { ensureAuthenticatedSession } from '@/lib/session';
-import { ProblemProgressUpdatePayload } from '@/types';
-import { ErrorHandler, logError } from '@/utils/errorHandler';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { ensureAuthenticatedSession } from "@/lib/session";
+import { ProblemProgressUpdatePayload } from "@/types";
+import { ErrorHandler, logError } from "@/utils/errorHandler";
 import {
   loadProblemAccessContext,
   toSnapshot,
   maxStatus,
-} from '@/utils/problemProgress';
+} from "@/utils/problemProgress";
 import {
   isProblemProgressStatus,
   PROBLEM_STATUS_LABEL,
   isStatusAtLeast,
   BOARD_UNLOCKED_STATUSES,
-} from '@/constants/problemStatus';
+} from "@/constants/problemStatus";
 
 function validatePayload(body: unknown): ProblemProgressUpdatePayload {
-  if (!body || typeof body !== 'object') {
-    throw new Error('INVALID_BODY');
+  if (!body || typeof body !== "object") {
+    throw new Error("INVALID_BODY");
   }
 
   const { status, boardViewed, completed } = body as Record<string, unknown>;
@@ -27,13 +27,13 @@ function validatePayload(body: unknown): ProblemProgressUpdatePayload {
     boardViewed === undefined &&
     completed === undefined
   ) {
-    throw new Error('NO_FIELDS');
+    throw new Error("NO_FIELDS");
   }
 
-  let normalizedStatus: ProblemProgressUpdatePayload['status'] | undefined;
+  let normalizedStatus: ProblemProgressUpdatePayload["status"] | undefined;
   if (status !== undefined) {
-    if (typeof status !== 'string' || !isProblemProgressStatus(status)) {
-      throw new Error('INVALID_STATUS');
+    if (typeof status !== "string" || !isProblemProgressStatus(status)) {
+      throw new Error("INVALID_STATUS");
     }
     normalizedStatus = status;
   }
@@ -52,14 +52,17 @@ function validatePayload(body: unknown): ProblemProgressUpdatePayload {
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ problemId: string }> }
+  { params }: { params: Promise<{ problemId: string }> },
 ) {
   try {
     const { problemId } = await params;
     if (!problemId) {
       return NextResponse.json(
-        { error: 'INVALID_PROBLEM_ID', message: '問題IDが指定されていません。' },
-        { status: 400 }
+        {
+          error: "INVALID_PROBLEM_ID",
+          message: "問題IDが指定されていません。",
+        },
+        { status: 400 },
       );
     }
 
@@ -68,35 +71,41 @@ export async function PATCH(
       payload = validatePayload(await request.json());
     } catch (error) {
       const message =
-        error instanceof Error && error.message === 'NO_FIELDS'
-          ? '更新対象が指定されていません。'
-          : error instanceof Error && error.message === 'INVALID_STATUS'
-          ? '指定されたステータス値が不正です。'
-          : 'リクエスト形式が不正です。';
+        error instanceof Error && error.message === "NO_FIELDS"
+          ? "更新対象が指定されていません。"
+          : error instanceof Error && error.message === "INVALID_STATUS"
+            ? "指定されたステータス値が不正です。"
+            : "リクエスト形式が不正です。";
       const code =
         error instanceof Error &&
-        (error.message === 'NO_FIELDS' || error.message === 'INVALID_STATUS')
+        (error.message === "NO_FIELDS" || error.message === "INVALID_STATUS")
           ? 400
           : 400;
       return NextResponse.json(
-        { error: 'INVALID_REQUEST', message },
-        { status: code }
+        { error: "INVALID_REQUEST", message },
+        { status: code },
       );
     }
 
     const { ironSession, userSession } = await ensureAuthenticatedSession();
     if (!ironSession.isLoggedIn || !ironSession.userId) {
       return NextResponse.json(
-        { error: 'UNAUTHORIZED', message: 'ログインが必要です。' },
-        { status: 401 }
+        { error: "UNAUTHORIZED", message: "ログインが必要です。" },
+        { status: 401 },
       );
     }
 
-    const context = await loadProblemAccessContext(problemId, ironSession.userId);
+    const context = await loadProblemAccessContext(
+      problemId,
+      ironSession.userId,
+    );
     if (!context) {
       return NextResponse.json(
-        { error: 'PROBLEM_NOT_FOUND', message: '指定された問題が見つかりません。' },
-        { status: 404 }
+        {
+          error: "PROBLEM_NOT_FOUND",
+          message: "指定された問題が見つかりません。",
+        },
+        { status: 404 },
       );
     }
 
@@ -108,10 +117,10 @@ export async function PATCH(
     ) {
       return NextResponse.json(
         {
-          error: 'PROGRESS_UPDATE_FORBIDDEN',
-          message: 'ボード閲覧前に必要なステップを完了してください。',
+          error: "PROGRESS_UPDATE_FORBIDDEN",
+          message: "ボード閲覧前に必要なステップを完了してください。",
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -120,10 +129,10 @@ export async function PATCH(
       targetStatus = maxStatus(targetStatus, payload.status);
     }
     if (payload.boardViewed) {
-      targetStatus = maxStatus(targetStatus, 'BOARD_VIEWED');
+      targetStatus = maxStatus(targetStatus, "BOARD_VIEWED");
     }
     if (payload.completed) {
-      targetStatus = 'COMPLETED';
+      targetStatus = "COMPLETED";
     }
 
     const now = new Date();
@@ -138,19 +147,20 @@ export async function PATCH(
       update: {
         userSessionId: userSession.id,
         status: targetStatus,
-        boardUnlockedAt:
-          isStatusAtLeast(targetStatus, 'INSIGHT_WRITTEN')
-            ? progress?.boardUnlockedAt ?? now
-            : progress?.boardUnlockedAt ?? null,
-        boardViewedAt: payload.boardViewed ? now : progress?.boardViewedAt ?? null,
-        completedAt: payload.completed ? now : progress?.completedAt ?? null,
+        boardUnlockedAt: isStatusAtLeast(targetStatus, "INSIGHT_WRITTEN")
+          ? (progress?.boardUnlockedAt ?? now)
+          : (progress?.boardUnlockedAt ?? null),
+        boardViewedAt: payload.boardViewed
+          ? now
+          : (progress?.boardViewedAt ?? null),
+        completedAt: payload.completed ? now : (progress?.completedAt ?? null),
       },
       create: {
         problemId,
         userId: ironSession.userId,
         userSessionId: userSession.id,
         status: targetStatus,
-        boardUnlockedAt: isStatusAtLeast(targetStatus, 'INSIGHT_WRITTEN')
+        boardUnlockedAt: isStatusAtLeast(targetStatus, "INSIGHT_WRITTEN")
           ? now
           : null,
         boardViewedAt: payload.boardViewed ? now : null,
@@ -163,11 +173,11 @@ export async function PATCH(
       statusLabel: PROBLEM_STATUS_LABEL[updatedProgress.status],
     });
   } catch (error) {
-    logError(error as Error, 'PATCH /api/problems/[problemId]/progress');
+    logError(error as Error, "PATCH /api/problems/[problemId]/progress");
     const userError = ErrorHandler.handleGenericError(error);
     return NextResponse.json(
-      { error: 'PROGRESS_UPDATE_FAILED', message: userError.message },
-      { status: 500 }
+      { error: "PROGRESS_UPDATE_FAILED", message: userError.message },
+      { status: 500 },
     );
   }
 }
