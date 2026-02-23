@@ -1,34 +1,5 @@
 import type { ProblemProgressStatus } from "@/constants/problemStatus";
 
-// アップロードセッション
-export interface UploadSession {
-  sessionId: string; // セッション識別子
-  uploaderName?: string; // アップロード者名（任意）
-  timestamp: Date; // アップロード日時
-  boardId: string; // 送信先ボードID
-  images: Array<{
-    tempId: string; // 一時ID
-    userId: string; // ユーザーID
-    userDisplayName?: string; // ユーザー表示名
-    filename: string; // ファイル名
-    mimeType: string; // MIMEタイプ
-  }>;
-}
-
-// Miroアイテム関連付け
-export interface MiroItemGroup {
-  groupId: string; // MiroグループID
-  imageId: string; // Miro画像アイテムID
-  stickyNoteId: string; // Miro付箋アイテムID
-  metadata: {
-    userId: string;
-    userDisplayName?: string;
-    uploaderName?: string;
-    uploadedAt: Date;
-    sessionId: string;
-  };
-}
-
 // API レスポンス型
 export interface BoardListResponse {
   boards: Array<{
@@ -61,20 +32,6 @@ export interface ProgressStep {
   status: "pending" | "in_progress" | "completed" | "error";
   progress?: number;
   message?: string;
-}
-
-// Board Selector Props
-export interface BoardSelectorProps {
-  onBoardSelect: (board: Board | null) => void;
-  selectedBoardId?: string;
-  className?: string;
-}
-
-export interface Board {
-  id: string;
-  name: string;
-  description?: string;
-  thumbnailUrl?: string;
 }
 
 // 問題（Problem）ドメイン
@@ -156,11 +113,6 @@ export class UserFriendlyError extends Error {
     super(message);
     this.name = "UserFriendlyError";
   }
-}
-
-export interface MiroApiError {
-  code: "UNAUTHORIZED" | "RATE_LIMITED" | "BOARD_NOT_FOUND" | "UNKNOWN";
-  message: string;
 }
 
 export type { ProblemProgressStatus } from "@/constants/problemStatus";

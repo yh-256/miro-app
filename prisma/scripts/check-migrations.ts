@@ -1,4 +1,4 @@
-#!/usr/bin/env ts-node
+#!/usr/bin/env tsx
 
 /**
  * マイグレーション状態確認スクリプト
@@ -11,7 +11,7 @@
  * 使用方法:
  *   npm run prisma:check-migrations
  *   または
- *   ts-node prisma/scripts/check-migrations.ts
+ *   tsx prisma/scripts/check-migrations.ts
  */
 
 import { PrismaClient } from '@prisma/client';

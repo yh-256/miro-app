@@ -49,13 +49,6 @@ export function isProblemProgressStatus(
   );
 }
 
-export function compareProblemStatus(
-  a: ProblemProgressStatus,
-  b: ProblemProgressStatus,
-): number {
-  return PROBLEM_STATUS_ORDER[a] - PROBLEM_STATUS_ORDER[b];
-}
-
 export function isStatusAtLeast(
   value: ProblemProgressStatus,
   threshold: ProblemProgressStatus,

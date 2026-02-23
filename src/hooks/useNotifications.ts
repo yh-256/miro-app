@@ -11,12 +11,10 @@ import {
   handleAndNotifyUploadError,
   handleAndNotifySearchError,
   handleAndNotifyGenericError,
-  showSuccessNotification,
   // showErrorNotification,
   // showWarningNotification,
-  showInfoNotification,
 } from "@/utils/notificationService";
-import { UserFriendlyError } from "@/types";
+import type { UserFriendlyError } from "@/types";
 
 /**
  * 通知システムを統合するカスタムフック
@@ -169,89 +167,4 @@ export function useNotifications() {
       }
     },
   };
-}
-
-/**
- * 通知付きAPI呼び出しのヘルパー関数
- */
-export async function apiCallWithNotification<T>(
-  apiCall: () => Promise<T>,
-  options: {
-    loadingMessage?: string;
-    successMessage?: string | ((result: T) => string);
-    errorContext?: string;
-    errorHandler?: "miro" | "upload" | "search" | "generic";
-  } = {},
-): Promise<T | null> {
-  const {
-    loadingMessage,
-    successMessage,
-    errorContext,
-    errorHandler = "generic",
-  } = options;
-
-  try {
-    if (loadingMessage) {
-      showInfoNotification("処理中", loadingMessage, 2000);
-    }
-
-    const result = await apiCall();
-
-    if (successMessage) {
-      const message =
-        typeof successMessage === "function"
-          ? successMessage(result)
-          : successMessage;
-      showSuccessNotification("処理完了", message);
-    }
-
-    return result;
-  } catch (error) {
-    switch (errorHandler) {
-      case "miro":
-        handleAndNotifyMiroError(error, errorContext);
-        break;
-      case "upload":
-        handleAndNotifyUploadError(error, errorContext);
-        break;
-      case "search":
-        handleAndNotifySearchError(error, errorContext);
-        break;
-      default:
-        handleAndNotifyGenericError(error, errorContext);
-        break;
-    }
-    return null;
-  }
-}
-
-/**
- * フォーム送信用のヘルパー関数
- */
-export async function submitFormWithNotification<T>(
-  submitFunction: () => Promise<T>,
-  options: {
-    submittingMessage?: string;
-    successMessage?: string;
-    errorContext?: string;
-  } = {},
-): Promise<{ success: boolean; data?: T; error?: UserFriendlyError }> {
-  const {
-    submittingMessage = "送信中...",
-    successMessage = "フォームを送信しました",
-    errorContext = "Form submission",
-  } = options;
-
-  try {
-    showInfoNotification("送信中", submittingMessage, 2000);
-
-    const result = await submitFunction();
-
-    showSuccessNotification("送信完了", successMessage);
-
-    return { success: true, data: result };
-  } catch (error) {
-    const userError = handleAndNotifyGenericError(error, errorContext);
-    return { success: false, error: userError };
-  }
 }

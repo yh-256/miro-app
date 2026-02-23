@@ -135,29 +135,6 @@ function validateEnvironmentSecurity(): {
 }
 
 /**
- * 機密情報の暗号化
- */
-function encryptSecret(text: string, key: string): string {
-  if (!key || key.length < 32) {
-    throw new Error("暗号化キーは32文字以上である必要があります");
-  }
-
-  // AES-256-GCM を安全に利用（IV + authTag を付与）
-  const iv = crypto.randomBytes(12); // GCMでは12バイト推奨
-  const derivedKey = crypto.createHash("sha256").update(key).digest(); // 32 bytes
-  const cipher = crypto.createCipheriv("aes-256-gcm", derivedKey, iv);
-
-  const encrypted = Buffer.concat([
-    cipher.update(text, "utf8"),
-    cipher.final(),
-  ]);
-  const authTag = cipher.getAuthTag();
-
-  // iv:ciphertext:tag（hex）形式で返す
-  return `${iv.toString("hex")}:${encrypted.toString("hex")}:${authTag.toString("hex")}`;
-}
-
-/**
  * 機密情報の復号化
  */
 function decryptSecret(encryptedText: string, key: string): string {
@@ -328,29 +305,6 @@ function generateEncryptionKey(): string {
 export const config = loadConfig();
 
 /**
- * アクセストークンの有効性チェック
- */
-async function validateMiroToken(token: string): Promise<boolean> {
-  if (!token || token.length < 20) {
-    return false;
-  }
-
-  try {
-    // Miro APIへの軽量なリクエストでトークンを検証
-    const response = await fetch("https://api.miro.com/v2/boards?limit=1", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    return response.status !== 401;
-  } catch (error) {
-    console.warn("Token validation failed:", error);
-    return false;
-  }
-}
-
-/**
  * 設定の検証
  */
 export function validateConfig(): { isValid: boolean; errors: string[] } {
@@ -404,45 +358,6 @@ export function validateConfig(): { isValid: boolean; errors: string[] } {
   return {
     isValid: errors.length === 0,
     errors,
-  };
-}
-
-/**
- * 非同期設定検証（トークン有効性を含む）
- */
-export async function validateConfigAsync(): Promise<{
-  isValid: boolean;
-  errors: string[];
-  warnings: string[];
-}> {
-  const basicValidation = validateConfig();
-  const warnings: string[] = [];
-
-  // 基本検証が失敗した場合は早期リターン
-  if (!basicValidation.isValid) {
-    return {
-      isValid: false,
-      errors: basicValidation.errors,
-      warnings,
-    };
-  }
-
-  // アクセストークンの有効性チェック（オプション）
-  if (config.security.tokenExpirationCheck) {
-    try {
-      const isTokenValid = await validateMiroToken(config.miro.accessToken);
-      if (!isTokenValid) {
-        basicValidation.errors.push("Miro access token is invalid or expired");
-      }
-    } catch (_error) {
-      warnings.push("Could not validate Miro token due to network error");
-    }
-  }
-
-  return {
-    isValid: basicValidation.errors.length === 0,
-    errors: basicValidation.errors,
-    warnings,
   };
 }
 
@@ -614,153 +529,6 @@ export function debugConfig(): void {
 
     // セキュリティランタイムチェックの実行
     performSecurityRuntimeCheck();
-  }
-}
-
-/**
- * 機密情報用のヘルパー関数
- */
-export const SecretUtils = {
-  /**
-   * 機密情報の暗号化（エクスポート用）
-   */
-  encrypt: (text: string, key?: string): string => {
-    const encryptionKey = key || config.app.encryptionKey;
-    return encryptSecret(text, encryptionKey);
-  },
-
-  /**
-   * 機密情報の復号化（エクスポート用）
-   */
-  decrypt: (encryptedText: string, key?: string): string => {
-    const encryptionKey = key || config.app.encryptionKey;
-    return decryptSecret(encryptedText, encryptionKey);
-  },
-
-  /**
-   * 機密情報のマスキング
-   */
-  mask: (secret: string, visibleChars: number = 4): string => {
-    if (!secret || secret.length <= visibleChars) {
-      return "*".repeat(8);
-    }
-
-    const start = secret.substring(0, visibleChars);
-    const masked = "*".repeat(Math.max(8, secret.length - visibleChars));
-    return start + masked;
-  },
-
-  /**
-   * セキュアなランダム文字列生成
-   */
-  generateSecureRandom: (length: number = 32): string => {
-    return crypto.randomBytes(length).toString("hex");
-  },
-
-  /**
-   * パスワード強度チェック
-   */
-  checkPasswordStrength: (
-    password: string,
-  ): {
-    strength: "weak" | "medium" | "strong";
-    score: number;
-    suggestions: string[];
-  } => {
-    let score = 0;
-    const suggestions: string[] = [];
-
-    // 長さチェック
-    if (password.length >= 8) score += 1;
-    else suggestions.push("8文字以上にしてください");
-
-    if (password.length >= 12) score += 1;
-    else if (password.length >= 8)
-      suggestions.push("12文字以上にするとより安全です");
-
-    // 文字種チェック
-    if (/[a-z]/.test(password)) score += 1;
-    else suggestions.push("小文字を含めてください");
-
-    if (/[A-Z]/.test(password)) score += 1;
-    else suggestions.push("大文字を含めてください");
-
-    if (/[0-9]/.test(password)) score += 1;
-    else suggestions.push("数字を含めてください");
-
-    if (/[^a-zA-Z0-9]/.test(password)) score += 1;
-    else suggestions.push("記号を含めてください");
-
-    // 強度判定
-    let strength: "weak" | "medium" | "strong";
-    if (score <= 2) strength = "weak";
-    else if (score <= 4) strength = "medium";
-    else strength = "strong";
-
-    return { strength, score, suggestions };
-  },
-};
-
-/**
- * 環境変数テンプレートの生成
- */
-export function generateEnvTemplate(): string {
-  return `# Miro API設定
-MIRO_CLIENT_ID=your_miro_client_id
-MIRO_CLIENT_SECRET=your_miro_client_secret
-MIRO_ACCESS_TOKEN=your_miro_access_token
-MIRO_REFRESH_TOKEN=your_miro_refresh_token
-
-# アプリケーション設定
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=your_nextauth_secret
-
-# セキュリティ設定
-ENCRYPTION_KEY=your_32_character_encryption_key
-ALLOWED_ORIGINS=http://localhost:3000,https://yourdomain.com
-
-# アップロード設定
-MAX_FILE_SIZE=10485760
-ALLOWED_FILE_TYPES=image/jpeg,image/png,image/gif
-TEMP_DIRECTORY=/tmp
-CLEANUP_INTERVAL=3600000
-
-# セキュリティオプション
-TOKEN_EXPIRATION_CHECK=true
-RUNTIME_VALIDATION=true
-SECRET_ROTATION_INTERVAL=2592000000
-
-# 本番環境用（必要に応じて設定）
-# SENTRY_DSN=your_sentry_dsn
-# REDIS_URL=your_redis_url
-# DATABASE_URL=your_database_url
-`;
-}
-
-/**
- * 初期化時の設定チェック
- */
-export function initializeConfig(): void {
-  try {
-    // 設定の基本検証
-    const validation = validateConfig();
-    if (!validation.isValid) {
-      console.error("Configuration validation failed:", validation.errors);
-      if (config.isProduction) {
-        throw new Error(
-          "Invalid configuration detected in production environment",
-        );
-      }
-    }
-
-    // セキュリティランタイムチェック
-    performSecurityRuntimeCheck();
-
-    console.log("✓ Configuration initialized successfully");
-  } catch (error) {
-    console.error("❌ Configuration initialization failed:", error);
-    throw error;
   }
 }
 

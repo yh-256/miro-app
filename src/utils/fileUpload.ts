@@ -108,39 +108,6 @@ export async function deleteTempFiles(filePaths: string[]): Promise<void> {
 }
 
 /**
- * 古い一時ファイルをクリーンアップ
- */
-export async function cleanupOldTempFiles(
-  maxAgeMs: number = 5 * 60 * 1000,
-): Promise<void> {
-  const tempDir = getTempDir();
-
-  try {
-    const files = await fs.readdir(tempDir);
-    const now = Date.now();
-
-    for (const file of files) {
-      if (file.startsWith("upload_")) {
-        const filePath = path.join(tempDir, file);
-        try {
-          const stats = await fs.stat(filePath);
-          const fileAge = now - stats.mtime.getTime();
-
-          if (fileAge > maxAgeMs) {
-            await deleteTempFile(filePath);
-          }
-        } catch (_error) {
-          // ファイルが既に削除されている場合など
-          continue;
-        }
-      }
-    }
-  } catch (error) {
-    logError(error as Error, "cleanupOldTempFiles");
-  }
-}
-
-/**
  * ファイルサイズを人間が読める形式に変換
  */
 export function formatBytes(bytes: number, decimals: number = 2): string {
@@ -153,21 +120,6 @@ export function formatBytes(bytes: number, decimals: number = 2): string {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
 
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
-}
-
-/**
- * MIME typeからファイル拡張子を取得
- */
-export function getExtensionFromMimeType(mimetype: string): string {
-  const mimeToExt: Record<string, string> = {
-    "image/jpeg": ".jpg",
-    "image/jpg": ".jpg",
-    "image/png": ".png",
-    "image/gif": ".gif",
-    "image/webp": ".webp",
-  };
-
-  return mimeToExt[mimetype] || "";
 }
 
 /**
@@ -213,57 +165,5 @@ export function validateFileInfo(fileInfo: TempFileInfo): void {
       fileInfo.originalName,
       "OTHER",
     );
-  }
-}
-
-/**
- * 一時ファイルの存在確認
- */
-export async function tempFileExists(filePath: string): Promise<boolean> {
-  try {
-    await fs.access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * 一時ファイルのバッファを取得
- */
-export async function getTempFileBuffer(filePath: string): Promise<Buffer> {
-  try {
-    return await fs.readFile(filePath);
-  } catch (error) {
-    logError(error as Error, "getTempFileBuffer");
-    throw new Error("ファイルの読み込みに失敗しました。");
-  }
-}
-
-/**
- * セッション用一時ディレクトリの作成
- */
-export async function createSessionTempDir(sessionId: string): Promise<string> {
-  const sessionDir = path.join(getTempDir(), sessionId);
-
-  try {
-    await fs.mkdir(sessionDir, { recursive: true });
-    return sessionDir;
-  } catch (error) {
-    logError(error as Error, "createSessionTempDir");
-    throw new Error("セッション用ディレクトリの作成に失敗しました。");
-  }
-}
-
-/**
- * セッション用一時ディレクトリの削除
- */
-export async function deleteSessionTempDir(sessionId: string): Promise<void> {
-  const sessionDir = path.join(getTempDir(), sessionId);
-
-  try {
-    await fs.rm(sessionDir, { recursive: true, force: true });
-  } catch (error) {
-    logError(error as Error, "deleteSessionTempDir");
   }
 }

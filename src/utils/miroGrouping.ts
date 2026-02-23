@@ -1,12 +1,5 @@
-import {
-  miroClient,
-  MiroImageItem,
-  MiroStickyNote,
-  IMiroClient,
-  MiroApiClient,
-} from "./miroClient";
+import { miroClient, IMiroClient, MiroApiClient } from "./miroClient";
 import { logError } from "./errorHandler";
-import { findNearbyItems } from "./proximity";
 
 /**
  * Miroボード上での高度なグループ化とレイアウト管理
@@ -233,81 +226,6 @@ async function layoutItemsInGroup(
 }
 
 /**
- * 同一ユーザーの既存アイテムを検索
- */
-export async function findExistingUserItems(
-  boardId: string,
-  userId: string,
-  client: IMiroClient = miroClient,
-): Promise<{ images: MiroImageItem[]; stickyNotes: MiroStickyNote[] }> {
-  try {
-    // 付箋を検索（メタデータからユーザーIDを抽出）
-    const allItems = await client.searchItems(boardId, userId, "sticky_note");
-    const stickyNotes = allItems.filter(
-      (item): item is MiroStickyNote => item.type === "sticky_note",
-    );
-
-    // 画像アイテムを取得（付箋の近くにある画像を探す）
-    const images: MiroImageItem[] = [];
-    for (const note of stickyNotes) {
-      const nearbyItems = await findNearbyItems(
-        client,
-        boardId,
-        note.position,
-        "image",
-        300,
-      );
-      const nearbyImages = nearbyItems.filter(
-        (item): item is MiroImageItem => item.type === "image",
-      );
-      images.push(...nearbyImages);
-    }
-
-    return { images, stickyNotes };
-  } catch (error) {
-    logError(error as Error, "findExistingUserItems");
-    return { images: [], stickyNotes: [] };
-  }
-}
-
-/**
  * 指定位置の近くにある画像を検索
  */
 // nearby images handled via utils/proximity.ts
-
-/**
- * レイアウト統計情報を取得
- */
-export function getLayoutStats(userGroups: UserGroup[]): {
-  totalUsers: number;
-  totalItems: number;
-  layoutBounds: { x: number; y: number; width: number; height: number };
-} {
-  const totalItems = userGroups.reduce(
-    (sum, group) => sum + group.items.length,
-    0,
-  );
-
-  let minX = Infinity;
-  let minY = Infinity;
-  let maxX = -Infinity;
-  let maxY = -Infinity;
-
-  userGroups.forEach((group) => {
-    minX = Math.min(minX, group.bounds.x);
-    minY = Math.min(minY, group.bounds.y);
-    maxX = Math.max(maxX, group.bounds.x + group.bounds.width);
-    maxY = Math.max(maxY, group.bounds.y + group.bounds.height);
-  });
-
-  return {
-    totalUsers: userGroups.length,
-    totalItems,
-    layoutBounds: {
-      x: minX === Infinity ? 0 : minX,
-      y: minY === Infinity ? 0 : minY,
-      width: maxX === -Infinity ? 0 : maxX - minX,
-      height: maxY === -Infinity ? 0 : maxY - minY,
-    },
-  };
-}

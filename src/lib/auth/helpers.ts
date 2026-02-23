@@ -45,12 +45,3 @@ export async function requireAdmin(): Promise<IronSessionData> {
   }
   return session;
 }
-
-/**
- * オプショナルな認証情報を取得
- * ログインしていない場合は null を返す
- */
-export async function getOptionalAuth(): Promise<IronSessionData | null> {
-  const session = await getAuthSession();
-  return session.isLoggedIn ? session : null;
-}

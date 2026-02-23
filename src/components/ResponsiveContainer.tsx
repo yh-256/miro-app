@@ -60,55 +60,6 @@ export function ResponsiveContainer({
   );
 }
 
-interface GridContainerProps {
-  children: ReactNode;
-  columns?: {
-    mobile?: number;
-    tablet?: number;
-    desktop?: number;
-  };
-  gap?: "sm" | "md" | "lg";
-  className?: string;
-}
-
-export function GridContainer({
-  children,
-  columns = { mobile: 1, tablet: 2, desktop: 3 },
-  gap = "md",
-  className = "",
-}: GridContainerProps) {
-  const breakpoint = useBreakpoint();
-
-  const gapClasses = {
-    sm: "gap-2",
-    md: "gap-4",
-    lg: "gap-6",
-  };
-
-  // 現在のデバイスに応じた列数を決定
-  let currentColumns = columns.desktop || 3;
-  if (breakpoint.isMobile) {
-    currentColumns = columns.mobile || 1;
-  } else if (breakpoint.isTablet) {
-    currentColumns = columns.tablet || 2;
-  }
-
-  const gridClasses = `grid-cols-${currentColumns}`;
-
-  return (
-    <div
-      className={`
-        grid
-        ${gridClasses}
-        ${gapClasses[gap]}
-        ${className}
-      `}
-    >
-      {children}
-    </div>
-  );
-}
-
 interface FlexContainerProps {
   children: ReactNode;
   direction?: "row" | "col";

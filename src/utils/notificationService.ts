@@ -87,17 +87,6 @@ export function showSuccessNotification(
 }
 
 /**
- * エラー通知の表示
- */
-export function showErrorNotification(
-  title: string,
-  message?: string,
-  duration?: number,
-) {
-  getNotificationService().showError(title, message, duration);
-}
-
-/**
  * 警告通知の表示
  */
 export function showWarningNotification(

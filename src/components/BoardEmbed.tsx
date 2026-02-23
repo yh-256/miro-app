@@ -367,35 +367,3 @@ export const BoardEmbed = forwardRef<BoardEmbedRef, BoardEmbedProps>(
 );
 
 BoardEmbed.displayName = "BoardEmbed";
-
-// プリセット設定のための型
-export interface BoardEmbedConfig {
-  viewonly?: boolean;
-  autoplay?: boolean;
-  showUI?: boolean;
-  allowFullscreen?: boolean;
-}
-
-// 設定に基づいてプリセットの埋め込みコンポーネントを生成
-export function createBoardEmbedPreset(config: BoardEmbedConfig = {}) {
-  return function PresetBoardEmbed(props: Omit<BoardEmbedProps, "viewMode">) {
-    const viewMode = config.showUI ? "embed" : "link";
-
-    return <BoardEmbed {...props} viewMode={viewMode} />;
-  };
-}
-
-// よく使用される設定のプリセット
-export const ViewOnlyBoardEmbed = createBoardEmbedPreset({
-  viewonly: true,
-  autoplay: true,
-  showUI: false,
-  allowFullscreen: true,
-});
-
-export const InteractiveBoardEmbed = createBoardEmbedPreset({
-  viewonly: false,
-  autoplay: true,
-  showUI: true,
-  allowFullscreen: true,
-});
